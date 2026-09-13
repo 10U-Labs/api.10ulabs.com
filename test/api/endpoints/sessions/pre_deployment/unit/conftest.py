@@ -13,11 +13,12 @@ def events_table_fixture() -> SimpleNamespace:
         if table.failing:
             raise ClientError({"Error": {"Code": "InternalServerError"}}, "BatchWriteItem")
         writes: List[Dict[str, Any]] = request["RequestItems"]["events"]
+        unprocessed: List[Dict[str, Any]] = []
         if table.refusals:
             table.refusals -= 1
-            return {"UnprocessedItems": {"events": writes[1:]} if len(writes) > 1 else {}}
+            writes, unprocessed = writes[:-1], writes[-1:]
         table.items.extend(write["PutRequest"]["Item"] for write in writes)
-        return {"UnprocessedItems": {}}
+        return {"UnprocessedItems": {"events": unprocessed} if unprocessed else {}}
 
     table.batch_write_item = batch_write_item
     return table
