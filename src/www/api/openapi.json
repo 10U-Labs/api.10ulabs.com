@@ -1,0 +1,125 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "10U Labs API",
+    "description": "API for 10U Labs services",
+    "version": "1.0.0",
+    "contact": {
+      "name": "10U Labs",
+      "url": "https://10ulabs.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.10ulabs.com",
+      "description": "Production API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "/health",
+      "description": "Health check endpoints"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Returns the health status of the API",
+        "operationId": "healthCheck",
+        "tags": [
+          "/health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "service",
+                    "version"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "10U Labs API"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.0"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${HealthHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
+    "/{proxy+}": {
+      "x-amazon-apigateway-any-method": {
+        "summary": "Catch-all for undefined routes",
+        "description": "Returns 404 for any undefined API endpoint",
+        "operationId": "catchAll",
+        "parameters": [
+          {
+            "name": "proxy",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Endpoint not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "message",
+                    "path"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Not Found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "The requested endpoint does not exist"
+                    },
+                    "path": {
+                      "type": "string",
+                      "example": "/invalid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CatchAllHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    }
+  }
+}

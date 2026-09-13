@@ -1,0 +1,336 @@
+---
+concurrency:
+  cancel-in-progress: false
+  group: api_common_identity-${{ github.ref }}
+env:
+  AWS_USE_FIPS_ENDPOINT: "true"
+jobs:
+  assert-no-comments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert nothing this repository publishes carries a comment
+        uses: 10U-Labs/assert-no-comments@latest
+        with:
+          trees: .
+          verbose: "true"
+  assert-no-inline-directives:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no inline lint disables
+        uses: 10U-Labs/assert-no-inline-directives@latest
+        with:
+          files: .
+          tools: mypy,pylint,yamllint
+          verbose: "true"
+  assert-no-linter-config-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no linter config files
+        uses: 10U-Labs/assert-no-linter-config-files@latest
+        with:
+          directories: .
+          linters: jscpd,mypy,pylint,pytest,yamllint
+          verbose: "true"
+  assert-no-pytest-plugin-declarations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no pytest plugin declarations
+        uses: 10U-Labs/assert-no-pytest-plugin-declarations@latest
+        with:
+          trees: test
+          verbose: "true"
+  assert-one-assert-per-pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert one assert per pytest
+        uses: 10U-Labs/assert-one-assert-per-pytest@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-opentofu-resource-is-used:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every OpenTofu resource is reached by something
+        uses: 10U-Labs/assert-opentofu-resource-is-used@latest
+        with:
+          directories: src/api/common/identity lib/opentofu/common
+          search-in: .
+          verbose: "true"
+  assert-pytest-class-holds-state:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest class holds state
+        uses: 10U-Labs/assert-pytest-class-holds-state@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-pytest-fixture-is-requested:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install boto3 pyyaml
+      - name: Assert every pytest fixture is asked for by something
+        uses: 10U-Labs/assert-pytest-fixture-is-requested@latest
+        with:
+          pytest-arguments: --confcutdir=test
+          trees: test
+          verbose: "true"
+  assert-pytest-fixture-name-is-needed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest fixture name is needed
+        uses: 10U-Labs/assert-pytest-fixture-name-is-needed@latest
+        with:
+          trees: test
+          verbose: "true"
+  assert-pytest-test-can-fail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest test can fail
+        uses: 10U-Labs/assert-pytest-test-can-fail@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-python-definition-is-used-in-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every definition in the tests is called
+        uses: 10U-Labs/assert-python-definition-is-used@latest
+        with:
+          assume-used-decorated-with: pytest.fixture
+          assume-used-matching: "test_*"
+          search-in: test
+          trees: test
+          verbose: "true"
+  copy-paste-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: npm install -g jscpd
+      - name: Detect copy-paste in the source
+        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console src/
+  copy-paste-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: npm install -g jscpd
+      - name: Detect copy-paste in the tests
+        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console test/
+  mypy-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install mypy
+      - name: Run mypy on the source
+        run: python3 -m mypy --strict --explicit-package-bases src/
+  mypy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install mypy boto3 pytest pyyaml types-PyYAML
+      - name: Run mypy on the tests
+        run: >-
+          python3 -m mypy --strict --explicit-package-bases
+          --ignore-missing-imports test/
+  opentofu-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Check the OpenTofu formatting
+        run: tofu fmt -check -diff -recursive src lib
+  opentofu-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Validate the stack
+        run: |
+          tofu -chdir=src/api/common/identity init -backend=false -input=false
+          tofu -chdir=src/api/common/identity validate
+  post-deployment-integration-tests:
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - reconciliation
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Install tools
+        run: pip install boto3 pytest
+      - name: Run the post-deployment integration tests against the deployment
+        run: >-
+          python3 -m pytest test/api/common/identity/post_deployment/integration/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+  pylint-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install pylint
+      - name: Run pylint on the source
+        run: >-
+          python3 -m pylint --recursive=y src/
+          --disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+          --fail-on=C,R,W --fail-under=10.0
+  pylint-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install pylint boto3 pytest pyyaml
+      - name: Run pylint on the tests
+        run: >-
+          python3 -m pylint --recursive=y test/
+          --disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+          --fail-on=C,R,W --fail-under=10.0
+  reconciliation:
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - assert-no-comments
+      - assert-no-inline-directives
+      - assert-no-linter-config-files
+      - assert-no-pytest-plugin-declarations
+      - assert-one-assert-per-pytest
+      - assert-opentofu-resource-is-used
+      - assert-pytest-class-holds-state
+      - assert-pytest-fixture-is-requested
+      - assert-pytest-fixture-name-is-needed
+      - assert-pytest-test-can-fail
+      - assert-python-definition-is-used-in-tests
+      - copy-paste-source
+      - copy-paste-tests
+      - mypy-source
+      - mypy-tests
+      - opentofu-format
+      - opentofu-validate
+      - pylint-source
+      - pylint-tests
+      - tflint
+      - unit-tests
+      - yamllint
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Reconcile the stack to its declared state
+        run: |
+          tofu -chdir=src/api/common/identity init -input=false
+          tofu -chdir=src/api/common/identity apply -auto-approve -input=false
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+      - name: Lint the stack
+        run: tflint --chdir=src/api/common/identity
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: pip install boto3 pytest pyyaml
+      - name: Run the unit tests
+        run: >-
+          python3 -m pytest test/api/common/identity/pre_deployment/unit/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Lint YAML
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              empty-lines: {max: 0, max-start: 0, max-end: 1}
+              key-ordering: enable
+              line-length: disable
+              new-line-at-end-of-file: enable
+              truthy: {allowed-values: ["true", "false", "on"]}
+          file_or_dir: .github/workflows/api_common_identity.yml
+          strict: "true"
+name: api_common_identity
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/**
+      - .github/workflows/api_common_identity.yml
+      - lib/opentofu/common/**
+      - src/api/common/identity/**
+      - test/api/common/identity/**
+      - test/conftest.py
+  workflow_dispatch: {}
+permissions:
+  contents: read

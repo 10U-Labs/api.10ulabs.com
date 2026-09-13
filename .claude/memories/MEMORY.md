@@ -10,6 +10,7 @@
   - [Workflows](#workflows)
   - [Cost](#cost)
   - [Writes](#writes)
+  - [Stacks](#stacks)
 
 ## Overview
 
@@ -43,3 +44,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Writes
 
 - [the-verbs-are-the-only-way-in](the-verbs-are-the-only-way-in.md) — no seed and no loader; a collection's workflow calls its HTTP verbs on a push to the data it serves, for what changed only
+
+### Stacks
+
+- [the-stacks-are-opentofu](the-stacks-are-opentofu.md) — every stack is OpenTofu, set up by `opentofu/setup-opentofu` and run as `tofu`; the shared module is `lib/opentofu/common`, and no path says `terraform` but the state bucket and key
