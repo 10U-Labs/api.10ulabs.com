@@ -7,6 +7,7 @@
   - [Commits](#commits)
   - [Tests](#tests)
   - [Verification](#verification)
+  - [Workflows](#workflows)
 
 ## Overview
 
@@ -27,3 +28,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Verification
 
 - [ci-is-the-source-of-truth](ci-is-the-source-of-truth.md) — nothing is verified locally; the change is done when every workflow that fired is green
+
+### Workflows
+
+- [an-assert-is-its-own-job](an-assert-is-its-own-job.md) — each `assert-*` check is a standalone job using its published `10U-Labs` action; linter jobs hold only the lint step; copy `10ulabs.com` for layout
