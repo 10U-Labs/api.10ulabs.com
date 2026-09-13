@@ -5,8 +5,8 @@ import pytest
 from botocore.exceptions import ClientError
 
 
-@pytest.fixture(name="table")
-def table_fixture() -> SimpleNamespace:
+@pytest.fixture(name="events_table")
+def events_table_fixture() -> SimpleNamespace:
     table = SimpleNamespace(items=[], failing=False, refusals=0)
 
     def batch_write_item(**request: Any) -> Dict[str, Any]:
@@ -15,7 +15,7 @@ def table_fixture() -> SimpleNamespace:
         writes: List[Dict[str, Any]] = request["RequestItems"]["events"]
         if table.refusals:
             table.refusals -= 1
-            return {"UnprocessedItems": {"events": writes[1:]}} if len(writes) > 1 else {}
+            return {"UnprocessedItems": {"events": writes[1:]} if len(writes) > 1 else {}}
         table.items.extend(write["PutRequest"]["Item"] for write in writes)
         return {"UnprocessedItems": {}}
 
@@ -27,11 +27,11 @@ def table_fixture() -> SimpleNamespace:
 def tracker(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
-    table: SimpleNamespace,
+    events_table: SimpleNamespace,
 ) -> ModuleType:
     handler = load_handler("api/endpoints/sessions", "lambda/tracker")
     monkeypatch.setenv("SESSION_EVENTS_TABLE", "events")
-    monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": table}[service])
+    monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": events_table}[service])
     monkeypatch.setattr(handler, "time", SimpleNamespace(sleep=lambda _: None))
     return handler
 

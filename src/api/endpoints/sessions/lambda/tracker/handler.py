@@ -76,7 +76,8 @@ def _write(items: List[Dict[str, Any]]) -> None:
     table = os.environ['SESSION_EVENTS_TABLE']
     pending = {table: [{'PutRequest': {'Item': item}} for item in items]}
     for attempt in range(WRITE_ATTEMPTS):
-        pending = aws_client('dynamodb').batch_write_item(RequestItems=pending)['UnprocessedItems']
+        written = aws_client('dynamodb').batch_write_item(RequestItems=pending)
+        pending = written.get('UnprocessedItems') or {}
         if not pending:
             return
         time.sleep(0.1 * 2 ** attempt)

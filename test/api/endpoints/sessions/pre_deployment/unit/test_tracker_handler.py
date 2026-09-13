@@ -26,10 +26,10 @@ def _body(tracker: ModuleType, event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def test_events_are_recorded(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
     _answer(tracker, _post(_request(events)))
-    assert [item["event_type"]["S"] for item in table.items] == ["page_view", "click"]
+    assert [item["event_type"]["S"] for item in events_table.items] == ["page_view", "click"]
 
 
 def test_recorded_events_answer_200(tracker: ModuleType, events: List[Dict[str, Any]]) -> None:
@@ -41,45 +41,45 @@ def test_the_answer_counts_the_events(tracker: ModuleType, events: List[Dict[str
 
 
 def test_an_event_is_recorded_under_its_session(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
     _answer(tracker, _post(_request(events), session_id="session-9"))
-    assert table.items[0]["session_id"]["S"] == "session-9"
+    assert events_table.items[0]["session_id"]["S"] == "session-9"
 
 
 def test_an_event_keeps_its_whole_payload(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
     _answer(tracker, _post(_request(events)))
-    assert json.loads(table.items[1]["event_data"]["S"]) == events[1]
+    assert json.loads(events_table.items[1]["event_data"]["S"]) == events[1]
 
 
 def test_the_session_context_is_recorded_with_each_event(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
     _answer(tracker, _post(_request(events, session_context={"referrer": "x"})))
-    assert json.loads(table.items[0]["session_context"]["S"]) == {"referrer": "x"}
+    assert json.loads(events_table.items[0]["session_context"]["S"]) == {"referrer": "x"}
 
 
 def test_unprocessed_events_are_written_again(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
-    table.refusals = 2
+    events_table.refusals = 2
     _answer(tracker, _post(_request(events)))
-    assert len(table.items) == 2
+    assert len(events_table.items) == 2
 
 
 def test_events_still_unprocessed_after_every_attempt_answer_500(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
-    table.refusals = 99
+    events_table.refusals = 99
     assert _answer(tracker, _post(_request(events)))["statusCode"] == 500
 
 
 def test_a_table_that_refuses_the_write_answers_500(
-    tracker: ModuleType, events: List[Dict[str, Any]], table: SimpleNamespace
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
 ) -> None:
-    table.failing = True
+    events_table.failing = True
     assert _answer(tracker, _post(_request(events)))["statusCode"] == 500
 
 

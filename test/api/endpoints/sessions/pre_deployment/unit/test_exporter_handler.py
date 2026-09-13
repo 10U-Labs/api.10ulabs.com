@@ -24,7 +24,7 @@ def test_the_export_is_dynamodb_json(exporter: ModuleType, exports: SimpleNamesp
 
 
 def test_the_answer_names_the_export(exporter: ModuleType) -> None:
-    assert _run(exporter)["body"]["export_arn"].endswith("/export/1")
+    assert _run(exporter)["body"]["export_arn"].endswith("export/1")
 
 
 def test_the_answer_names_the_path(exporter: ModuleType) -> None:
