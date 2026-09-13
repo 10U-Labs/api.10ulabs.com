@@ -1,0 +1,31 @@
+---
+name: markdownlint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/markdownlint.yml
+      - '**.md'
+
+jobs:
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install yamllint
+      - run: >-
+          yamllint --strict
+          -d '{extends: default, rules: {truthy: {check-keys: false}}}'
+          .github/workflows/markdownlint.yml
+
+  markdownlint:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: '**/*.md'
