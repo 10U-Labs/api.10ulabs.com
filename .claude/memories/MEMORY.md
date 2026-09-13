@@ -52,4 +52,4 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 ### Priority
 
-- [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com` and its apps may break, so a retirement there does what the issue proposes and chases no collateral
+- [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com` may go and stay red, its collateral is never fixed, and a CloudFront change it needs is applied by hand when its gates are red
