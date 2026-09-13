@@ -3,6 +3,10 @@ import re
 
 STATE_PREFIX = '"${local.state_bucket}/api.10ulabs.com/*"'
 ON_EVERY_RESOURCE = r'sid\s*=\s*"(\w+)"\s*actions\s*=\s*\[[^\]]*\]\s*resources = \["\*"\]'
+ATTACH_STATEMENT = (
+    r'"iam:AttachRolePolicy"\]\s*resources = \[local\.backup_roles\]\s*condition \{\s*'
+    r'test\s*=\s*"ForAnyValue:StringEquals"\s*variable = ("iam:PolicyARN")'
+)
 SUB_CONDITION = r'test\s*=\s*"StringEquals"\s*variable\s*=\s*"\$\{local\.issuer\}:sub"'
 
 
@@ -45,6 +49,7 @@ def test_only_the_actions_that_take_no_resource_are_granted_on_every_resource(ia
         "ListEveryFunctionToFindALeftover",
         "DescribeParametersToReadATier",
         "ReadIdentityVerificationOnTheArnSesEvaluatesItAgainst",
+        "MountTheVaultCapsuleThatTakesNoResource",
     }
 
 
@@ -56,8 +61,8 @@ def test_state_grant_stops_at_this_repository_prefix(iam_tf: str) -> None:
     assert STATE_PREFIX in iam_tf
 
 
-def test_no_stack_may_attach_a_managed_policy_to_a_handler_role(iam_tf: str) -> None:
-    assert '"iam:AttachRolePolicy"' not in iam_tf
+def test_a_managed_policy_attaches_only_under_a_policy_arn_condition(iam_tf: str) -> None:
+    assert re.findall(ATTACH_STATEMENT, iam_tf) == ['"iam:PolicyARN"']
 
 
 def test_the_role_may_rewrite_its_own_description(iam_tf: str) -> None:

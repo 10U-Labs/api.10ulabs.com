@@ -1,10 +1,12 @@
 import base64
 import json
+from types import SimpleNamespace
 from typing import Any, Dict
 
 import pytest
 
-from lambda_http import dispatch, json_response, parse_body
+import lambda_http
+from lambda_http import aws_client, dispatch, json_response, parse_body
 
 
 def _echo(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -53,3 +55,16 @@ def test_dispatch_answers_404_for_another_method() -> None:
 
 def test_dispatch_answers_404_for_an_event_naming_no_resource() -> None:
     assert dispatch({}, {('/a', 'POST'): _echo})['statusCode'] == 404
+
+
+def test_aws_client_asks_boto3_for_the_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    boto3 = SimpleNamespace(client=lambda service: f"a {service} client")
+    monkeypatch.setattr(lambda_http, "boto3", boto3)
+    monkeypatch.setattr(lambda_http, "_clients", {})
+    assert aws_client("sqs") == "a sqs client"
+
+
+def test_aws_client_keeps_the_client_it_made(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lambda_http, "boto3", SimpleNamespace(client=lambda service: object()))
+    monkeypatch.setattr(lambda_http, "_clients", {})
+    assert aws_client("sqs") is aws_client("sqs")

@@ -27,6 +27,10 @@
     {
       "name": "/v1/contact-submissions",
       "description": "Contact form submission endpoints"
+    },
+    {
+      "name": "/v1/rack-configurations",
+      "description": "Rack configuration endpoints"
     }
   ],
   "paths": {
@@ -361,6 +365,205 @@
                 "method.response.header.Access-Control-Allow-Origin": "'*'",
                 "method.response.header.Access-Control-Allow-Methods": "'POST,OPTIONS'",
                 "method.response.header.Access-Control-Allow-Headers": "'Content-Type,x-test-mode'"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rack-configurations": {
+      "post": {
+        "summary": "Save Rack Configuration",
+        "description": "Saves a rack configuration and returns a unique 9-character hash",
+        "operationId": "createRackConfiguration",
+        "tags": [
+          "/v1/rack-configurations"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "device_id",
+                  "configuration"
+                ],
+                "properties": {
+                  "device_id": {
+                    "type": "string"
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "required": [
+                      "rackHeight",
+                      "rackCount",
+                      "placedParts"
+                    ],
+                    "properties": {
+                      "rackHeight": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 42
+                      },
+                      "rackCount": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "placedParts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "integer"
+                            },
+                            "rackId": {
+                              "type": "integer"
+                            },
+                            "startSlot": {
+                              "type": "integer"
+                            },
+                            "customName": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "customColor": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "config_hash"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "config_hash": {
+                      "type": "string",
+                      "pattern": "^[0-9A-Z]{9}$"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${RackConfigurationsHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for rack configurations",
+        "description": "Handles CORS preflight requests",
+        "operationId": "createRackConfigurationOptions",
+        "tags": [
+          "/v1/rack-configurations"
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Methods": "'POST,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type'"
               }
             }
           }

@@ -11,6 +11,14 @@ locals {
   rest_apis    = "arn:aws:apigateway:${local.region}::/restapis"
   parameters   = "arn:aws:ssm:${local.region}:${local.account}:parameter/${local.product}/*"
   identities   = "arn:aws:ses:${local.region}:${local.account}:identity/*@${module.common.domain_name}"
+  tables       = "arn:aws:dynamodb:${local.region}:${local.account}:table/${local.product}-*"
+  vaults       = "arn:aws:backup:${local.region}:${local.account}:backup-vault:${local.product}-*"
+  plans        = "arn:aws:backup:${local.region}:${local.account}:backup-plan:*"
+  backup_roles = "arn:aws:iam::${local.account}:role/${local.product}-*-backup"
+  backup_policies = [
+    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
+    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores",
+  ]
   self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
 }
 
@@ -109,6 +117,30 @@ data "aws_iam_policy_document" "roles" {
   }
 
   statement {
+    sid       = "HandTheBackupRolesToBackupAlone"
+    actions   = ["iam:PassRole"]
+    resources = [local.backup_roles]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["backup.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid       = "AttachOnlyTheBackupPoliciesAndOnlyToTheBackupRoles"
+    actions   = ["iam:AttachRolePolicy"]
+    resources = [local.backup_roles]
+
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "iam:PolicyARN"
+      values   = local.backup_policies
+    }
+  }
+
+  statement {
     sid       = "LetApiGatewayAskForItsServiceRole"
     actions   = ["iam:CreateServiceLinkedRole"]
     resources = [local.gateway_role]
@@ -154,6 +186,61 @@ data "aws_iam_policy_document" "routing" {
   statement {
     sid       = "DescribeParametersToReadATier"
     actions   = ["ssm:DescribeParameters"]
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "storage" {
+  statement {
+    sid = "DeclareTheTables"
+    actions = [
+      "dynamodb:CreateTable",
+      "dynamodb:DeleteTable",
+      "dynamodb:DescribeTable",
+      "dynamodb:UpdateTable",
+      "dynamodb:DescribeContinuousBackups",
+      "dynamodb:UpdateContinuousBackups",
+      "dynamodb:DescribeTimeToLive",
+      "dynamodb:ListTagsOfResource",
+      "dynamodb:TagResource",
+      "dynamodb:UntagResource",
+    ]
+    resources = [local.tables]
+  }
+
+  statement {
+    sid = "DeclareTheBackupVaults"
+    actions = [
+      "backup:CreateBackupVault",
+      "backup:DeleteBackupVault",
+      "backup:DescribeBackupVault",
+      "backup:ListTags",
+      "backup:TagResource",
+      "backup:UntagResource",
+    ]
+    resources = [local.vaults]
+  }
+
+  statement {
+    sid = "DeclareTheBackupPlansAndSelections"
+    actions = [
+      "backup:CreateBackupPlan",
+      "backup:DeleteBackupPlan",
+      "backup:GetBackupPlan",
+      "backup:UpdateBackupPlan",
+      "backup:CreateBackupSelection",
+      "backup:DeleteBackupSelection",
+      "backup:GetBackupSelection",
+      "backup:ListTags",
+      "backup:TagResource",
+      "backup:UntagResource",
+    ]
+    resources = [local.plans]
+  }
+
+  statement {
+    sid       = "MountTheVaultCapsuleThatTakesNoResource"
+    actions   = ["backup-storage:MountCapsule"]
     resources = ["*"]
   }
 }
@@ -222,6 +309,12 @@ resource "aws_iam_role_policy" "routing" {
   name   = "Routing"
   role   = aws_iam_role.deploy.id
   policy = data.aws_iam_policy_document.routing.json
+}
+
+resource "aws_iam_role_policy" "storage" {
+  name   = "Storage"
+  role   = aws_iam_role.deploy.id
+  policy = data.aws_iam_policy_document.storage.json
 }
 
 resource "aws_iam_role_policy" "ses" {

@@ -49,7 +49,7 @@ def contact_handler(
     clients = {"ssm": ssm, "ses": ses}
     monkeypatch.setenv("CONTACT_EMAIL", "contact@example.com")
     monkeypatch.setenv("RECAPTCHA_SECRET_PARAMETER_NAME", "/example/recaptcha")
-    monkeypatch.setattr(handler, "boto3", SimpleNamespace(client=lambda service: clients[service]))
+    monkeypatch.setattr(handler, "aws_client", lambda service: clients[service])
     monkeypatch.setattr(
         handler, "urlopen", lambda *_, **__: io.BytesIO(json.dumps(recaptcha).encode("utf-8"))
     )

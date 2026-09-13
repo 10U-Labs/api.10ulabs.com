@@ -26,6 +26,11 @@ def lambda_client() -> Any:
     return boto3.client("lambda", region_name=REGION)
 
 
+@pytest.fixture(scope="session")
+def dynamodb_client() -> Any:
+    return boto3.client("dynamodb", region_name=REGION)
+
+
 @pytest.fixture(scope="session", name="api_id")
 def api_id_fixture(apigateway_client: Any) -> str:
     for api in apigateway_client.get_rest_apis(limit=500)["items"]:

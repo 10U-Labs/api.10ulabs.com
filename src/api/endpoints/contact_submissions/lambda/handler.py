@@ -7,10 +7,9 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-import boto3
 from botocore.exceptions import ClientError
 
-from lambda_http import dispatch, json_response, parse_body
+from lambda_http import aws_client, dispatch, json_response, parse_body
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,15 +25,6 @@ TEST_MODE_RESPONSE = {
     'message': 'Test mode - contact form not submitted',
     'test_mode': True
 }
-
-_clients: Dict[str, Any] = {}
-
-
-def _client(service: str) -> Any:
-    if service not in _clients:
-        _clients[service] = boto3.client(service)
-    return _clients[service]
-
 
 def _error(status_code: int, message: str) -> Dict[str, Any]:
     return json_response(status_code, {'success': False, 'error': message})
@@ -62,7 +52,7 @@ def _is_test_mode(event: Dict[str, Any]) -> bool:
 
 
 def _recaptcha_secret() -> str:
-    parameter = _client('ssm').get_parameter(
+    parameter = aws_client('ssm').get_parameter(
         Name=os.environ['RECAPTCHA_SECRET_PARAMETER_NAME'], WithDecryption=True
     )
     return str(parameter['Parameter']['Value'])
@@ -82,7 +72,7 @@ def _recaptcha_passes(token: str, secret: str) -> bool:
 def _send(fields: Dict[str, str]) -> None:
     recipient = os.environ['CONTACT_EMAIL']
     text = f"Name: {fields['name']}\nEmail: {fields['email']}\n\nMessage:\n{fields['message']}"
-    _client('ses').send_email(
+    aws_client('ses').send_email(
         Source=recipient,
         Destination={'ToAddresses': [recipient]},
         Message={

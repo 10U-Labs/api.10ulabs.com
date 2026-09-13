@@ -16,10 +16,11 @@ locals {
   }
 
   openapi_spec = templatefile("${path.module}/../../../www/api/openapi.json", {
-    CatchAllHandlerArn    = local.integration.catchall
-    ContactHandlerArn     = local.integration.contact
-    DiagnosticsHandlerArn = local.integration.diagnostics
-    HealthHandlerArn      = local.integration.health
+    CatchAllHandlerArn           = local.integration.catchall
+    ContactHandlerArn            = local.integration.contact
+    DiagnosticsHandlerArn        = local.integration.diagnostics
+    HealthHandlerArn             = local.integration.health
+    RackConfigurationsHandlerArn = local.integration.rack_configurations
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

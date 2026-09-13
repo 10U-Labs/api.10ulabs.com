@@ -334,7 +334,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install pytest pytest-cov
+        run: pip install boto3 pytest pytest-cov
       - name: Run the shared modules' tests with a full coverage gate
         run: >-
           python3 -m pytest test/lib/python/

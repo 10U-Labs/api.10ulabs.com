@@ -2,8 +2,18 @@ import base64
 import json
 from typing import Any, Callable, Dict, Mapping, Tuple
 
+import boto3
+
 Handler = Callable[[Dict[str, Any]], Dict[str, Any]]
 Route = Tuple[str, str]
+
+_clients: Dict[str, Any] = {}
+
+
+def aws_client(service: str) -> Any:
+    if service not in _clients:
+        _clients[service] = boto3.client(service)
+    return _clients[service]
 
 
 def json_response(status_code: int, body: Any) -> Dict[str, Any]:
