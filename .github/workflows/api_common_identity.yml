@@ -83,6 +83,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install boto3 pyyaml
       - name: Assert every pytest fixture is asked for by something
@@ -147,6 +151,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install mypy
       - name: Run mypy on the source
@@ -156,6 +164,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install mypy boto3 pytest pyyaml types-PyYAML
       - name: Run mypy on the tests
@@ -202,6 +214,10 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
@@ -214,6 +230,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install pylint
       - name: Run pylint on the source
@@ -226,6 +246,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install pylint boto3 pytest pyyaml
       - name: Run pylint on the tests
@@ -294,6 +318,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
       - name: Install tools
         run: pip install boto3 pytest pyyaml
       - name: Run the unit tests
