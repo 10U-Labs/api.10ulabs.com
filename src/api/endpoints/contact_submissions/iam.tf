@@ -46,9 +46,9 @@ resource "aws_iam_role_policy" "send_email" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect    = "Allow"
-      Action    = ["ses:SendEmail"]
-      Resource  = [aws_ses_email_identity.contact.arn]
+      Effect   = "Allow"
+      Action   = ["ses:SendEmail"]
+      Resource = [aws_ses_email_identity.contact.arn]
       Condition = {
         StringEquals = {
           "ses:FromAddress" = aws_ses_email_identity.contact.email
