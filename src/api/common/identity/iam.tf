@@ -15,6 +15,7 @@ locals {
   vaults       = "arn:aws:backup:${local.region}:${local.account}:backup-vault:${local.product}-*"
   plans        = "arn:aws:backup:${local.region}:${local.account}:backup-plan:*"
   backup_roles = "arn:aws:iam::${local.account}:role/${local.product}-*-backup"
+  backup_key   = "arn:aws:kms:${local.region}:${local.account}:key/481c2fb8-f0da-494c-910e-4b09da6dc5c3"
   self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
   backup_policies = [
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
@@ -242,6 +243,18 @@ data "aws_iam_policy_document" "storage" {
     sid       = "MountTheVaultCapsuleThatTakesNoResource"
     actions   = ["backup-storage:MountCapsule"]
     resources = ["*"]
+  }
+
+  statement {
+    sid = "SealTheVaultsWithTheBackupKey"
+    actions = [
+      "kms:CreateGrant",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey",
+      "kms:RetireGrant",
+    ]
+    resources = [local.backup_key]
   }
 }
 
