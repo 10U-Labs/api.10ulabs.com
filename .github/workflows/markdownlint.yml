@@ -1,31 +1,84 @@
 ---
+concurrency:
+  cancel-in-progress: true
+  group: markdownlint-${{ github.ref }}
+jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Restore pip cache
+        uses: actions/cache@v5
+        with:
+          key: >-
+            pip-${{ github.job }}-${{
+            hashFiles('.github/workflows/markdownlint.yml') }}
+          path: ~/.cache/pip
+          restore-keys: |
+            pip-${{ github.job }}-
+      - name: Install tools
+        run: |
+          npm install -g markdownlint-cli
+          pip install \
+            assert-no-inline-directives \
+            assert-no-linter-config-files
+      - name: Assert no inline markdownlint disables
+        run: >-
+          assert-no-inline-directives
+          --tools markdownlint
+          --verbose
+          ${{ github.workspace }}/**/*
+      - name: Assert no markdownlint config files
+        run: >-
+          assert-no-linter-config-files
+          --linters markdownlint
+          --verbose
+          ${{ github.workspace }}
+      - name: Lint Markdown
+        run: markdownlint '**/*.md' '.claude/**/*.md' --disable MD013
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Restore pip cache
+        uses: actions/cache@v5
+        with:
+          key: >-
+            pip-${{ github.job }}-${{
+            hashFiles('.github/workflows/markdownlint.yml') }}
+          path: ~/.cache/pip
+          restore-keys: |
+            pip-${{ github.job }}-
+      - name: Install tools
+        run: >-
+          pip install
+          assert-no-inline-directives
+          assert-no-linter-config-files
+          yamllint
+      - name: Assert no inline yamllint disables
+        run: >-
+          assert-no-inline-directives
+          --tools yamllint
+          --verbose
+          .github/workflows/markdownlint.yml
+      - name: Lint YAML
+        run: |
+          EMPTY='empty-lines: {max: 0, max-start: 0, max-end: 1}'
+          KEY='key-ordering: enable'
+          LL='line-length: disable'
+          NL='new-line-at-end-of-file: enable'
+          TR='truthy: {allowed-values: ["true", "false", "on"]}'
+          RULES="$EMPTY, $KEY, $LL, $NL, $TR"
+          yamllint --strict \
+            --config-data \
+            "{extends: default, rules: {$RULES}}" \
+            .github/workflows/markdownlint.yml
 name: markdownlint
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
+      - '**/*.md'
+      - .claude/**/*.md
       - .github/workflows/markdownlint.yml
-      - '**.md'
-
-jobs:
-  yamllint:
-    name: yamllint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pip install yamllint
-      - run: >-
-          yamllint --strict
-          -d '{extends: default, rules: {truthy: {check-keys: false}}}'
-          .github/workflows/markdownlint.yml
-
-  markdownlint:
-    name: markdownlint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v19
-        with:
-          globs: '**/*.md'
+  workflow_dispatch: {}
