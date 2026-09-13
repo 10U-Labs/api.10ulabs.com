@@ -3,64 +3,66 @@ concurrency:
   cancel-in-progress: true
   group: markdownlint-${{ github.ref }}
 jobs:
+  assert-no-inline-directives:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install \
+            assert-no-inline-directives
+      - name: Assert no inline lint disables
+        run: >-
+          assert-no-inline-directives
+          --tools markdownlint,yamllint
+          --verbose
+          .
+  assert-no-linter-config-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install \
+            assert-no-linter-config-files
+      - name: Assert no linter config files
+        run: >-
+          assert-no-linter-config-files
+          --linters markdownlint,yamllint
+          --verbose
+          .
   markdownlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Restore pip cache
-        uses: actions/cache@v5
-        with:
-          key: >-
-            pip-${{ github.job }}-${{
-            hashFiles('.github/workflows/markdownlint.yml') }}
-          path: ~/.cache/pip
-          restore-keys: |
-            pip-${{ github.job }}-
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install tools
-        run: |
-          npm install -g markdownlint-cli
-          pip install \
-            assert-no-inline-directives \
-            assert-no-linter-config-files
-      - name: Assert no inline markdownlint disables
-        run: >-
-          assert-no-inline-directives
-          --tools markdownlint
-          --verbose
-          ${{ github.workspace }}/**/*
-      - name: Assert no markdownlint config files
-        run: >-
-          assert-no-linter-config-files
-          --linters markdownlint
-          --verbose
-          ${{ github.workspace }}
+        run: npm install -g markdownlint-cli
       - name: Lint Markdown
         run: markdownlint '**/*.md' '.claude/**/*.md' --disable MD013
   yamllint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Restore pip cache
-        uses: actions/cache@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          key: >-
-            pip-${{ github.job }}-${{
-            hashFiles('.github/workflows/markdownlint.yml') }}
-          path: ~/.cache/pip
-          restore-keys: |
-            pip-${{ github.job }}-
-      - name: Install tools
-        run: >-
-          pip install
-          assert-no-inline-directives
-          assert-no-linter-config-files
-          yamllint
-      - name: Assert no inline yamllint disables
-        run: >-
-          assert-no-inline-directives
-          --tools yamllint
-          --verbose
-          .github/workflows/markdownlint.yml
+          python-version: '3.13'
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install \
+            yamllint
       - name: Lint YAML
         run: |
           EMPTY='empty-lines: {max: 0, max-start: 0, max-end: 1}'
@@ -76,9 +78,12 @@ jobs:
 name: markdownlint
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '**/*.md'
       - .claude/**/*.md
       - .github/workflows/markdownlint.yml
-  workflow_dispatch: {}
+  workflow_dispatch:
+permissions:
+  contents: read
