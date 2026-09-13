@@ -76,6 +76,7 @@ resource "aws_iam_role_policies_exclusive" "deploy" {
     aws_iam_role_policy.roles.name,
     aws_iam_role_policy.routing.name,
     aws_iam_role_policy.storage.name,
+    aws_iam_role_policy.schedules.name,
     aws_iam_role_policy.ses.name,
     aws_iam_role_policy.self.name,
   ]

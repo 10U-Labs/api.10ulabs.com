@@ -1,0 +1,443 @@
+---
+concurrency:
+  cancel-in-progress: false
+  group: api_endpoint_v1_sessions-${{ github.ref }}
+env:
+  AWS_USE_FIPS_ENDPOINT: "true"
+  MYPYPATH: lib/python
+  PYTHONPATH: lib/python
+jobs:
+  assert-no-comments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert nothing this repository publishes carries a comment
+        uses: 10U-Labs/assert-no-comments@latest
+        with:
+          trees: .
+          verbose: "true"
+  assert-no-inline-directives:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no inline lint disables
+        uses: 10U-Labs/assert-no-inline-directives@latest
+        with:
+          files: .
+          tools: mypy,pylint,yamllint
+          verbose: "true"
+  assert-no-linter-config-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no linter config files
+        uses: 10U-Labs/assert-no-linter-config-files@latest
+        with:
+          directories: .
+          linters: jscpd,mypy,pylint,pytest,yamllint
+          verbose: "true"
+  assert-no-pytest-plugin-declarations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert no pytest plugin declarations
+        uses: 10U-Labs/assert-no-pytest-plugin-declarations@latest
+        with:
+          trees: test
+          verbose: "true"
+  assert-one-assert-per-pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert one assert per pytest
+        uses: 10U-Labs/assert-one-assert-per-pytest@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-opentofu-resource-is-used:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every OpenTofu resource is reached by something
+        uses: 10U-Labs/assert-opentofu-resource-is-used@latest
+        with:
+          directories: src/api/endpoints/sessions lib/opentofu/common
+          search-in: .
+          verbose: "true"
+  assert-pytest-class-holds-state:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest class holds state
+        uses: 10U-Labs/assert-pytest-class-holds-state@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-pytest-fixture-is-requested:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pyyaml
+      - name: Assert every pytest fixture is asked for by something
+        uses: 10U-Labs/assert-pytest-fixture-is-requested@latest
+        with:
+          pytest-arguments: --confcutdir=test
+          trees: test
+          verbose: "true"
+  assert-pytest-fixture-name-is-needed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest fixture name is needed
+        uses: 10U-Labs/assert-pytest-fixture-name-is-needed@latest
+        with:
+          trees: test
+          verbose: "true"
+  assert-pytest-test-can-fail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every pytest test can fail
+        uses: 10U-Labs/assert-pytest-test-can-fail@latest
+        with:
+          files: test
+          verbose: "true"
+  assert-python-definition-is-used:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every definition in the source is named outside its own tests
+        uses: 10U-Labs/assert-python-definition-is-used@latest
+        with:
+          assume-used-matching: lambda_handler
+          dont-search-in: test/lib/python/{package}
+          search-in: src test lib/python
+          trees: src/api/endpoints/sessions/lambda lib/python
+          verbose: "true"
+  assert-python-definition-is-used-in-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Assert every definition in the tests is called
+        uses: 10U-Labs/assert-python-definition-is-used@latest
+        with:
+          assume-used-decorated-with: pytest.fixture
+          assume-used-matching: "test_*"
+          search-in: test
+          trees: test
+          verbose: "true"
+  copy-paste-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: npm install -g jscpd
+      - name: Detect copy-paste in the source
+        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console src/ lib/python/
+  copy-paste-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install tools
+        run: npm install -g jscpd
+      - name: Detect copy-paste in the tests
+        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console test/
+  mypy-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install mypy
+      - name: Run mypy on the source
+        run: >-
+          python3 -m mypy --strict --explicit-package-bases
+          --ignore-missing-imports src/ lib/python/
+  mypy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install mypy boto3 pytest pyyaml types-PyYAML
+      - name: Run mypy on the tests
+        run: >-
+          python3 -m mypy --strict --explicit-package-bases
+          --ignore-missing-imports test/
+  opentofu-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Check the OpenTofu formatting
+        run: tofu fmt -check -diff -recursive src lib
+  opentofu-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Validate the stack
+        run: |
+          tofu -chdir=src/api/endpoints/sessions init -backend=false -input=false
+          tofu -chdir=src/api/endpoints/sessions validate
+  post-deployment-integration-tests:
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - reconciliation
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pytest
+      - name: Run the post-deployment integration tests against the deployment
+        run: >-
+          python3 -m pytest test/api/endpoints/sessions/post_deployment/integration/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+  pylint-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install pylint boto3
+      - name: Run pylint on the source
+        run: >-
+          python3 -m pylint --recursive=y src/ lib/python/
+          --disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+          --fail-on=C,R,W --fail-under=10.0
+  pylint-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install pylint boto3 pytest pyyaml
+      - name: Run pylint on the tests
+        run: >-
+          python3 -m pylint --recursive=y test/
+          --disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+          --fail-on=C,R,W --fail-under=10.0
+  reconciliation:
+    if: >-
+      github.ref == 'refs/heads/main'
+      && needs.wait-for-api-common-identity.outputs.apply == 'true'
+      && needs.wait-for-api-common-routing.outputs.apply == 'true'
+    needs:
+      - assert-no-comments
+      - assert-no-inline-directives
+      - assert-no-linter-config-files
+      - assert-no-pytest-plugin-declarations
+      - assert-one-assert-per-pytest
+      - assert-opentofu-resource-is-used
+      - assert-pytest-class-holds-state
+      - assert-pytest-fixture-is-requested
+      - assert-pytest-fixture-name-is-needed
+      - assert-pytest-test-can-fail
+      - assert-python-definition-is-used
+      - assert-python-definition-is-used-in-tests
+      - copy-paste-source
+      - copy-paste-tests
+      - mypy-source
+      - mypy-tests
+      - opentofu-format
+      - opentofu-validate
+      - pylint-source
+      - pylint-tests
+      - test-repo-libraries
+      - tflint
+      - unit-tests
+      - wait-for-api-common-identity
+      - wait-for-api-common-routing
+      - yamllint
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: Reconcile the stack to its declared state
+        run: |
+          tofu -chdir=src/api/endpoints/sessions init -input=false
+          tofu -chdir=src/api/endpoints/sessions apply -auto-approve -input=false
+  test-repo-libraries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pytest pytest-cov
+      - name: Run the shared modules' tests with a full coverage gate
+        run: >-
+          python3 -m pytest test/lib/python/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+          --cov=lib/python --cov-branch --cov-report=term-missing --cov-fail-under=100
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+      - name: Lint the stack
+        run: tflint --chdir=src/api/endpoints/sessions
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pytest pyyaml
+      - name: Run the unit tests
+        run: >-
+          python3 -m pytest test/api/endpoints/sessions/pre_deployment/unit/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+  wait-for-api-common-identity:
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      apply: ${{ steps.wait.outputs.apply }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - id: wait
+        name: Wait for api_common_identity on this commit
+        uses: ./.github/actions/wait-for-workflow
+        with:
+          github_token: ${{ github.token }}
+          workflow: api_common_identity.yml
+  wait-for-api-common-routing:
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      apply: ${{ steps.wait.outputs.apply }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - id: wait
+        name: Wait for api_common_routing on this commit
+        uses: ./.github/actions/wait-for-workflow
+        with:
+          github_token: ${{ github.token }}
+          workflow: api_common_routing.yml
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Lint YAML
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              empty-lines: {max: 0, max-start: 0, max-end: 1}
+              key-ordering: enable
+              line-length: disable
+              new-line-at-end-of-file: enable
+              truthy: {allowed-values: ["true", "false", "on"]}
+          file_or_dir: .github/workflows/api_endpoint_v1_sessions.yml .github/actions/wait-for-workflow/action.yml
+          strict: "true"
+name: api_endpoint_v1_sessions
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/actions/wait-for-workflow/action.yml
+      - .github/workflows/api_endpoint_v1_sessions.yml
+      - lib/opentofu/common/**
+      - lib/python/**
+      - src/api/endpoints/sessions/**
+      - src/www/api/**
+      - test/api/conftest.py
+      - test/api/endpoints/sessions/**
+      - test/conftest.py
+      - test/lib/python/**
+  workflow_dispatch: {}
+permissions:
+  contents: read

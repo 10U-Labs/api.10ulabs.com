@@ -18,5 +18,5 @@ def openapi(repo_root: Path) -> Dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def catchall_handler(load_handler: Callable[[str], ModuleType]) -> ModuleType:
+def catchall_handler(load_handler: Callable[..., ModuleType]) -> ModuleType:
     return load_handler("api/common/routing")

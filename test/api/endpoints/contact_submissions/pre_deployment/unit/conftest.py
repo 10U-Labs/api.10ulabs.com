@@ -39,7 +39,7 @@ def recaptcha_fixture(request: pytest.FixtureRequest) -> Dict[str, Any]:
 
 @pytest.fixture
 def contact_handler(
-    load_handler: Callable[[str], ModuleType],
+    load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     ssm: SimpleNamespace,
     ses: SimpleNamespace,

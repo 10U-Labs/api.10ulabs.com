@@ -21,6 +21,7 @@ locals {
     DiagnosticsHandlerArn        = local.integration.diagnostics
     HealthHandlerArn             = local.integration.health
     RackConfigurationsHandlerArn = local.integration.rack_configurations
+    SessionsHandlerArn           = local.integration.sessions
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

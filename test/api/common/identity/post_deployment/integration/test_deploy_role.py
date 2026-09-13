@@ -18,7 +18,7 @@ def test_deploy_role_carries_no_managed_policy(attached_policies: list[Any]) -> 
     assert attached_policies == []
 
 
-def test_deploy_role_holds_the_seven_declared_policies(inline_policy_names: list[str]) -> None:
+def test_deploy_role_holds_the_eight_declared_policies(inline_policy_names: list[str]) -> None:
     assert inline_policy_names == [
-        "Functions", "Roles", "Routing", "Self", "Ses", "State", "Storage"
+        "Functions", "Roles", "Routing", "Schedules", "Self", "Ses", "State", "Storage"
     ]

@@ -41,5 +41,6 @@ output "lambda_handler_names" {
     diagnostics         = "api-10ulabs-com-diagnostics"
     health              = "api-10ulabs-com-health"
     rack_configurations = "api-10ulabs-com-rack-configurations"
+    sessions            = "api-10ulabs-com-sessions"
   }
 }

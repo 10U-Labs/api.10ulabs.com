@@ -15,6 +15,9 @@ locals {
   vaults       = "arn:aws:backup:${local.region}:${local.account}:backup-vault:${local.product}-*"
   plans        = "arn:aws:backup:${local.region}:${local.account}:backup-plan:*"
   backup_roles = "arn:aws:iam::${local.account}:role/${local.product}-*-backup"
+  buckets      = "arn:aws:s3:::${local.product}-*"
+  schedules    = "arn:aws:scheduler:${local.region}:${local.account}:schedule/default/${local.product}-*"
+  sched_roles  = "arn:aws:iam::${local.account}:role/${local.product}-*-scheduler"
   backup_key   = "arn:aws:kms:${local.region}:${local.account}:key/481c2fb8-f0da-494c-910e-4b09da6dc5c3"
   self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
   backup_policies = [
@@ -130,6 +133,18 @@ data "aws_iam_policy_document" "roles" {
   }
 
   statement {
+    sid       = "HandTheSchedulerRolesToSchedulerAlone"
+    actions   = ["iam:PassRole"]
+    resources = [local.sched_roles]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["scheduler.amazonaws.com"]
+    }
+  }
+
+  statement {
     sid       = "AttachOnlyTheBackupPoliciesAndOnlyToTheBackupRoles"
     actions   = ["iam:AttachRolePolicy"]
     resources = [local.backup_roles]
@@ -210,6 +225,34 @@ data "aws_iam_policy_document" "storage" {
   }
 
   statement {
+    sid = "DeclareTheBuckets"
+    actions = [
+      "s3:CreateBucket",
+      "s3:ListBucket",
+      "s3:ListBucketVersions",
+      "s3:GetAccelerateConfiguration",
+      "s3:GetBucketAcl",
+      "s3:GetBucketCORS",
+      "s3:GetBucketLogging",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:GetBucketPolicy",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:GetBucketRequestPayment",
+      "s3:GetBucketTagging",
+      "s3:PutBucketTagging",
+      "s3:GetBucketVersioning",
+      "s3:PutBucketVersioning",
+      "s3:GetBucketWebsite",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetLifecycleConfiguration",
+      "s3:PutLifecycleConfiguration",
+      "s3:GetReplicationConfiguration",
+    ]
+    resources = [local.buckets]
+  }
+
+  statement {
     sid = "DeclareTheBackupVaults"
     actions = [
       "backup:CreateBackupVault",
@@ -255,6 +298,22 @@ data "aws_iam_policy_document" "storage" {
       "kms:RetireGrant",
     ]
     resources = [local.backup_key]
+  }
+}
+
+data "aws_iam_policy_document" "schedules" {
+  statement {
+    sid = "DeclareTheSchedules"
+    actions = [
+      "scheduler:CreateSchedule",
+      "scheduler:DeleteSchedule",
+      "scheduler:GetSchedule",
+      "scheduler:UpdateSchedule",
+      "scheduler:ListTagsForResource",
+      "scheduler:TagResource",
+      "scheduler:UntagResource",
+    ]
+    resources = [local.schedules]
   }
 }
 
@@ -328,6 +387,12 @@ resource "aws_iam_role_policy" "storage" {
   name   = "Storage"
   role   = aws_iam_role.deploy.id
   policy = data.aws_iam_policy_document.storage.json
+}
+
+resource "aws_iam_role_policy" "schedules" {
+  name   = "Schedules"
+  role   = aws_iam_role.deploy.id
+  policy = data.aws_iam_policy_document.schedules.json
 }
 
 resource "aws_iam_role_policy" "ses" {

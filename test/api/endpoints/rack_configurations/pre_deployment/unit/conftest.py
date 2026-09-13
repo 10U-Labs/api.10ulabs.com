@@ -29,7 +29,7 @@ def table_fixture() -> SimpleNamespace:
 
 @pytest.fixture
 def rack_handler(
-    load_handler: Callable[[str], ModuleType],
+    load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     table: SimpleNamespace,
 ) -> ModuleType:
