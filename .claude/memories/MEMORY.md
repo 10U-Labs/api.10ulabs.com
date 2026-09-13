@@ -1,0 +1,29 @@
+# Notes for Claude sessions in api.10ulabs.com
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Conventions](#conventions)
+  - [Commits](#commits)
+  - [Tests](#tests)
+  - [Verification](#verification)
+
+## Overview
+
+This directory is the rulebook. One memory holds one rule, so a session can recall the one it needs without reading the rest, and each file carries the reasoning behind its rule rather than only the instruction. This index is read at the start of every session and the memories themselves are recalled by relevance, so each line below says enough to know whether the file behind it is the one to open. A convention learned in a session belongs here, as a new memory and a line in this index.
+
+## Conventions
+
+### Commits
+
+- [commit-straight-to-main](commit-straight-to-main.md) — direct commits to `main`, no feature branch and no pull request
+- [a-rejected-push-is-fixed-forward](a-rejected-push-is-fixed-forward.md) — a red run is answered with a follow-up commit, never an amend and force-push
+- [an-issue-is-closed-by-its-commit](an-issue-is-closed-by-its-commit.md) — a `Closes #N` line in the commit that solves it, one line per issue; naming an issue in prose references it without closing it
+
+### Tests
+
+- [write-the-test-first](write-the-test-first.md) — the test is authored before the code, and red and green are observed in CI
+
+### Verification
+
+- [ci-is-the-source-of-truth](ci-is-the-source-of-truth.md) — nothing is verified locally; the change is done when every workflow that fired is green
