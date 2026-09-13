@@ -9,7 +9,7 @@
   - [Verification](#verification)
   - [Workflows](#workflows)
   - [Cost](#cost)
-  - [Loaders](#loaders)
+  - [Writes](#writes)
 
 ## Overview
 
@@ -40,6 +40,6 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [the-cheapest-backend-wins](the-cheapest-backend-wins.md) — a backend is chosen by its monthly cost alone, to the fraction of a cent; provisioned DynamoDB inside the always-free tier costs nothing, S3 never does
 
-### Loaders
+### Writes
 
-- [a-loader-per-collection](a-loader-per-collection.md) — no seed; each collection's loader sits beside its endpoint and runs on a push to the data it serves, loading only what changed
+- [the-verbs-are-the-only-way-in](the-verbs-are-the-only-way-in.md) — no seed and no loader; a collection's workflow calls its HTTP verbs on a push to the data it serves, for what changed only
