@@ -143,6 +143,7 @@ data "aws_iam_policy_document" "self" {
     actions = [
       "iam:GetRole",
       "iam:UpdateRole",
+      "iam:UpdateRoleDescription",
       "iam:UpdateAssumeRolePolicy",
       "iam:ListRolePolicies",
       "iam:GetRolePolicy",

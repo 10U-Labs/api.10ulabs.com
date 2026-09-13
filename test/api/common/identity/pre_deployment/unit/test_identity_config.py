@@ -45,3 +45,7 @@ def test_state_grant_stops_at_this_repository_prefix(iam_tf: str) -> None:
 
 def test_no_stack_may_attach_a_managed_policy_to_a_handler_role(iam_tf: str) -> None:
     assert '"iam:AttachRolePolicy"' not in iam_tf
+
+
+def test_the_role_may_rewrite_its_own_description(iam_tf: str) -> None:
+    assert '"iam:UpdateRoleDescription"' in iam_tf
