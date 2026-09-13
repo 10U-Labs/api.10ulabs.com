@@ -16,8 +16,8 @@ def iam_client() -> Any:
     return boto3.client("iam", region_name=REGION)
 
 
-@pytest.fixture(scope="session")
-def apigateway_client() -> Any:
+@pytest.fixture(scope="session", name="apigateway_client")
+def apigateway_client_fixture() -> Any:
     return boto3.client("apigateway", region_name=REGION)
 
 
