@@ -21,7 +21,7 @@ Create seven jobs with `CronCreate`, exactly as listed below. Use `recurring: tr
 | :03 | `3,13,23,33,43,53 * * * *` | `REMINDER: Issues must be solved through a single commit & push.` |
 | :04 | `4,14,24,34,44,54 * * * *` | `REMINDER: Issues must be solved through a set of indivisible tasks, written down with TaskCreate before the work starts and marked with TaskUpdate as each one starts and finishes.` |
 | :05 | `5,15,25,35,45,55 * * * *` | `REMINDER: Keep the task list itself current, not only the marks on it: a task that arises is added the moment it does, a task that turns out unneeded is removed, and a task whose shape changed is rewritten, so that the list always says what is left to do.` |
-| :06 | `6,16,26,36,46,56 * * * *` | `REMINDER: Ensure the tasks you wrote with TaskCreate are indivisible.` |
+| :06 | `6,16,26,36,46,56 * * * *` | `REMINDER: Ensure every task on the list is indivisible, whether it was written with TaskCreate or rewritten with TaskUpdate.` |
 | :07 | `7,17,27,37,47,57 * * * *` | `REMINDER: Do not do anything but wait while a workflow is running.` |
 | :09 | `9,19,29,39,49,59 * * * *` | `REMINDER: When you come up against a problem, solve it. Do not file a GitHub issue about it and move on — a problem you met is a problem you fix, in the same session, under the same standing rules as the issue you were working on.` |
 
