@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: api_operational_health-${{ github.ref }}
+  group: api_endpoint_v1_contact_submissions-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -67,7 +67,7 @@ jobs:
       - name: Assert every OpenTofu resource is reached by something
         uses: 10U-Labs/assert-opentofu-resource-is-used@latest
         with:
-          directories: src/api/operational/health lib/opentofu/common
+          directories: src/api/endpoints/contact_submissions lib/opentofu/common
           search-in: .
           verbose: "true"
   assert-pytest-class-holds-state:
@@ -128,7 +128,7 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: src/api/operational/health/lambda lib/python
+          trees: src/api/endpoints/contact_submissions/lambda lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -213,8 +213,8 @@ jobs:
           tofu_wrapper: false
       - name: Validate the stack
         run: |
-          tofu -chdir=src/api/operational/health init -backend=false -input=false
-          tofu -chdir=src/api/operational/health validate
+          tofu -chdir=src/api/endpoints/contact_submissions init -backend=false -input=false
+          tofu -chdir=src/api/endpoints/contact_submissions validate
   post-deployment-integration-tests:
     if: github.ref == 'refs/heads/main'
     needs:
@@ -239,7 +239,7 @@ jobs:
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
         run: >-
-          python3 -m pytest test/api/operational/health/post_deployment/integration/
+          python3 -m pytest test/api/endpoints/contact_submissions/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   pylint-source:
@@ -322,10 +322,12 @@ jobs:
         uses: opentofu/setup-opentofu@v2
         with:
           tofu_wrapper: false
-      - name: Reconcile the stack to its declared state
+      - env:
+          TF_VAR_recaptcha_secret_key: ${{ secrets.RECAPTCHA_SECRET_KEY }}
+        name: Reconcile the stack to its declared state
         run: |
-          tofu -chdir=src/api/operational/health init -input=false
-          tofu -chdir=src/api/operational/health apply -auto-approve -input=false
+          tofu -chdir=src/api/endpoints/contact_submissions init -input=false
+          tofu -chdir=src/api/endpoints/contact_submissions apply -auto-approve -input=false
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -353,7 +355,7 @@ jobs:
         with:
           tflint_version: latest
       - name: Lint the stack
-        run: tflint --chdir=src/api/operational/health
+        run: tflint --chdir=src/api/endpoints/contact_submissions
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -367,7 +369,7 @@ jobs:
         run: pip install boto3 pytest pyyaml
       - name: Run the unit tests
         run: >-
-          python3 -m pytest test/api/operational/health/pre_deployment/unit/
+          python3 -m pytest test/api/endpoints/contact_submissions/pre_deployment/unit/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   wait-for-api-common-identity:
@@ -420,22 +422,22 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/api_operational_health.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/api_endpoint_v1_contact_submissions.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: api_operational_health
+name: api_endpoint_v1_contact_submissions
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/api_operational_health.yml
+      - .github/workflows/api_endpoint_v1_contact_submissions.yml
       - lib/opentofu/common/**
       - lib/python/**
-      - src/api/operational/health/**
+      - src/api/endpoints/contact_submissions/**
       - src/www/api/**
       - test/api/conftest.py
-      - test/api/operational/health/**
+      - test/api/endpoints/contact_submissions/**
       - test/conftest.py
       - test/lib/python/**
   workflow_dispatch: {}

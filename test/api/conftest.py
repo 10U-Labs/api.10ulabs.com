@@ -53,9 +53,19 @@ def get_json() -> Callable[[str], Tuple[int, Dict[str, Any]]]:
 
 
 @pytest.fixture(scope="session")
-def post_json() -> Callable[[str, Any], Tuple[int, Dict[str, Any]]]:
-    def post(url: str, body: Any) -> Tuple[int, Dict[str, Any]]:
+def post_json() -> Callable[..., Tuple[int, Dict[str, Any]]]:
+    def post(
+        url: str, body: Any, headers: Dict[str, str] | None = None
+    ) -> Tuple[int, Dict[str, Any]]:
         data = json.dumps(body).encode("utf-8")
-        headers = {"Content-Type": "application/json"}
-        return _answer(Request(url, data=data, headers=headers, method="POST"))
+        sent = {"Content-Type": "application/json", **(headers or {})}
+        return _answer(Request(url, data=data, headers=sent, method="POST"))
     return post
+
+
+@pytest.fixture(scope="session")
+def preflight() -> Callable[[str], Dict[str, str]]:
+    def options(url: str) -> Dict[str, str]:
+        with urlopen(Request(url, method="OPTIONS"), timeout=10) as response:
+            return {key.lower(): value for key, value in response.headers.items()}
+    return options

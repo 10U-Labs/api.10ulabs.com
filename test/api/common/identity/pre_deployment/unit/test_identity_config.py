@@ -2,6 +2,7 @@ import os
 import re
 
 STATE_PREFIX = '"${local.state_bucket}/api.10ulabs.com/*"'
+ON_EVERY_RESOURCE = r'sid\s*=\s*"(\w+)"\s*actions\s*=\s*\[[^\]]*\]\s*resources = \["\*"\]'
 SUB_CONDITION = r'test\s*=\s*"StringEquals"\s*variable\s*=\s*"\$\{local\.issuer\}:sub"'
 
 
@@ -35,8 +36,20 @@ def test_exclusive_policies_name_every_declared_policy(main_tf: str, iam_tf: str
     assert _exclusive_policies(main_tf) == _declared_policies(iam_tf)
 
 
-def test_only_listing_functions_is_granted_on_every_resource(iam_tf: str) -> None:
-    assert iam_tf.count('resources = ["*"]') == 1
+def _statements_on_every_resource(iam_tf: str) -> set[str]:
+    return set(re.findall(ON_EVERY_RESOURCE, iam_tf))
+
+
+def test_only_the_actions_that_take_no_resource_are_granted_on_every_resource(iam_tf: str) -> None:
+    assert _statements_on_every_resource(iam_tf) == {
+        "ListEveryFunctionToFindALeftover",
+        "DescribeParametersToReadATier",
+        "ReadIdentityVerificationOnTheArnSesEvaluatesItAgainst",
+    }
+
+
+def test_every_statement_on_every_resource_is_counted(iam_tf: str) -> None:
+    assert iam_tf.count('resources = ["*"]') == len(_statements_on_every_resource(iam_tf))
 
 
 def test_state_grant_stops_at_this_repository_prefix(iam_tf: str) -> None:

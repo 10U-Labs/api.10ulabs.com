@@ -9,6 +9,8 @@ locals {
   lambda_roles = "arn:aws:iam::${local.account}:role/${local.product}-*"
   gateway_role = "arn:aws:iam::${local.account}:role/aws-service-role/ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway"
   rest_apis    = "arn:aws:apigateway:${local.region}::/restapis"
+  parameters   = "arn:aws:ssm:${local.region}:${local.account}:parameter/${local.product}/*"
+  identities   = "arn:aws:ses:${local.region}:${local.account}:identity/*@${module.common.domain_name}"
   self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
 }
 
@@ -135,6 +137,39 @@ data "aws_iam_policy_document" "routing" {
       "arn:aws:apigateway:${local.region}::/tags/*",
     ]
   }
+
+  statement {
+    sid = "KeepTheProductsParameters"
+    actions = [
+      "ssm:PutParameter",
+      "ssm:GetParameter",
+      "ssm:DeleteParameter",
+      "ssm:ListTagsForResource",
+      "ssm:AddTagsToResource",
+      "ssm:RemoveTagsFromResource",
+    ]
+    resources = [local.parameters]
+  }
+
+  statement {
+    sid       = "DescribeParametersToReadATier"
+    actions   = ["ssm:DescribeParameters"]
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "ses" {
+  statement {
+    sid       = "DeclareTheSendingIdentities"
+    actions   = ["ses:VerifyEmailIdentity", "ses:DeleteIdentity"]
+    resources = [local.identities]
+  }
+
+  statement {
+    sid       = "ReadIdentityVerificationOnTheArnSesEvaluatesItAgainst"
+    actions   = ["ses:GetIdentityVerificationAttributes"]
+    resources = ["*"]
+  }
 }
 
 data "aws_iam_policy_document" "self" {
@@ -187,6 +222,12 @@ resource "aws_iam_role_policy" "routing" {
   name   = "Routing"
   role   = aws_iam_role.deploy.id
   policy = data.aws_iam_policy_document.routing.json
+}
+
+resource "aws_iam_role_policy" "ses" {
+  name   = "Ses"
+  role   = aws_iam_role.deploy.id
+  policy = data.aws_iam_policy_document.ses.json
 }
 
 resource "aws_iam_role_policy" "self" {

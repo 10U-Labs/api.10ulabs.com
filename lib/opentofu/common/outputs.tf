@@ -18,6 +18,11 @@ output "product" {
   value       = "api-10ulabs-com"
 }
 
+output "domain_name" {
+  description = "The domain the API and the addresses it sends from live under."
+  value       = "10ulabs.com"
+}
+
 output "api_name" {
   description = "The REST API's name, and the host it is served as."
   value       = "api.10ulabs.com"
@@ -32,6 +37,7 @@ output "lambda_handler_names" {
   description = "Deterministic Lambda function names, one per handler, which the routing stack composes into integration URIs."
   value = {
     catchall    = "api-10ulabs-com-catchall"
+    contact     = "api-10ulabs-com-contact"
     diagnostics = "api-10ulabs-com-diagnostics"
     health      = "api-10ulabs-com-health"
   }
