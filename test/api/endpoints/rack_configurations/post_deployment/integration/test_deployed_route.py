@@ -35,6 +35,30 @@ def test_the_preflight_allows_any_origin_through_the_deployed_api(
     assert headers["access-control-allow-origin"] == "*"
 
 
+def test_a_stored_configuration_is_read_back_through_the_deployed_api(
+    stage_url: str,
+    post_json: Callable[..., Tuple[int, Dict[str, Any]]],
+    get_json: Callable[[str], Tuple[int, Dict[str, Any]]],
+) -> None:
+    _, stored = post_json(f"{stage_url}/v1/rack-configurations", SUBMISSION)
+    _, read = get_json(f"{stage_url}/v1/rack-configurations/{stored['config_hash']}")
+    assert read["configuration"] == SUBMISSION["configuration"]
+
+
+def test_an_unknown_hash_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[[str], Tuple[int, Dict[str, Any]]]
+) -> None:
+    status, _ = get_json(f"{stage_url}/v1/rack-configurations/ZZZZZZZZZ")
+    assert status == 404
+
+
+def test_the_read_preflight_allows_any_origin_through_the_deployed_api(
+    stage_url: str, preflight: Callable[[str], Dict[str, str]]
+) -> None:
+    headers = preflight(f"{stage_url}/v1/rack-configurations/ZZZZZZZZZ")
+    assert headers["access-control-allow-origin"] == "*"
+
+
 def test_the_table_is_provisioned_inside_the_free_allowance(dynamodb_client: Any) -> None:
     table = dynamodb_client.describe_table(TableName=TABLE_NAME)["Table"]
     throughput = table["ProvisionedThroughput"]

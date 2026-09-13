@@ -12,6 +12,11 @@ def _post(body: Any) -> Dict[str, Any]:
     return {"resource": RACK_CONFIGURATIONS, "httpMethod": "POST", "body": raw}
 
 
+def _get(config_hash: str) -> Dict[str, Any]:
+    return {"resource": RACK_CONFIGURATIONS + "/{config_hash}", "httpMethod": "GET",
+            "pathParameters": {"config_hash": config_hash}}
+
+
 def _submission(configuration: Any, **extra: Any) -> Dict[str, Any]:
     return {"device_id": "device-1", "configuration": configuration, **extra}
 
@@ -138,3 +143,38 @@ def test_every_answer_allows_any_origin(rack_handler: ModuleType) -> None:
 def test_another_resource_answers_404(rack_handler: ModuleType) -> None:
     response = _answer(rack_handler, {"resource": "/other", "httpMethod": "GET"})
     assert response["statusCode"] == 404
+
+
+def test_a_stored_configuration_is_read_back(
+    rack_handler: ModuleType, configuration: Dict[str, Any]
+) -> None:
+    config_hash = _body(rack_handler, _post(_submission(configuration)))["config_hash"]
+    assert _body(rack_handler, _get(config_hash))["configuration"] == configuration
+
+
+def test_a_read_answers_200(rack_handler: ModuleType, configuration: Dict[str, Any]) -> None:
+    config_hash = _body(rack_handler, _post(_submission(configuration)))["config_hash"]
+    assert _answer(rack_handler, _get(config_hash))["statusCode"] == 200
+
+
+def test_a_read_names_the_hash(rack_handler: ModuleType, configuration: Dict[str, Any]) -> None:
+    config_hash = _body(rack_handler, _post(_submission(configuration)))["config_hash"]
+    assert _body(rack_handler, _get(config_hash))["config_hash"] == config_hash
+
+
+def test_an_unknown_hash_answers_404(rack_handler: ModuleType) -> None:
+    assert _answer(rack_handler, _get("ZZZZZZZZZ"))["statusCode"] == 404
+
+
+def test_an_unknown_hash_says_so(rack_handler: ModuleType) -> None:
+    assert _body(rack_handler, _get("ZZZZZZZZZ"))["error"] == "Configuration not found"
+
+
+@pytest.mark.parametrize("config_hash", ["", "short", "lowercase", "TOOLONGHASH", "ABCDEFGH!"])
+def test_a_malformed_hash_answers_400(rack_handler: ModuleType, config_hash: str) -> None:
+    assert _answer(rack_handler, _get(config_hash))["statusCode"] == 400
+
+
+def test_a_read_without_a_hash_answers_400(rack_handler: ModuleType) -> None:
+    event = {**_get("ABCDEFGHI"), "pathParameters": None}
+    assert _answer(rack_handler, event)["statusCode"] == 400

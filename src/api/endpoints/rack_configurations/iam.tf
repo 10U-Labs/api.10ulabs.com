@@ -33,7 +33,7 @@ resource "aws_iam_role_policy" "configurations" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["dynamodb:PutItem"]
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem"]
       Resource = [aws_dynamodb_table.configurations.arn]
     }]
   })

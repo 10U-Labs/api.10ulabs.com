@@ -42,7 +42,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Rack configurations endpoint: store a configuration under its hash."
+  description      = "Rack configurations endpoint: store a configuration under its hash and read it back by it."
 
   environment {
     variables = {

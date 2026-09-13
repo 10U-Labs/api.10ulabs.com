@@ -569,6 +569,160 @@
           }
         }
       }
+    },
+    "/v1/rack-configurations/{config_hash}": {
+      "get": {
+        "summary": "Load Rack Configuration",
+        "description": "Loads a rack configuration by its unique hash",
+        "operationId": "getRackConfiguration",
+        "tags": [
+          "/v1/rack-configurations"
+        ],
+        "parameters": [
+          {
+            "name": "config_hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9A-Z]{9}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration loaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "config_hash",
+                    "configuration"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "config_hash": {
+                      "type": "string"
+                    },
+                    "configuration": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid hash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Configuration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${RackConfigurationsHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for a rack configuration",
+        "description": "Handles CORS preflight requests",
+        "operationId": "getRackConfigurationOptions",
+        "tags": [
+          "/v1/rack-configurations"
+        ],
+        "parameters": [
+          {
+            "name": "config_hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type'"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

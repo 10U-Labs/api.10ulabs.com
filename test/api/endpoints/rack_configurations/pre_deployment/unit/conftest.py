@@ -17,7 +17,13 @@ def table_fixture() -> SimpleNamespace:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "PutItem")
         table.items.append(request["Item"])
 
+    def get_item(**request: Any) -> Dict[str, Any]:
+        wanted = request["Key"]["config_hash"]["S"]
+        found = [item for item in table.items if item["config_hash"]["S"] == wanted]
+        return {"Item": found[0]} if found else {}
+
     table.put_item = put_item
+    table.get_item = get_item
     return table
 
 
