@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: api_endpoint_v1_contact_submissions-${{ github.ref }}
+  group: api_endpoint_contact_submissions-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -422,16 +422,16 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/api_endpoint_v1_contact_submissions.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/api_endpoint_contact_submissions.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: api_endpoint_v1_contact_submissions
+name: api_endpoint_contact_submissions
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/api_endpoint_v1_contact_submissions.yml
+      - .github/workflows/api_endpoint_contact_submissions.yml
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/contact_submissions/**

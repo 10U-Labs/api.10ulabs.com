@@ -14,28 +14,28 @@ SUBMISSION = {
 def test_a_test_mode_submission_answers_200_through_the_deployed_api(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    status, _ = post_json(f"{stage_url}/v1/contact-submissions", SUBMISSION, TEST_MODE)
+    status, _ = post_json(f"{stage_url}/contact-submissions", SUBMISSION, TEST_MODE)
     assert status == 200
 
 
 def test_a_test_mode_submission_is_not_sent_through_the_deployed_api(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    _, body = post_json(f"{stage_url}/v1/contact-submissions", SUBMISSION, TEST_MODE)
+    _, body = post_json(f"{stage_url}/contact-submissions", SUBMISSION, TEST_MODE)
     assert body["test_mode"] is True
 
 
 def test_a_submission_missing_its_name_answers_400_through_the_deployed_api(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    status, _ = post_json(f"{stage_url}/v1/contact-submissions", {**SUBMISSION, "name": ""})
+    status, _ = post_json(f"{stage_url}/contact-submissions", {**SUBMISSION, "name": ""})
     assert status == 400
 
 
 def test_the_preflight_allows_any_origin_through_the_deployed_api(
     stage_url: str, preflight: Callable[[str], Dict[str, str]]
 ) -> None:
-    headers = preflight(f"{stage_url}/v1/contact-submissions")
+    headers = preflight(f"{stage_url}/contact-submissions")
     assert headers["access-control-allow-origin"] == "*"
 
 

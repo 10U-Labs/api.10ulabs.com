@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import pytest
 
-CONTACT = "/v1/contact-submissions"
+CONTACT = "/contact-submissions"
 TEST_MODE = {"x-test-mode": "true"}
 
 

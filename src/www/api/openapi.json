@@ -25,7 +25,7 @@
       "description": "Health check endpoints"
     },
     {
-      "name": "/v1/contact-submissions",
+      "name": "/contact-submissions",
       "description": "Contact form submission endpoints"
     },
     {
@@ -209,13 +209,13 @@
         }
       }
     },
-    "/v1/contact-submissions": {
+    "/contact-submissions": {
       "post": {
         "summary": "Submit Contact Form",
         "description": "Submits a contact form request with reCAPTCHA verification",
         "operationId": "submitContactSubmission",
         "tags": [
-          "/v1/contact-submissions"
+          "/contact-submissions"
         ],
         "requestBody": {
           "required": true,
@@ -333,7 +333,7 @@
         "description": "Handles CORS preflight requests",
         "operationId": "contactSubmissionOptions",
         "tags": [
-          "/v1/contact-submissions"
+          "/contact-submissions"
         ],
         "responses": {
           "200": {

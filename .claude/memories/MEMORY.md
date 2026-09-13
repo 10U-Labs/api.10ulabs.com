@@ -12,6 +12,7 @@
   - [Writes](#writes)
   - [Stacks](#stacks)
   - [Priority](#priority)
+  - [Paths](#paths)
 
 ## Overview
 
@@ -54,3 +55,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Priority
 
 - [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com` may go and stay red, its collateral is never fixed, and a CloudFront change it needs is applied by hand when its gates are red
+
+### Paths
+
+- [no-v1-in-any-api-or-url](no-v1-in-any-api-or-url.md) — no `v1` in any API nor URL; a route `10ulabs.com` served under `/v1/` is served here without it

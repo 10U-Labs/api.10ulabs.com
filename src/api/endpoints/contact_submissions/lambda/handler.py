@@ -118,6 +118,6 @@ def _submit(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
-    response = dispatch(event, {('/v1/contact-submissions', 'POST'): _submit})
+    response = dispatch(event, {('/contact-submissions', 'POST'): _submit})
     response['headers'].update(CORS_HEADERS)
     return response
