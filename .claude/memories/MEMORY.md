@@ -11,6 +11,7 @@
   - [Cost](#cost)
   - [Writes](#writes)
   - [Stacks](#stacks)
+  - [Priority](#priority)
 
 ## Overview
 
@@ -48,3 +49,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Stacks
 
 - [the-stacks-are-opentofu](the-stacks-are-opentofu.md) — every stack is OpenTofu, set up by `opentofu/setup-opentofu` and run as `tofu`; the shared module is `lib/opentofu/common`, and no path says `terraform` but the state bucket and key
+
+### Priority
+
+- [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com` and its apps may break, so a retirement there does what the issue proposes and chases no collateral
