@@ -31,4 +31,5 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 ### Workflows
 
+- [an-action-is-preferred-to-a-package-install](an-action-is-preferred-to-a-package-install.md) — a step uses the tool's published action, not `pip install` or `npm install` in a `run:` step; the exception is a tool whose action cannot take the needed flags
 - [an-assert-is-its-own-job](an-assert-is-its-own-job.md) — each `assert-*` check is a standalone job using its published `10U-Labs` action; linter jobs hold only the lint step; copy `10ulabs.com` for layout
