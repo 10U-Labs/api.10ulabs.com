@@ -6,7 +6,7 @@ from typing import Any, Dict
 import pytest
 
 import lambda_http
-from lambda_http import aws_client, dispatch, json_response, parse_body
+from lambda_http import aws_client, dispatch, json_response, parse_body, parse_object
 
 
 def _echo(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -41,6 +41,18 @@ def test_parse_body_decodes_base64() -> None:
 def test_parse_body_refuses_what_is_not_json() -> None:
     with pytest.raises(ValueError):
         parse_body({'body': 'not json'})
+
+
+def test_parse_object_reads_a_json_object() -> None:
+    assert parse_object({'body': '{"a": 1}'}) == {'a': 1}
+
+
+def test_parse_object_refuses_what_is_not_json() -> None:
+    assert parse_object({'body': 'not json'}) is None
+
+
+def test_parse_object_refuses_a_json_value_that_is_not_an_object() -> None:
+    assert parse_object({'body': '[1, 2]'}) is None
 
 
 def test_dispatch_calls_the_handler_of_the_resource_and_method() -> None:

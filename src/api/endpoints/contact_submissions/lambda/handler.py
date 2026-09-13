@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, dispatch, json_response, parse_body
+from lambda_http import aws_client, dispatch, json_response, parse_object
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -84,11 +84,8 @@ def _send(fields: Dict[str, str]) -> None:
 
 
 def _accepted_fields(event: Dict[str, Any]) -> Tuple[Dict[str, str], Optional[str]]:
-    try:
-        body = parse_body(event)
-    except ValueError:
-        body = None
-    if not isinstance(body, dict):
+    body = parse_object(event)
+    if body is None:
         return {}, 'Invalid JSON'
     fields = _fields(body)
     return fields, _validation_error(fields)

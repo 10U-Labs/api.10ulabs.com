@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, dispatch, json_response, parse_body
+from lambda_http import aws_client, dispatch, json_response, parse_object
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -68,11 +68,8 @@ def _store(config_hash: str, configuration: Dict[str, Any], device_id: str) -> N
 
 
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        body = parse_body(event)
-    except ValueError:
-        body = None
-    if not isinstance(body, dict):
+    body = parse_object(event)
+    if body is None:
         return _error(400, 'Invalid JSON')
     device_id = body.get('device_id')
     configuration = body.get('configuration')

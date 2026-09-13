@@ -15,11 +15,11 @@ locals {
   vaults       = "arn:aws:backup:${local.region}:${local.account}:backup-vault:${local.product}-*"
   plans        = "arn:aws:backup:${local.region}:${local.account}:backup-plan:*"
   backup_roles = "arn:aws:iam::${local.account}:role/${local.product}-*-backup"
+  self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
   backup_policies = [
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores",
   ]
-  self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
 }
 
 data "aws_iam_policy_document" "state" {

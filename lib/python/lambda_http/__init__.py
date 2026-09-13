@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import Any, Callable, Dict, Mapping, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 import boto3
 
@@ -29,6 +29,14 @@ def parse_body(event: Dict[str, Any]) -> Any:
     if event.get('isBase64Encoded'):
         body = base64.b64decode(body).decode('utf-8')
     return json.loads(body) if body else {}
+
+
+def parse_object(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    try:
+        body = parse_body(event)
+    except ValueError:
+        return None
+    return body if isinstance(body, dict) else None
 
 
 def dispatch(event: Dict[str, Any], routes: Mapping[Route, Handler]) -> Dict[str, Any]:
