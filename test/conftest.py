@@ -1,12 +1,9 @@
 import importlib.util
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable
+from typing import Callable
 
-import boto3
 import pytest
-
-REGION = "us-east-2"
 
 
 @pytest.fixture(scope="session", name="repo_root")
@@ -25,18 +22,3 @@ def load_handler(repo_root: Path) -> Callable[[str], ModuleType]:
         spec.loader.exec_module(module)
         return module
     return load
-
-
-@pytest.fixture(scope="session")
-def iam_client() -> Any:
-    return boto3.client("iam", region_name=REGION)
-
-
-@pytest.fixture(scope="session")
-def apigateway_client() -> Any:
-    return boto3.client("apigateway", region_name=REGION)
-
-
-@pytest.fixture(scope="session")
-def lambda_client() -> Any:
-    return boto3.client("lambda", region_name=REGION)

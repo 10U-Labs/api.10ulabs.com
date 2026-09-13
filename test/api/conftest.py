@@ -3,10 +3,27 @@ from typing import Any, Callable, Dict, Tuple
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+import boto3
 import pytest
 
 API_NAME = "api.10ulabs.com"
+REGION = "us-east-2"
 STAGE = "prod"
+
+
+@pytest.fixture(scope="session")
+def iam_client() -> Any:
+    return boto3.client("iam", region_name=REGION)
+
+
+@pytest.fixture(scope="session")
+def apigateway_client() -> Any:
+    return boto3.client("apigateway", region_name=REGION)
+
+
+@pytest.fixture(scope="session")
+def lambda_client() -> Any:
+    return boto3.client("lambda", region_name=REGION)
 
 
 @pytest.fixture(scope="session", name="api_id")
@@ -19,7 +36,7 @@ def api_id_fixture(apigateway_client: Any) -> str:
 
 @pytest.fixture(scope="session")
 def stage_url(api_id: str) -> str:
-    return f"https://{api_id}.execute-api.us-east-2.amazonaws.com/{STAGE}"
+    return f"https://{api_id}.execute-api.{REGION}.amazonaws.com/{STAGE}"
 
 
 def _answer(request: Request) -> Tuple[int, Dict[str, Any]]:
