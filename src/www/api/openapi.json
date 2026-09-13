@@ -17,11 +17,87 @@
   ],
   "tags": [
     {
+      "name": "/diagnostics",
+      "description": "Diagnostics utility endpoints"
+    },
+    {
       "name": "/health",
       "description": "Health check endpoints"
     }
   ],
   "paths": {
+    "/diagnostics/echo": {
+      "post": {
+        "summary": "Echo Endpoint",
+        "description": "Echoes back the request body",
+        "operationId": "diagnosticsEcho",
+        "tags": [
+          "/diagnostics"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Any JSON object to echo back"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully echoed the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "echo",
+                    "received_at"
+                  ],
+                  "properties": {
+                    "echo": {
+                      "type": "object",
+                      "description": "The echoed request body"
+                    },
+                    "received_at": {
+                      "type": "string",
+                      "description": "AWS request ID",
+                      "example": "1234-5678-90ab-cdef"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON in request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid JSON"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${DiagnosticsHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",

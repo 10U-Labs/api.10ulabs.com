@@ -16,8 +16,9 @@ locals {
   }
 
   openapi_spec = templatefile("${path.module}/../../../www/api/openapi.json", {
-    CatchAllHandlerArn = local.integration.catchall
-    HealthHandlerArn   = local.integration.health
+    CatchAllHandlerArn    = local.integration.catchall
+    DiagnosticsHandlerArn = local.integration.diagnostics
+    HealthHandlerArn      = local.integration.health
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

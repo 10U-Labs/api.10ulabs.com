@@ -31,7 +31,8 @@ output "deploy_role_name" {
 output "lambda_handler_names" {
   description = "Deterministic Lambda function names, one per handler, which the routing stack composes into integration URIs."
   value = {
-    catchall = "api-10ulabs-com-catchall"
-    health   = "api-10ulabs-com-health"
+    catchall    = "api-10ulabs-com-catchall"
+    diagnostics = "api-10ulabs-com-diagnostics"
+    health      = "api-10ulabs-com-health"
   }
 }

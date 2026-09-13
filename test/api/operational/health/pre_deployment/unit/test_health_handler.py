@@ -2,7 +2,9 @@ import json
 from types import ModuleType
 from typing import Any, Dict
 
-GET_HEALTH = {"path": "/health", "httpMethod": "GET"}
+GET_HEALTH = {"resource": "/health", "httpMethod": "GET"}
+GET_UNKNOWN = {"resource": "/unknown", "httpMethod": "GET"}
+POST_HEALTH = {"resource": "/health", "httpMethod": "POST"}
 
 
 def _answer(health_handler: ModuleType, event: Dict[str, Any]) -> Dict[str, Any]:
@@ -34,12 +36,12 @@ def test_get_health_carries_a_three_part_version(health_handler: ModuleType) -> 
 
 
 def test_another_path_answers_404(health_handler: ModuleType) -> None:
-    assert _answer(health_handler, {"path": "/unknown", "httpMethod": "GET"})["statusCode"] == 404
+    assert _answer(health_handler, GET_UNKNOWN)["statusCode"] == 404
 
 
 def test_another_method_answers_404(health_handler: ModuleType) -> None:
-    assert _answer(health_handler, {"path": "/health", "httpMethod": "POST"})["statusCode"] == 404
+    assert _answer(health_handler, POST_HEALTH)["statusCode"] == 404
 
 
 def test_a_refusal_names_the_error(health_handler: ModuleType) -> None:
-    assert _body(health_handler, {"path": "/unknown", "httpMethod": "GET"})["error"] == "Not found"
+    assert _body(health_handler, GET_UNKNOWN)["error"] == "Not found"

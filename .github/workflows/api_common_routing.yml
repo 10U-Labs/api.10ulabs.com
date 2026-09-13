@@ -4,6 +4,8 @@ concurrency:
   group: api_common_routing-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
+  MYPYPATH: lib/python
+  PYTHONPATH: lib/python
 jobs:
   assert-no-comments:
     runs-on: ubuntu-latest
@@ -120,12 +122,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - name: Assert every definition in the handler is named by something
+      - name: Assert every definition in the source is named outside its own tests
         uses: 10U-Labs/assert-python-definition-is-used@latest
         with:
           assume-used-matching: lambda_handler
-          search-in: src test
-          trees: src/api/common/routing/lambda
+          dont-search-in: test/lib/python/{package}
+          search-in: src test lib/python
+          trees: src/api/common/routing/lambda lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -148,7 +151,7 @@ jobs:
       - name: Install tools
         run: npm install -g jscpd
       - name: Detect copy-paste in the source
-        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console src/
+        run: jscpd --pattern "**/*.py" --threshold 0 --reporters console src/ lib/python/
   copy-paste-tests:
     runs-on: ubuntu-latest
     steps:
@@ -170,7 +173,7 @@ jobs:
       - name: Install tools
         run: pip install mypy
       - name: Run mypy on the source
-        run: python3 -m mypy --strict --explicit-package-bases src/
+        run: python3 -m mypy --strict --explicit-package-bases src/ lib/python/
   mypy-tests:
     runs-on: ubuntu-latest
     steps:
@@ -250,7 +253,7 @@ jobs:
         run: pip install pylint
       - name: Run pylint on the source
         run: >-
-          python3 -m pylint --recursive=y src/
+          python3 -m pylint --recursive=y src/ lib/python/
           --disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
           --fail-on=C,R,W --fail-under=10.0
   pylint-tests:
@@ -294,6 +297,7 @@ jobs:
       - opentofu-validate
       - pylint-source
       - pylint-tests
+      - test-repo-libraries
       - tflint
       - unit-tests
       - wait-for-api-common-identity
@@ -318,6 +322,23 @@ jobs:
         run: |
           tofu -chdir=src/api/common/routing init -input=false
           tofu -chdir=src/api/common/routing apply -auto-approve -input=false
+  test-repo-libraries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install pytest pytest-cov
+      - name: Run the shared modules' tests with a full coverage gate
+        run: >-
+          python3 -m pytest test/lib/python/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+          --cov=lib/python --cov-branch --cov-report=term-missing --cov-fail-under=100
   tflint:
     runs-on: ubuntu-latest
     steps:
@@ -389,11 +410,13 @@ on:
       - .github/actions/wait-for-workflow/action.yml
       - .github/workflows/api_common_routing.yml
       - lib/opentofu/common/**
+      - lib/python/**
       - src/api/common/routing/**
       - src/www/api/**
       - test/api/common/routing/**
       - test/api/conftest.py
       - test/conftest.py
+      - test/lib/python/**
   workflow_dispatch: {}
 permissions:
   contents: read

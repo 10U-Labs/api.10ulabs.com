@@ -3,7 +3,7 @@ module "common" {
 }
 
 locals {
-  function_name = module.common.lambda_handler_names.health
+  function_name = module.common.lambda_handler_names.diagnostics
   role_name     = "${local.function_name}-lambda"
 }
 
@@ -40,7 +40,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Health endpoint: say the API is up."
+  description      = "Diagnostics endpoint: echo the request back."
 
   environment {
     variables = {
