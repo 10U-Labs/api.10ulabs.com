@@ -30,12 +30,14 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Tests
 
 - [write-the-test-first](write-the-test-first.md) — the test is authored before the code, and red and green are observed in CI
+- [the-deployed-tests-hold-only-the-workflows-key](the-deployed-tests-hold-only-the-workflows-key.md) — post-deployment tests bear only the workflows' API key; a route it is denied is tested for its 403, its logic in the unit tests
 
 ### Verification
 
 - [ci-is-the-source-of-truth](ci-is-the-source-of-truth.md) — nothing is verified locally; the change is done when every workflow that fired is green
 - [find-a-run-by-the-full-hash](find-a-run-by-the-full-hash.md) — `gh run list --commit` returns nothing for a short hash, so match `headSha` by prefix locally
 - [a-wait-runs-in-the-background](a-wait-runs-in-the-background.md) — a wait for CI is a background shell or a Monitor, never a foreground sleep or `gh run watch`, so the reminders keep firing
+- [a-fix-forward-fires-every-stack-the-red-commit-changed](a-fix-forward-fires-every-stack-the-red-commit-changed.md) — a fix forward touches a path that fires every workflow whose stack the red commit changed, or their skipped reconciliations never run
 
 ### Workflows
 
