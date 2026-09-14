@@ -2,6 +2,8 @@ import json
 from types import ModuleType, SimpleNamespace
 from typing import Any, Dict, List
 
+import pytest
+
 CARRIERS = "/carriers"
 
 
@@ -63,3 +65,118 @@ def test_a_store_that_refuses_the_read_names_the_error(
 
 def test_another_resource_answers_404(carriers_handler: ModuleType) -> None:
     assert _answer(carriers_handler, _get("/carriers/{carrier}"))["statusCode"] == 404
+
+
+def _post(body: Any, resource: str = CARRIERS) -> Dict[str, Any]:
+    return {"resource": resource, "httpMethod": "POST", "body": json.dumps(body)}
+
+
+def _counter(store: SimpleNamespace) -> Dict[str, Any]:
+    return next(item for item in store.items if item["SK"] == {"S": "#"})
+
+
+def test_a_carrier_is_created_with_201(carriers_handler: ModuleType) -> None:
+    assert _answer(carriers_handler, _post({"name": "lumen"}))["statusCode"] == 201
+
+
+def test_the_first_carrier_is_number_one(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _post({"name": "lumen"})) == {"id": 1, "name": "lumen"}
+
+
+def test_the_created_carrier_is_located_under_the_collection(carriers_handler: ModuleType) -> None:
+    headers = _answer(carriers_handler, _post({"name": "lumen"}))["headers"]
+    assert headers["Location"] == "/carriers/1"
+
+
+def test_the_id_is_the_next_the_counter_holds(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _post({"name": "cogent"}))["id"] == 3
+
+
+def test_the_counter_moves_past_the_id_it_gave(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post({"name": "cogent"}))
+    assert _counter(store)["next"] == {"N": "4"}
+
+
+def test_an_id_is_never_reused(carriers_handler: ModuleType) -> None:
+    given = [_body(carriers_handler, _post({"name": name}))["id"] for name in ("lumen", "zayo")]
+    assert given == [1, 2]
+
+
+def test_the_counter_is_advanced_in_the_table_the_environment_names(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _post({"name": "lumen"}))
+    assert store.updates[0]["TableName"] == "store"
+
+
+def test_the_counter_is_the_hash_item_of_the_collection(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _post({"name": "lumen"}))
+    assert store.updates[0]["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "#"}}
+
+
+def test_the_carrier_is_written_with_its_own_counters_at_one(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post({"name": "cogent"}))
+    assert store.items[-1] == {
+        "PK": {"S": "carriers"}, "SK": {"S": "3"}, "name": {"S": "cogent"},
+        "next_pop": {"N": "1"}, "next_fiber_segment": {"N": "1"},
+    }
+
+
+def test_the_created_carrier_is_then_listed(carriers_handler: ModuleType) -> None:
+    _answer(carriers_handler, _post({"name": "lumen"}))
+    assert _body(carriers_handler, _get()) == [{"id": 1, "name": "lumen"}]
+
+
+@pytest.mark.parametrize("body", [
+    {},
+    {"name": 1},
+    {"name": ""},
+    {"name": "lumen", "id": 9},
+    ["lumen"],
+])
+def test_a_body_that_is_not_exactly_a_name_answers_400(
+    carriers_handler: ModuleType, body: Any
+) -> None:
+    assert _answer(carriers_handler, _post(body))["statusCode"] == 400
+
+
+def test_a_body_that_is_not_json_answers_400(carriers_handler: ModuleType) -> None:
+    event = {"resource": CARRIERS, "httpMethod": "POST", "body": "{"}
+    assert _answer(carriers_handler, event)["statusCode"] == 400
+
+
+def test_a_refused_body_names_what_is_expected(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _post({}))["error"] == "The body must be exactly {\"name\"}"
+
+
+def test_a_refused_body_writes_nothing(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _post({}))
+    assert store.items == []
+
+
+def test_a_store_that_refuses_the_write_answers_500(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _answer(carriers_handler, _post({"name": "lumen"}))["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_write_names_the_error(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    error = _body(carriers_handler, _post({"name": "lumen"}))["error"]
+    assert error == "Failed to create the carrier"

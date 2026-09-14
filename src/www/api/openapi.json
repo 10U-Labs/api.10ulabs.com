@@ -95,6 +95,104 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "post": {
+        "summary": "Create Carrier",
+        "description": "Creates a carrier from its name and gives it the next id, never reused.",
+        "operationId": "createCarrier",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "lumen"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The carrier, by the id the API gave it and its name",
+            "headers": {
+              "Location": {
+                "description": "The carrier's own URL, /carriers/{id}",
+                "schema": {
+                  "type": "string",
+                  "example": "/carriers/1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "lumen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that is not exactly {\"name\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "500": {
+            "description": "The store could not be written"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
       }
     },
     "/diagnostics/echo": {

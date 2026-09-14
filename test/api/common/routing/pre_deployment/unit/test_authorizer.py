@@ -37,8 +37,19 @@ def test_the_api_key_reads_every_route(authorizer: ModuleType) -> None:
     assert _granted(authorizer, "Bearer the-workflows-key", "GET", "carriers/3/pops")
 
 
-def test_the_api_key_writes_nothing_yet(authorizer: ModuleType) -> None:
-    assert not _granted(authorizer, "Bearer the-workflows-key", "POST", "carriers")
+def test_the_api_key_creates_a_carrier(authorizer: ModuleType) -> None:
+    assert _granted(authorizer, "Bearer the-workflows-key", "POST", "carriers")
+
+
+@pytest.mark.parametrize("method, path", [
+    ("POST", "carriers/3/pops"),
+    ("PUT", "carriers/3"),
+    ("DELETE", "carriers/3"),
+])
+def test_the_api_key_writes_nothing_else_yet(
+    authorizer: ModuleType, method: str, path: str
+) -> None:
+    assert not _granted(authorizer, "Bearer the-workflows-key", method, path)
 
 
 def test_the_api_key_is_settled_without_asking_google(

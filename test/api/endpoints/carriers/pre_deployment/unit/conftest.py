@@ -7,17 +7,42 @@ from botocore.exceptions import ClientError
 
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
-    store = SimpleNamespace(items=[], failing=False, queries=[])
+    store = SimpleNamespace(items=[], failing=False, queries=[], updates=[])
+
+    def refuse(operation: str) -> None:
+        if store.failing:
+            raise ClientError({"Error": {"Code": "InternalServerError"}}, operation)
+
+    def counter(key: Dict[str, Any]) -> Dict[str, Any]:
+        for item in store.items:
+            if item["PK"] == key["PK"] and item["SK"] == key["SK"]:
+                return item
+        item = {**key, "next": {"N": "1"}}
+        store.items.append(item)
+        return item
 
     def query(**request: Any) -> Dict[str, Any]:
         store.queries.append(request)
-        if store.failing:
-            raise ClientError({"Error": {"Code": "InternalServerError"}}, "Query")
+        refuse("Query")
         partition = request["ExpressionAttributeValues"][":pk"]["S"]
         found: List[Dict[str, Any]] = [item for item in store.items if item["PK"]["S"] == partition]
         return {"Items": found, "Count": len(found)}
 
+    def update_item(**request: Any) -> Dict[str, Any]:
+        store.updates.append(request)
+        refuse("UpdateItem")
+        item = counter(request["Key"])
+        item["next"] = {"N": str(int(item["next"]["N"]) + 1)}
+        return {"Attributes": {"next": item["next"]}}
+
+    def put_item(**request: Any) -> Dict[str, Any]:
+        refuse("PutItem")
+        store.items.append(request["Item"])
+        return {}
+
     store.query = query
+    store.update_item = update_item
+    store.put_item = put_item
     return store
 
 

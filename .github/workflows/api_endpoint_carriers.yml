@@ -161,6 +161,50 @@ jobs:
         run: npm install -g jscpd
       - name: Detect copy-paste in the tests
         run: jscpd --pattern "**/*.py" --threshold 0 --reporters console test/
+  create-the-changed-carriers:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - post-deployment-integration-tests
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - env:
+          BEFORE: ${{ github.event.before }}
+        name: Create every carrier whose data this push changed and GET /carriers does not list
+        run: |
+          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
+            --query Parameter.Value --output text)
+          echo "::add-mask::$KEY"
+          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
+          CARRIERS="https://$API.execute-api.us-east-2.amazonaws.com/prod/carriers"
+          LISTED=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" "$CARRIERS" \
+            | jq --raw-output '.[].name')
+          git diff --name-only --no-renames --diff-filter=d "$BEFORE" "$GITHUB_SHA" \
+            -- data/pops data/fiber_segments \
+            | sed --quiet --regexp-extended 's|^data/[^/]+/([^/.]+).*|\1|p' | sort --unique \
+            | while read -r CARRIER; do
+              if grep --quiet --line-regexp --fixed-strings "$CARRIER" <<< "$LISTED"; then
+                echo "$CARRIER is listed already."
+                continue
+              fi
+              echo "Creating $CARRIER."
+              curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
+                --header "Content-Type: application/json" \
+                --data "$(jq --compact-output --null-input --arg name "$CARRIER" '{name: $name}')" \
+                "$CARRIERS"
+              echo
+            done
   mypy-source:
     runs-on: ubuntu-latest
     steps:
@@ -449,6 +493,8 @@ on:
     paths:
       - .github/actions/wait-for-workflow/action.yml
       - .github/workflows/api_endpoint_carriers.yml
+      - data/fiber_segments/**
+      - data/pops/**
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/carriers/**

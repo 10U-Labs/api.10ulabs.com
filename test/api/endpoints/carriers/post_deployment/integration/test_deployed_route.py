@@ -13,3 +13,17 @@ def test_the_deployed_api_answers_a_list_of_carriers(
 ) -> None:
     _, body = get_json(f"{stage_url}/carriers", bearer)
     assert isinstance(body, list)
+
+
+def test_a_body_without_a_name_is_refused_through_the_deployed_api(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = post_json(f"{stage_url}/carriers", {}, bearer)
+    assert status == 400
+
+
+def test_a_body_without_a_name_is_told_what_is_expected_through_the_deployed_api(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = post_json(f"{stage_url}/carriers", {}, bearer)
+    assert body["error"] == "The body must be exactly {\"name\"}"
