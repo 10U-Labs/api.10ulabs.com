@@ -161,6 +161,55 @@ jobs:
         run: npm install -g jscpd
       - name: Detect copy-paste in the tests
         run: jscpd --pattern "**/*.py" --threshold 0 --reporters console test/
+  load-the-added-regions:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - post-deployment-integration-tests
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - env:
+          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+        name: Create every region whose line the push added since the last load
+        run: |
+          RUNS="repos/$GITHUB_REPOSITORY/actions/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml/runs"
+          SINCE=$(gh api "$RUNS?branch=main&event=push&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty')
+          if [ -z "$SINCE" ]; then
+            SINCE=$BEFORE
+          fi
+          echo "Creating every region added since $SINCE."
+          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
+            --query Parameter.Value --output text)
+          echo "::add-mask::$KEY"
+          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
+          REGIONS="https://$API.execute-api.us-east-2.amazonaws.com/prod/hyperscale-cloud-service-provider-regions"
+          ADDED=$(git diff --no-renames "$SINCE" "$GITHUB_SHA" \
+            -- data/hyperscale_cloud_service_provider_regions/regions.csv \
+            | grep --extended-regexp '^\+[^+]' | cut --characters=2- | grep --invert-match '^Name,' || true)
+          echo "$ADDED" | grep --invert-match '^$' | jq --raw-input --compact-output \
+            'split(",") | {name: .[0], municipality: .[1], state: .[2], country: .[3],
+                           latitude: (.[4] | tonumber), longitude: (.[5] | tonumber)}' \
+            | while read -r REGION; do
+              curl --silent --show-error --fail --output /dev/null \
+                --header "Authorization: Bearer $KEY" \
+                --header "Content-Type: application/json" \
+                --data "$REGION" "$REGIONS"
+            done
+          echo "Created $(echo "$ADDED" | grep --count --invert-match '^$') regions."
   mypy-source:
     runs-on: ubuntu-latest
     steps:
@@ -449,6 +498,7 @@ on:
     paths:
       - .github/actions/wait-for-workflow/action.yml
       - .github/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml
+      - data/hyperscale_cloud_service_provider_regions/**
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/hyperscale_cloud_service_provider_regions/**

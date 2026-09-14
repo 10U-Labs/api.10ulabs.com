@@ -54,7 +54,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Hyperscale cloud service provider regions endpoint: list the regions in the store."
+  description      = "Hyperscale cloud service provider regions endpoint: list the regions in the store and create one."
 
   environment {
     variables = {

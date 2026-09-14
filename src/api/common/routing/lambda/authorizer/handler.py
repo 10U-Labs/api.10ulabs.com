@@ -16,6 +16,7 @@ WORKFLOW_WRITES: Tuple[Tuple[str, str], ...] = (
     ('DELETE', 'carriers/*'),
     ('POST', 'carriers/*/pops'),
     ('POST', 'carriers/*/fiber-segments'),
+    ('POST', 'hyperscale-cloud-service-provider-regions'),
 )
 
 Operations = Callable[[str], Union[str, List[str]]]

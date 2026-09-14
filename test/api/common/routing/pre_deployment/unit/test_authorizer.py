@@ -61,6 +61,11 @@ def test_the_api_key_removes_a_fiber_segment_of_a_carrier(authorizer: ModuleType
     assert _granted(authorizer, "Bearer the-workflows-key", "DELETE", "carriers/3/fiber-segments/4")
 
 
+def test_the_api_key_creates_a_region(authorizer: ModuleType) -> None:
+    key = "Bearer the-workflows-key"
+    assert _granted(authorizer, key, "POST", "hyperscale-cloud-service-provider-regions")
+
+
 @pytest.mark.parametrize("method, path", [
     ("PUT", "carriers/3/pops/4"),
     ("PUT", "carriers/3/fiber-segments/4"),

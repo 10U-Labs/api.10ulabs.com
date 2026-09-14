@@ -50,6 +50,28 @@ def parse_fields(event: Dict[str, Any], fields: Iterable[str]) -> Optional[Dict[
     return body if body is not None and set(body) == set(fields) else None
 
 
+Valid = Callable[[Dict[str, Any]], bool]
+
+
+def parse_valid(
+    event: Dict[str, Any], fields: Iterable[str], valid: Valid
+) -> Optional[Dict[str, Any]]:
+    body = parse_fields(event, fields)
+    return body if body is not None and valid(body) else None
+
+
+def has_strings(body: Dict[str, Any], fields: Iterable[str], named: Iterable[str] = ()) -> bool:
+    worded = all(isinstance(body[field], str) for field in fields)
+    return worded and all(body[field] for field in named)
+
+
+def has_numbers(body: Dict[str, Any], fields: Iterable[str]) -> bool:
+    return all(
+        isinstance(body[field], (int, float)) and not isinstance(body[field], bool)
+        for field in fields
+    )
+
+
 def dispatch(event: Dict[str, Any], routes: Mapping[Route, Handler]) -> Dict[str, Any]:
     handler = routes.get((event.get('resource', ''), event.get('httpMethod', '')))
     if handler is None:

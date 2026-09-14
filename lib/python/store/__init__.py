@@ -31,3 +31,30 @@ def member(table: str, collection: str, member_id: str) -> Optional[Dict[str, An
     )
     item: Optional[Dict[str, Any]] = answer.get('Item')
     return item
+
+
+def advance(table: str, key: Dict[str, Any], field: str, **request: Any) -> int:
+    answer = aws_client('dynamodb').update_item(
+        TableName=table,
+        Key=key,
+        ExpressionAttributeNames={'#next': field},
+        ExpressionAttributeValues={':one': {'N': '1'}},
+        ReturnValues='UPDATED_NEW',
+        **request,
+    )
+    return int(answer['Attributes'][field]['N']) - 1
+
+
+def next_id(table: str, collection: str) -> int:
+    return advance(
+        table, {'PK': {'S': collection}, 'SK': {'S': COUNTER}}, 'next',
+        UpdateExpression='SET #next = if_not_exists(#next, :one) + :one',
+    )
+
+
+def put(
+    table: str, partition_key: str, sort_key: str, attributes: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    item = {'PK': {'S': partition_key}, 'SK': {'S': sort_key}, **attributes}
+    aws_client('dynamodb').put_item(TableName=table, Item=item, **request)
+    return item

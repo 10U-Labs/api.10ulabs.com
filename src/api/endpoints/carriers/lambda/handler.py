@@ -1,12 +1,15 @@
 import logging
 import os
 from functools import partial
-from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Dict, NamedTuple, Optional
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, created, dispatch, json_response, parse_fields
-from store import COUNTER, member, members, partition
+from lambda_http import (
+    aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_fields,
+    parse_valid,
+)
+from store import advance, member, members, next_id, partition, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -210,45 +213,16 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     return _no_content()
 
 
-def _advance(key: Dict[str, Any], field: str, **request: Any) -> int:
-    answer = aws_client('dynamodb').update_item(
-        TableName=os.environ['STORE_TABLE'],
-        Key=key,
-        ExpressionAttributeNames={'#next': field},
-        ExpressionAttributeValues={':one': {'N': '1'}},
-        ReturnValues='UPDATED_NEW',
-        **request,
-    )
-    return int(answer['Attributes'][field]['N']) - 1
-
-
-def _next_id(collection: str) -> int:
-    return _advance(
-        {'PK': {'S': collection}, 'SK': {'S': COUNTER}}, 'next',
-        UpdateExpression='SET #next = if_not_exists(#next, :one) + :one',
-    )
-
-
-def _put(carrier_id: int, name: str) -> None:
-    aws_client('dynamodb').put_item(
-        TableName=os.environ['STORE_TABLE'],
-        Item={
-            'PK': {'S': COLLECTION},
-            'SK': {'S': str(carrier_id)},
-            'name': {'S': name},
-            'next_pop': {'N': '1'},
-            'next_fiber_segment': {'N': '1'},
-        },
-    )
-
-
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     name = _name(event)
     if name is None:
         return json_response(400, {'error': BODY})
+    table = os.environ['STORE_TABLE']
     try:
-        carrier_id = _next_id(COLLECTION)
-        _put(carrier_id, name)
+        carrier_id = next_id(table, COLLECTION)
+        put(table, COLLECTION, str(carrier_id), {
+            'name': {'S': name}, 'next_pop': {'N': '1'}, 'next_fiber_segment': {'N': '1'},
+        })
     except ClientError as error:
         logger.error('Error creating the carrier: %s', error)
         return json_response(500, {'error': 'Failed to create the carrier'})
@@ -257,8 +231,8 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def _next_under(carrier_id: str, counter: str) -> Optional[int]:
     try:
-        return _advance(
-            {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, counter,
+        return advance(
+            os.environ['STORE_TABLE'], {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, counter,
             ConditionExpression='attribute_exists(PK)',
             UpdateExpression='SET #next = #next + :one',
         )
@@ -268,49 +242,25 @@ def _next_under(carrier_id: str, counter: str) -> Optional[int]:
         raise
 
 
-def _worded(body: Dict[str, Any], fields: Tuple[str, ...], named: Tuple[str, ...]) -> bool:
-    worded = all(isinstance(body[field], str) for field in fields)
-    return worded and all(body[field] for field in named)
-
-
-def _located(body: Dict[str, Any]) -> bool:
-    return all(
-        isinstance(body[field], (int, float)) and not isinstance(body[field], bool)
-        for field in COORDINATES
-    )
-
-
-Valid = Callable[[Dict[str, Any]], bool]
-
-
-def _body(event: Dict[str, Any], fields: Tuple[str, ...], valid: Valid) -> Optional[Dict[str, Any]]:
-    body = parse_fields(event, fields)
-    return body if body is not None and valid(body) else None
-
-
 def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    return _body(
-        event, PLACE + COORDINATES, lambda body: _worded(body, PLACE, NAMED) and _located(body)
+    return parse_valid(
+        event, PLACE + COORDINATES,
+        lambda body: has_strings(body, PLACE, NAMED) and has_numbers(body, COORDINATES),
     )
 
 
 def _fiber_segment_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    return _body(
+    return parse_valid(
         event, ENDS + (SUBMARINE,),
-        lambda body: _worded(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool),
+        lambda body: has_strings(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool),
     )
 
 
 def _put_under(
     carrier_id: str, prefix: str, member_id: str, attributes: Dict[str, Any], **request: Any
 ) -> Dict[str, Any]:
-    item = {
-        'PK': {'S': f'{COLLECTION}/{carrier_id}'},
-        'SK': {'S': f'{prefix}/{member_id}'},
-        **attributes,
-    }
-    aws_client('dynamodb').put_item(TableName=os.environ['STORE_TABLE'], Item=item, **request)
-    return item
+    table = os.environ['STORE_TABLE']
+    return put(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}', attributes, **request)
 
 
 def _put_pop(

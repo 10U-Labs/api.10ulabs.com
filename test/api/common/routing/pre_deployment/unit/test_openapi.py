@@ -67,7 +67,8 @@ CARRIERS_OPERATIONS = [
     (FIBER_SEGMENT, "delete"),
 ]
 REGIONS = "/hyperscale-cloud-service-provider-regions"
-REGIONS_OPERATIONS = [(REGIONS, "get")]
+REGIONS_METHODS = ["get", "post"]
+REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS]
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
@@ -92,20 +93,26 @@ FIBER_SEGMENT_FIELDS = [
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
 SPANNED_BODIES = [(FIBER_SEGMENTS, "post"), (FIBER_SEGMENT, "put")]
+LOCATED_BODIES = [(REGIONS, "post")]
 MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
     (path, method, FIBER_SEGMENT_FIELDS) for path, method in SPANNED_BODIES
-]
+] + [(path, method, REGION_FIELDS) for path, method in LOCATED_BODIES]
 NAMED_ENDS = [
     (path, method, field) for path, method in PLACED_BODIES for field in ["municipality", "country"]
 ] + [
     (path, method, field)
     for path, method in SPANNED_BODIES for field in ["a_municipality", "z_municipality"]
+] + [
+    (path, method, field)
+    for path, method in LOCATED_BODIES for field in ["name", "municipality", "country"]
 ]
-OPTIONAL_STATES = [(path, method, "state") for path, method in PLACED_BODIES] + [
+OPTIONAL_STATES = [(path, method, "state") for path, method in PLACED_BODIES + LOCATED_BODIES] + [
     (path, method, field) for path, method in SPANNED_BODIES for field in ["a_state", "z_state"]
 ]
 ADDITIONS = [
-    ("/carriers/{carrier}/pops", "post", POP_FIELDS), (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS)
+    ("/carriers/{carrier}/pops", "post", POP_FIELDS),
+    (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS),
+    (REGIONS, "post", REGION_FIELDS),
 ]
 CREATIONS = [("/carriers", "post")] + [(path, method) for path, method, _ in ADDITIONS]
 DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete"), (FIBER_SEGMENT, "delete")]
@@ -201,7 +208,7 @@ def test_a_member_is_written_as_itself_without_an_id(
     assert _request_body(openapi, path, method)["required"] == fields[1:]
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES)
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES + LOCATED_BODIES)
 def test_a_member_is_written_with_no_other_field(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
@@ -222,7 +229,7 @@ def test_a_member_may_be_written_with_no_state(
     assert "minLength" not in _request_body(openapi, path, method)["properties"][field]
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES)
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES + LOCATED_BODIES)
 def test_a_member_written_wrongly_is_documented_as_400(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
@@ -262,8 +269,8 @@ def test_the_regions_are_served_by_the_regions_handler(
     assert uri == "${HyperscaleCloudServiceProviderRegionsHandlerArn}"
 
 
-def test_the_regions_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][REGIONS]) == ["get"]
+def test_the_regions_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][REGIONS]) == REGIONS_METHODS
 
 
 def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:

@@ -33,7 +33,7 @@ resource "aws_iam_role_policy" "store" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["dynamodb:Query"]
+      Action   = ["dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:PutItem"]
       Resource = [data.terraform_remote_state.storage.outputs.table_arn]
     }]
   })

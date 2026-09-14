@@ -7,7 +7,8 @@ import pytest
 
 import lambda_http
 from lambda_http import (
-    aws_client, created, dispatch, json_response, parse_body, parse_fields, parse_object
+    aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_body,
+    parse_fields, parse_object, parse_valid,
 )
 
 
@@ -92,6 +93,44 @@ def test_parse_fields_refuses_an_object_with_another_field() -> None:
 
 def test_parse_fields_refuses_a_json_value_that_is_not_an_object() -> None:
     assert parse_fields({'body': '["a"]'}, ('a',)) is None
+
+
+def test_has_strings_accepts_strings_in_every_field() -> None:
+    assert has_strings({'a': 'x', 'b': ''}, ('a', 'b'), ('a',))
+
+
+def test_has_strings_refuses_a_field_that_is_not_a_string() -> None:
+    assert not has_strings({'a': 1, 'b': ''}, ('a', 'b'), ('a',))
+
+
+def test_has_strings_refuses_an_empty_named_field() -> None:
+    assert not has_strings({'a': '', 'b': ''}, ('a', 'b'), ('a',))
+
+
+def test_has_strings_names_no_field_by_default() -> None:
+    assert has_strings({'a': ''}, ('a',))
+
+
+@pytest.mark.parametrize('value', [1, 1.5, -2])
+def test_has_numbers_accepts_a_number(value: Any) -> None:
+    assert has_numbers({'a': value}, ('a',))
+
+
+@pytest.mark.parametrize('value', ['1', True, None])
+def test_has_numbers_refuses_what_is_not_a_number(value: Any) -> None:
+    assert not has_numbers({'a': value}, ('a',))
+
+
+def test_parse_valid_reads_an_object_of_the_fields_the_check_accepts() -> None:
+    assert parse_valid({'body': '{"a": 1}'}, ('a',), lambda body: body['a'] == 1) == {'a': 1}
+
+
+def test_parse_valid_refuses_an_object_the_check_refuses() -> None:
+    assert parse_valid({'body': '{"a": 1}'}, ('a',), lambda body: body['a'] == 2) is None
+
+
+def test_parse_valid_refuses_an_object_of_other_fields_before_checking() -> None:
+    assert parse_valid({'body': '{"b": 1}'}, ('a',), lambda body: body['a'] == 1) is None
 
 
 def test_dispatch_calls_the_handler_of_the_resource_and_method() -> None:
