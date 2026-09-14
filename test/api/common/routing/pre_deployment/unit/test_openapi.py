@@ -139,5 +139,12 @@ def test_every_route_the_site_calls_stays_public(openapi: Dict[str, Any]) -> Non
     assert _secured_operations(openapi) == set(CARRIERS_OPERATIONS)
 
 
+@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
+def test_every_secured_operation_documents_the_authorizer_s_refusals(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert {"401", "403"} <= set(openapi["paths"][path][method]["responses"])
+
+
 def test_nothing_is_secured_for_the_whole_document(openapi: Dict[str, Any]) -> None:
     assert "security" not in openapi

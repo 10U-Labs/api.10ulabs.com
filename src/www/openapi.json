@@ -86,6 +86,9 @@
           "401": {
             "description": "No bearer token, or one the authorizer refused"
           },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
           "500": {
             "description": "The store could not be read"
           }
@@ -184,6 +187,9 @@
           "401": {
             "description": "No bearer token, or one the authorizer refused"
           },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
           "500": {
             "description": "The store could not be written"
           }
@@ -248,6 +254,9 @@
           },
           "401": {
             "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
           },
           "404": {
             "description": "No carrier has that id",
@@ -370,7 +379,7 @@
             "description": "No bearer token, or one the authorizer refused"
           },
           "403": {
-            "description": "The workflows' key, which may not rename a carrier"
+            "description": "A bearer token the authorizer does not admit to this operation"
           },
           "404": {
             "description": "No carrier has that id",
