@@ -79,9 +79,10 @@ def store_fixture() -> SimpleNamespace:
         refuse("DeleteItem")
         conditional = "ConditionExpression" in request
         item = required(request["Key"], "DeleteItem") if conditional else held(request["Key"])
-        if item is not None:
-            store.items.remove(item)
-        return {}
+        if item is None:
+            return {}
+        store.items.remove(item)
+        return {"Attributes": item}
 
     def put_item(**request: Any) -> Dict[str, Any]:
         store.puts.append(request)

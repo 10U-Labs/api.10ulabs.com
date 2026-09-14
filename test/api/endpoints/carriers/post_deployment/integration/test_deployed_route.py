@@ -186,3 +186,28 @@ def test_a_refused_correction_leaves_the_first_pop_of_every_listed_carrier_as_it
     assert (refused, [get_json(url, bearer)[1] for url, _ in firsts]) == (
         [403] * len(firsts), [pop for _, pop in firsts]
     )
+
+
+def test_the_workflows_key_removes_no_pop_of_a_carrier_that_is_not_there_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = delete_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    assert status == 404
+
+
+def test_a_removal_from_a_carrier_that_is_not_there_names_the_carrier_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = delete_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    assert body["error"] == "No such carrier"
+
+
+def test_no_listed_carrier_loses_a_pop_zero_through_the_deployed_api(
+    stage_url: str,
+    get_json: Callable[..., Tuple[int, Any]],
+    delete_json: Callable[..., Tuple[int, Any]],
+    bearer: Dict[str, str],
+) -> None:
+    _, listed = get_json(f"{stage_url}/carriers", bearer)
+    removed = [delete_json(f"{stage_url}/carriers/{one['id']}/pops/0", bearer) for one in listed]
+    assert removed == [(404, {"error": "No such pop"})] * len(listed)

@@ -76,16 +76,13 @@ def _conditional(error: ClientError) -> bool:
     return code == 'ConditionalCheckFailedException'
 
 
-def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
+def _attributes(write: str, key: Dict[str, Any], **request: Any) -> Optional[Dict[str, Any]]:
     try:
-        answer = aws_client('dynamodb').update_item(
+        answer = getattr(aws_client('dynamodb'), write)(
             TableName=os.environ['STORE_TABLE'],
-            Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+            Key=key,
             ConditionExpression='attribute_exists(PK)',
-            UpdateExpression='SET #name = :name',
-            ExpressionAttributeNames={'#name': 'name'},
-            ExpressionAttributeValues={':name': {'S': name}},
-            ReturnValues='ALL_NEW',
+            **request,
         )
     except ClientError as error:
         if _conditional(error):
@@ -93,6 +90,16 @@ def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, An
         raise
     item: Dict[str, Any] = answer['Attributes']
     return item
+
+
+def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
+    return _attributes(
+        'update_item', {'PK': {'S': collection}, 'SK': {'S': member_id}},
+        UpdateExpression='SET #name = :name',
+        ExpressionAttributeNames={'#name': 'name'},
+        ExpressionAttributeValues={':name': {'S': name}},
+        ReturnValues='ALL_NEW',
+    )
 
 
 def _path_id(event: Dict[str, Any], name: str) -> Optional[str]:
@@ -179,10 +186,21 @@ def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, sorted(map(_pop, pops), key=lambda pop: pop['id']))
 
 
+def _no_content() -> Dict[str, Any]:
+    return {'statusCode': 204, 'headers': {}, 'body': ''}
+
+
 OnPop = Callable[[str, str], Optional[Dict[str, Any]]]
+Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
-def _on_pop(event: Dict[str, Any], act: OnPop, failure: str) -> Dict[str, Any]:
+def _served_pop(pop: Dict[str, Any]) -> Dict[str, Any]:
+    return json_response(200, _pop(pop))
+
+
+def _on_pop(
+    event: Dict[str, Any], act: OnPop, failure: str, answer: Answer = _served_pop
+) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return json_response(404, {'error': MISSING})
@@ -199,7 +217,7 @@ def _on_pop(event: Dict[str, Any], act: OnPop, failure: str) -> Dict[str, Any]:
         return json_response(404, {'error': MISSING})
     if pop is None:
         return json_response(404, {'error': MISSING_POP})
-    return json_response(200, _pop(pop))
+    return answer(pop)
 
 
 def _stored_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
@@ -221,7 +239,7 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
         return json_response(500, {'error': 'Failed to delete the carrier'})
     if not removed:
         return json_response(404, {'error': MISSING})
-    return {'statusCode': 204, 'headers': {}, 'body': ''}
+    return _no_content()
 
 
 def _advance(key: Dict[str, Any], field: str, **request: Any) -> int:
@@ -352,6 +370,15 @@ def _update_pop(event: Dict[str, Any]) -> Dict[str, Any]:
     return _on_pop(event, partial(_replace_pop, body=body), 'Failed to update the pop')
 
 
+def _remove_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
+    key = {'PK': {'S': f'{COLLECTION}/{carrier_id}'}, 'SK': {'S': f'{POPS}/{pop_id}'}}
+    return _attributes('delete_item', key, ReturnValues='ALL_OLD')
+
+
+def _delete_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _on_pop(event, _remove_pop, 'Failed to delete the pop', lambda _gone: _no_content())
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         ('/carriers', 'GET'): _list,
@@ -363,4 +390,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/pops', 'POST'): _add_pop,
         ('/carriers/{carrier}/pops/{pop}', 'GET'): _read_pop,
         ('/carriers/{carrier}/pops/{pop}', 'PUT'): _update_pop,
+        ('/carriers/{carrier}/pops/{pop}', 'DELETE'): _delete_pop,
     })

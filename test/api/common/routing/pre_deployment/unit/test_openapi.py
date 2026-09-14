@@ -57,10 +57,12 @@ CARRIERS_OPERATIONS = [
     ("/carriers/{carrier}/pops", "post"),
     (POP, "get"),
     (POP, "put"),
+    (POP, "delete"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
-POP_METHODS = ["get", "put"]
+POP_SERVINGS = ["get", "put"]
+POP_METHODS = POP_SERVINGS + ["delete"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ]
@@ -72,6 +74,7 @@ POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
 CREATIONS = [("/carriers", "post"), ("/carriers/{carrier}/pops", "post")]
+DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete")]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
@@ -91,11 +94,11 @@ def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> 
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
-def test_a_pop_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+def test_a_pop_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][POP]) == POP_METHODS
 
 
-@pytest.mark.parametrize("method", POP_METHODS)
+@pytest.mark.parametrize("method", POP_SERVINGS)
 def test_a_pop_is_served_as_a_located_municipality_with_an_id(
     openapi: Dict[str, Any], method: str
 ) -> None:
@@ -150,12 +153,14 @@ def test_an_added_pop_answers_with_its_id(openapi: Dict[str, Any]) -> None:
     assert created["content"]["application/json"]["schema"]["required"] == POP_FIELDS
 
 
-def test_a_deleted_carrier_answers_204(openapi: Dict[str, Any]) -> None:
-    assert "204" in openapi["paths"]["/carriers/{carrier}"]["delete"]["responses"]
+@pytest.mark.parametrize(("path", "method"), DELETIONS)
+def test_a_deletion_answers_204(openapi: Dict[str, Any], path: str, method: str) -> None:
+    assert "204" in openapi["paths"][path][method]["responses"]
 
 
-def test_a_deleted_carrier_answers_no_content(openapi: Dict[str, Any]) -> None:
-    assert "content" not in openapi["paths"]["/carriers/{carrier}"]["delete"]["responses"]["204"]
+@pytest.mark.parametrize(("path", "method"), DELETIONS)
+def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, method: str) -> None:
+    assert "content" not in openapi["paths"][path][method]["responses"]["204"]
 
 
 @pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
