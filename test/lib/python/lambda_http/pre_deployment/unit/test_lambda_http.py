@@ -55,6 +55,11 @@ def test_parse_object_refuses_a_json_value_that_is_not_an_object() -> None:
     assert parse_object({'body': '[1, 2]'}) is None
 
 
+def test_parse_object_refuses_base64_that_is_not_utf_8() -> None:
+    encoded = base64.b64encode(b'\xff').decode('ascii')
+    assert parse_object({'body': encoded, 'isBase64Encoded': True}) is None
+
+
 def test_dispatch_calls_the_handler_of_the_resource_and_method() -> None:
     event = {'resource': '/a', 'httpMethod': 'POST', 'body': 'x'}
     assert dispatch(event, {('/a', 'POST'): _echo})['body'] == '"x"'

@@ -5,9 +5,9 @@ from typing import Any, Callable, Dict, List, Optional
 import pytest
 from botocore.exceptions import ClientError
 
-Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
+from lambda_http import Handler
+
 Served = Callable[[Dict[str, Any]], Any]
-Stored = Callable[[str], Dict[str, Any]]
 
 
 @pytest.fixture(name="store")
@@ -100,8 +100,8 @@ def store_fixture() -> SimpleNamespace:
     return store
 
 
-@pytest.fixture
-def carriers_handler(
+@pytest.fixture(name="carriers_handler")
+def carriers_handler_fixture(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     store: SimpleNamespace,
@@ -113,24 +113,17 @@ def carriers_handler(
 
 
 @pytest.fixture(name="answer")
-def answer_fixture(carriers_handler: ModuleType) -> Answer:
+def answer_fixture(carriers_handler: ModuleType) -> Handler:
     def answer(event: Dict[str, Any]) -> Dict[str, Any]:
         return dict(carriers_handler.lambda_handler(event, None))
     return answer
 
 
 @pytest.fixture(name="served")
-def served_fixture(answer: Answer) -> Served:
+def served_fixture(answer: Handler) -> Served:
     def served(event: Dict[str, Any]) -> Any:
         return json.loads(answer(event)["body"])
     return served
-
-
-@pytest.fixture(name="stored")
-def stored_fixture(store: SimpleNamespace) -> Stored:
-    def stored(carrier: str) -> Dict[str, Any]:
-        return next(item for item in store.items if item["SK"] == {"S": carrier})
-    return stored
 
 
 @pytest.fixture
@@ -149,3 +142,13 @@ def carriers() -> List[Dict[str, Any]]:
          "latitude": {"N": "39.7392"}, "longitude": {"N": "-104.9903"}},
         {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber_segments/1"}, "name": {"S": "den-ord"}},
     ]
+
+
+@pytest.fixture
+def lumen(carriers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return carriers[2]
+
+
+@pytest.fixture
+def zayo(carriers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return carriers[1]
