@@ -1,7 +1,7 @@
 import logging
 import os
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
@@ -18,10 +18,16 @@ MISSING_POP = 'No such pop'
 POPS = 'pops'
 FIBER_SEGMENTS = 'fiber-segments'
 ENDS = ('a_municipality', 'a_state', 'z_municipality', 'z_state')
+SPANNED = ('a_municipality', 'z_municipality')
+SUBMARINE = 'submarine'
 PLACE = ('municipality', 'state', 'country')
 NAMED = ('municipality', 'country')
 COORDINATES = ('latitude', 'longitude')
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
+FIBER_SEGMENT_BODY = (
+    'The body must be exactly '
+    '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
+)
 
 
 def _partition(partition: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -179,7 +185,7 @@ def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
 
 def _fiber_segment(item: Dict[str, Any]) -> Dict[str, Any]:
     ends = {field: item[field]['S'] for field in ENDS}
-    return {'id': _id_under(item), **ends, 'submarine': item['submarine']['BOOL']}
+    return {'id': _id_under(item), **ends, SUBMARINE: item[SUBMARINE]['BOOL']}
 
 
 Row = Callable[[Dict[str, Any]], Dict[str, Any]]
@@ -311,10 +317,10 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     return response
 
 
-def _next_pop_id(carrier_id: str) -> Optional[int]:
+def _next_under(carrier_id: str, counter: str) -> Optional[int]:
     try:
         return _advance(
-            {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, 'next_pop',
+            {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, counter,
             ConditionExpression='attribute_exists(PK)',
             UpdateExpression='SET #next = #next + :one',
         )
@@ -324,9 +330,9 @@ def _next_pop_id(carrier_id: str) -> Optional[int]:
         raise
 
 
-def _placed(body: Dict[str, Any]) -> bool:
-    worded = all(isinstance(body[field], str) for field in PLACE)
-    return worded and all(body[field] for field in NAMED)
+def _worded(body: Dict[str, Any], fields: Tuple[str, ...], named: Tuple[str, ...]) -> bool:
+    worded = all(isinstance(body[field], str) for field in fields)
+    return worded and all(body[field] for field in named)
 
 
 def _located(body: Dict[str, Any]) -> bool:
@@ -336,44 +342,106 @@ def _located(body: Dict[str, Any]) -> bool:
     )
 
 
-def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+Valid = Callable[[Dict[str, Any]], bool]
+
+
+def _body(event: Dict[str, Any], fields: Tuple[str, ...], valid: Valid) -> Optional[Dict[str, Any]]:
     body = parse_object(event)
-    if body is None or set(body) != set(PLACE + COORDINATES):
+    if body is None or set(body) != set(fields):
         return None
-    return body if _placed(body) and _located(body) else None
+    return body if valid(body) else None
 
 
-def _put_pop(
-    carrier_id: str, pop_id: str, body: Dict[str, Any], **request: Any
+def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return _body(
+        event, PLACE + COORDINATES, lambda body: _worded(body, PLACE, NAMED) and _located(body)
+    )
+
+
+def _fiber_segment_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return _body(
+        event, ENDS + (SUBMARINE,),
+        lambda body: _worded(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool),
+    )
+
+
+def _put_under(
+    carrier_id: str, prefix: str, member_id: str, attributes: Dict[str, Any], **request: Any
 ) -> Dict[str, Any]:
     item = {
         'PK': {'S': f'{COLLECTION}/{carrier_id}'},
-        'SK': {'S': f'{POPS}/{pop_id}'},
-        **{field: {'S': body[field]} for field in PLACE},
-        **{field: {'N': str(body[field])} for field in COORDINATES},
+        'SK': {'S': f'{prefix}/{member_id}'},
+        **attributes,
     }
     aws_client('dynamodb').put_item(TableName=os.environ['STORE_TABLE'], Item=item, **request)
     return item
 
 
-def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
-    body = _pop_body(event)
+def _put_pop(
+    carrier_id: str, pop_id: str, body: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    return _put_under(carrier_id, POPS, pop_id, {
+        **{field: {'S': body[field]} for field in PLACE},
+        **{field: {'N': str(body[field])} for field in COORDINATES},
+    }, **request)
+
+
+def _put_fiber_segment(
+    carrier_id: str, segment_id: str, body: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    return _put_under(carrier_id, FIBER_SEGMENTS, segment_id, {
+        **{field: {'S': body[field]} for field in ENDS},
+        SUBMARINE: {'BOOL': body[SUBMARINE]},
+    }, **request)
+
+
+Body = Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]
+Put = Callable[..., Dict[str, Any]]
+
+
+class Kind(NamedTuple):
+    prefix: str
+    counter: str
+    body: Body
+    refusal: str
+    put: Put
+    row: Row
+    failure: str
+
+
+POP_KIND = Kind(POPS, 'next_pop', _pop_body, POP_BODY, _put_pop, _pop, 'Failed to add the pop')
+FIBER_SEGMENT_KIND = Kind(
+    FIBER_SEGMENTS, 'next_fiber_segment', _fiber_segment_body, FIBER_SEGMENT_BODY,
+    _put_fiber_segment, _fiber_segment, 'Failed to add the fiber segment',
+)
+
+
+def _add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
+    body = kind.body(event)
     if body is None:
-        return json_response(400, {'error': POP_BODY})
+        return json_response(400, {'error': kind.refusal})
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return json_response(404, {'error': MISSING})
     try:
-        pop_id = _next_pop_id(carrier_id)
-        item = _put_pop(carrier_id, str(pop_id), body) if pop_id is not None else None
+        member_id = _next_under(carrier_id, kind.counter)
+        item = kind.put(carrier_id, str(member_id), body) if member_id is not None else None
     except ClientError as error:
-        logger.error('Error adding a pop to carrier %s: %s', carrier_id, error)
-        return json_response(500, {'error': 'Failed to add the pop'})
+        logger.error('Error adding to the %s of carrier %s: %s', kind.prefix, carrier_id, error)
+        return json_response(500, {'error': kind.failure})
     if item is None:
         return json_response(404, {'error': MISSING})
-    response = json_response(201, _pop(item))
-    response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}/{POPS}/{pop_id}'
+    response = json_response(201, kind.row(item))
+    response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}'
     return response
+
+
+def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _add_under(event, POP_KIND)
+
+
+def _add_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _add_under(event, FIBER_SEGMENT_KIND)
 
 
 def _replace_pop(carrier_id: str, pop_id: str, body: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -414,4 +482,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/pops/{pop}', 'PUT'): _update_pop,
         ('/carriers/{carrier}/pops/{pop}', 'DELETE'): _delete_pop,
         ('/carriers/{carrier}/fiber-segments', 'GET'): _list_fiber_segments,
+        ('/carriers/{carrier}/fiber-segments', 'POST'): _add_fiber_segment,
     })

@@ -60,14 +60,16 @@ CARRIERS_OPERATIONS = [
     (POP, "put"),
     (POP, "delete"),
     (FIBER_SEGMENTS, "get"),
+    (FIBER_SEGMENTS, "post"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 POP_SERVINGS = ["get", "put"]
 POP_METHODS = POP_SERVINGS + ["delete"]
+FIBER_SEGMENTS_METHODS = ["get", "post"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
-] + [(FIBER_SEGMENTS, "get")]
+] + [(FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS]
 UNDER_A_POP = [(POP, method) for method in POP_METHODS]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
@@ -78,7 +80,23 @@ FIBER_SEGMENT_FIELDS = [
 ]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
-CREATIONS = [("/carriers", "post"), ("/carriers/{carrier}/pops", "post")]
+SPANNED_BODIES = [(FIBER_SEGMENTS, "post")]
+MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
+    (path, method, FIBER_SEGMENT_FIELDS) for path, method in SPANNED_BODIES
+]
+NAMED_ENDS = [
+    (path, method, field) for path, method in PLACED_BODIES for field in ["municipality", "country"]
+] + [
+    (path, method, field)
+    for path, method in SPANNED_BODIES for field in ["a_municipality", "z_municipality"]
+]
+OPTIONAL_STATES = [(path, method, "state") for path, method in PLACED_BODIES] + [
+    (path, method, field) for path, method in SPANNED_BODIES for field in ["a_state", "z_state"]
+]
+ADDITIONS = [
+    ("/carriers/{carrier}/pops", "post", POP_FIELDS), (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS)
+]
+CREATIONS = [("/carriers", "post")] + [(path, method) for path, method, _ in ADDITIONS]
 DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete")]
 
 
@@ -99,24 +117,40 @@ def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> 
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
-def test_the_fiber_segments_of_a_carrier_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][FIBER_SEGMENTS]) == ["get"]
+def test_the_fiber_segments_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][FIBER_SEGMENTS]) == FIBER_SEGMENTS_METHODS
 
 
-def _fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
+def _request_body(openapi: Dict[str, Any], path: str, method: str) -> Dict[str, Any]:
+    body = openapi["paths"][path][method]["requestBody"]
+    schema: Dict[str, Any] = body["content"]["application/json"]["schema"]
+    return schema
+
+
+def _listed_fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
     listed = openapi["paths"][FIBER_SEGMENTS]["get"]["responses"]["200"]
     schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
     return schema
 
 
+def _fiber_segment_schemas(openapi: Dict[str, Any]) -> List[Dict[str, Any]]:
+    added = openapi["paths"][FIBER_SEGMENTS]["post"]["responses"]["201"]
+    return [
+        _listed_fiber_segment(openapi),
+        added["content"]["application/json"]["schema"],
+        _request_body(openapi, FIBER_SEGMENTS, "post"),
+    ]
+
+
 def test_a_fiber_segment_is_a_span_between_two_municipalities_with_an_id(
     openapi: Dict[str, Any]
 ) -> None:
-    assert _fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
+    assert _listed_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
 
 
 def test_a_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
-    assert _fiber_segment(openapi)["properties"]["submarine"]["type"] == "boolean"
+    submarine = [one["properties"]["submarine"]["type"] for one in _fiber_segment_schemas(openapi)]
+    assert submarine == ["boolean"] * 3
 
 
 def test_a_pop_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
@@ -131,51 +165,47 @@ def test_a_pop_is_served_as_a_located_municipality_with_an_id(
     assert served["content"]["application/json"]["schema"]["required"] == POP_FIELDS
 
 
-def _pop_body(openapi: Dict[str, Any], path: str, method: str) -> Dict[str, Any]:
-    body = openapi["paths"][path][method]["requestBody"]
-    schema: Dict[str, Any] = body["content"]["application/json"]["schema"]
-    return schema
+@pytest.mark.parametrize(("path", "method", "fields"), MEMBER_BODIES)
+def test_a_member_is_written_as_itself_without_an_id(
+    openapi: Dict[str, Any], path: str, method: str, fields: List[str]
+) -> None:
+    assert _request_body(openapi, path, method)["required"] == fields[1:]
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
-def test_a_pop_is_placed_as_a_located_municipality_without_an_id(
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES)
+def test_a_member_is_written_with_no_other_field(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
-    assert _pop_body(openapi, path, method)["required"] == POP_FIELDS[1:]
+    assert _request_body(openapi, path, method)["additionalProperties"] is False
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
-def test_a_pop_is_placed_with_no_other_field(
-    openapi: Dict[str, Any], path: str, method: str
-) -> None:
-    assert _pop_body(openapi, path, method)["additionalProperties"] is False
-
-
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
-@pytest.mark.parametrize("field", ["municipality", "country"])
-def test_a_pop_is_placed_with_a_municipality_and_a_country_that_are_named(
+@pytest.mark.parametrize(("path", "method", "field"), NAMED_ENDS)
+def test_a_municipality_or_a_country_a_member_is_written_with_is_named(
     openapi: Dict[str, Any], path: str, method: str, field: str
 ) -> None:
-    assert _pop_body(openapi, path, method)["properties"][field]["minLength"] == 1
+    assert _request_body(openapi, path, method)["properties"][field]["minLength"] == 1
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
-def test_a_pop_may_be_placed_with_no_state(
-    openapi: Dict[str, Any], path: str, method: str
+@pytest.mark.parametrize(("path", "method", "field"), OPTIONAL_STATES)
+def test_a_member_may_be_written_with_no_state(
+    openapi: Dict[str, Any], path: str, method: str, field: str
 ) -> None:
-    assert "minLength" not in _pop_body(openapi, path, method)["properties"]["state"]
+    assert "minLength" not in _request_body(openapi, path, method)["properties"][field]
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
-def test_a_misplaced_pop_is_documented_as_400(
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES)
+def test_a_member_written_wrongly_is_documented_as_400(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert "400" in openapi["paths"][path][method]["responses"]
 
 
-def test_an_added_pop_answers_with_its_id(openapi: Dict[str, Any]) -> None:
-    created = openapi["paths"]["/carriers/{carrier}/pops"]["post"]["responses"]["201"]
-    assert created["content"]["application/json"]["schema"]["required"] == POP_FIELDS
+@pytest.mark.parametrize(("path", "method", "fields"), ADDITIONS)
+def test_an_added_member_answers_with_its_id(
+    openapi: Dict[str, Any], path: str, method: str, fields: List[str]
+) -> None:
+    created = openapi["paths"][path][method]["responses"]["201"]
+    assert created["content"]["application/json"]["schema"]["required"] == fields
 
 
 @pytest.mark.parametrize(("path", "method"), DELETIONS)

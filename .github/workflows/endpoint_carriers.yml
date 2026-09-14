@@ -350,7 +350,7 @@ jobs:
       - env:
           BEFORE: ${{ github.event.before }}
           GH_TOKEN: ${{ github.token }}
-        name: Delete and create again, with its PoPs, every carrier whose data changed since the last load
+        name: Delete and create again, with its PoPs and fiber segments, every carrier whose data changed since the last load
         run: |
           RUNS="repos/$GITHUB_REPOSITORY/actions/workflows/endpoint_carriers.yml/runs"
           SINCE=$(gh api "$RUNS?branch=main&event=push&status=success&per_page=1" \
@@ -367,7 +367,7 @@ jobs:
           LISTED=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" "$CARRIERS")
           git diff --name-only --no-renames --diff-filter=d "$SINCE" "$GITHUB_SHA" \
             -- data/pops data/fiber_segments \
-            | sed --quiet --regexp-extended 's|^data/[^/]+/([^/.]+).*|\1|p' | sort --unique \
+            | sed --quiet --regexp-extended 's|^data/.*/([^/.]+)\.csv$|\1|p' | sort --unique \
             | while read -r CARRIER; do
               ID=$(jq --raw-output --arg name "$CARRIER" \
                 'map(select(.name == $name)) | .[0].id // empty' <<< "$LISTED")
@@ -393,6 +393,22 @@ jobs:
                   done
                 echo "Added $(tail --lines=+2 "data/pops/$CARRIER.csv" | wc --lines) PoPs to $CARRIER."
               fi
+              for KIND in terrestrial submarine; do
+                FIBER="data/fiber_segments/$KIND/$CARRIER.csv"
+                if [ -f "$FIBER" ]; then
+                  tail --lines=+2 "$FIBER" | jq --raw-input --compact-output --arg kind "$KIND" \
+                    'split(",") | {a_municipality: .[0], a_state: .[1],
+                                   z_municipality: .[2], z_state: .[3],
+                                   submarine: ($kind == "submarine")}' \
+                    | while read -r SEGMENT; do
+                      curl --silent --show-error --fail --output /dev/null \
+                        --header "Authorization: Bearer $KEY" \
+                        --header "Content-Type: application/json" \
+                        --data "$SEGMENT" "$CARRIERS/$ID/fiber-segments"
+                    done
+                  echo "Added $(tail --lines=+2 "$FIBER" | wc --lines) $KIND fiber segments to $CARRIER."
+                fi
+              done
             done
   test-repo-libraries:
     runs-on: ubuntu-latest
