@@ -46,5 +46,6 @@ output "lambda_handler_names" {
     rack_configurations                       = "api-10ulabs-com-rack-configurations"
     sessions                                  = "api-10ulabs-com-sessions"
     wan_syntheses                             = "api-10ulabs-com-wan-syntheses"
+    wan_syntheses_post                        = "api-10ulabs-com-wan-syntheses-post"
   }
 }

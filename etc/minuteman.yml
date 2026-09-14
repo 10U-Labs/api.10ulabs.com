@@ -1,0 +1,30 @@
+---
+backbone:
+  coverage_target_miles: 1200
+  forced:
+    circuits: []
+    wan_pops:
+      - Ashburn, VA
+      - Cheyenne, WY
+      - Great Falls, MT
+      - Minot, ND
+      - Salt Lake City, UT
+  number_of_diverse_circuits: 3
+  prohibited:
+    circuits: []
+    wan_pops: []
+  promote_high_degree_convergences: false
+  wan_pop_count:
+    max: 6
+    min: 3
+homing:
+  degree: 2
+  forced: []
+inputs:
+  sites:
+    Minuteman: data/sites/minuteman.csv
+label: Minuteman
+settings:
+  bytes_per_wan_pop_combination: 160
+  compass_sector_count: 8
+  wan_pop_search_memory_share: 0.6

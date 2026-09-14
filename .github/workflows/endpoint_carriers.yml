@@ -4,8 +4,8 @@ concurrency:
   group: endpoint_carriers-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
-  MYPYPATH: lib/python
-  PYTHONPATH: lib/python
+  MYPYPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
+  PYTHONPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
 jobs:
   assert-no-comments:
     runs-on: ubuntu-latest
@@ -90,7 +90,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install boto3 pyyaml
+        run: pip install boto3 highspy==1.15.1 pyyaml
       - name: Assert every pytest fixture is asked for by something
         uses: 10U-Labs/assert-pytest-fixture-is-requested@latest
         with:
@@ -252,7 +252,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install pylint boto3
+        run: pip install pylint boto3 highspy==1.15.1
       - name: Run pylint on the source
         run: >-
           python3 -m pylint --recursive=y src/ lib/python/
@@ -268,7 +268,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install pylint boto3 pytest pyyaml
+        run: pip install pylint boto3 highspy==1.15.1 pytest pyyaml
       - name: Run pylint on the tests
         run: >-
           python3 -m pylint --recursive=y test/

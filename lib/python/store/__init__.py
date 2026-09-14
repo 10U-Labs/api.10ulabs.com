@@ -85,6 +85,31 @@ def conditioned(
     return item
 
 
+def typed(value: Any) -> Dict[str, Any]:
+    if isinstance(value, bool):
+        return {'BOOL': value}
+    if isinstance(value, (int, float)):
+        return {'N': str(value)}
+    if isinstance(value, dict):
+        return {'M': {field: typed(inner) for field, inner in value.items()}}
+    if isinstance(value, list):
+        return {'L': [typed(inner) for inner in value]}
+    return {'NULL': True} if value is None else {'S': str(value)}
+
+
+def assign(
+    table: str, partition_key: str, sort_key: str, attributes: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    placed = list(enumerate(attributes.items()))
+    return conditioned(
+        'update_item', table, {'PK': {'S': partition_key}, 'SK': {'S': sort_key}},
+        UpdateExpression='SET ' + ', '.join(f'#{index} = :{index}' for index, _ in placed),
+        ExpressionAttributeNames={f'#{index}': field for index, (field, _) in placed},
+        ExpressionAttributeValues={f':{index}': typed(value) for index, (_, value) in placed},
+        ReturnValues='ALL_NEW',
+    )
+
+
 def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, Any]]:
     key = {'PK': {'S': partition_key}, 'SK': {'S': sort_key}}
     return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')

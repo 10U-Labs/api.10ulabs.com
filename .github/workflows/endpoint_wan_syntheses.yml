@@ -4,8 +4,8 @@ concurrency:
   group: endpoint_wan_syntheses-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
-  MYPYPATH: lib/python
-  PYTHONPATH: lib/python
+  MYPYPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
+  PYTHONPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
 jobs:
   assert-no-comments:
     runs-on: ubuntu-latest
@@ -90,7 +90,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install boto3 pyyaml
+        run: pip install boto3 highspy==1.15.1 pyyaml
       - name: Assert every pytest fixture is asked for by something
         uses: 10U-Labs/assert-pytest-fixture-is-requested@latest
         with:
@@ -128,7 +128,9 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: src/api/endpoints/wan_syntheses/lambda lib/python
+          trees: >-
+            src/api/endpoints/wan_syntheses/lambda src/api/endpoints/wan_syntheses/post
+            src/api/endpoints/wan_syntheses/synthesizer lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -161,6 +163,165 @@ jobs:
         run: npm install -g jscpd
       - name: Detect copy-paste in the tests
         run: jscpd --pattern "**/*.py" --threshold 0 --reporters console test/
+  create-the-changed-syntheses:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - post-deployment-integration-tests
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Install tools
+        run: pip install pyyaml
+      - env:
+          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+        name: Create a synthesis for every run whose file changed since the last load
+        run: |
+          RUNS="repos/$GITHUB_REPOSITORY/actions/workflows/endpoint_wan_syntheses.yml/runs"
+          SINCE=$(gh api "$RUNS?branch=main&event=push&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty')
+          if [ -z "$SINCE" ]; then
+            SINCE=$BEFORE
+          fi
+          echo "Creating a synthesis for every run whose file changed since $SINCE."
+          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
+            --query Parameter.Value --output text)
+          echo "::add-mask::$KEY"
+          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
+          export API_KEY="$KEY"
+          export API_URL="https://$API.execute-api.us-east-2.amazonaws.com/prod"
+          git diff --name-only --no-renames --diff-filter=d "$SINCE" "$GITHUB_SHA" -- etc \
+            | grep --extended-regexp '^etc/[^/]+\.yml$' | sort --unique \
+            | while read -r FILE; do
+              python3 - "$FILE" <<'EOF'
+          import csv
+          import json
+          import os
+          import sys
+          from urllib.request import Request, urlopen
+
+          import yaml
+
+          path = sys.argv[1]
+          config = yaml.safe_load(open(path, encoding="utf-8"))
+          backbone, homing, inputs = config["backbone"], config["homing"], config["inputs"]
+          forced, prohibited = backbone.get("forced", {}), backbone.get("prohibited", {})
+          headers = {
+              "Authorization": f"Bearer {os.environ['API_KEY']}",
+              "Content-Type": "application/json",
+          }
+
+          def rows(csv_path):
+              with open(csv_path, encoding="utf-8") as handle:
+                  return list(csv.DictReader(handle))
+
+          def placed(row):
+              return {
+                  "municipality": row["Municipality"], "state": row["State"],
+                  "country": row["Country"],
+                  "latitude": float(row["Latitude"]), "longitude": float(row["Longitude"]),
+              }
+
+          def call(method, resource, body=None):
+              data = None if body is None else json.dumps(body).encode()
+              request = Request(os.environ["API_URL"] + resource, data, headers, method=method)
+              with urlopen(request, timeout=30) as answer:
+                  return json.loads(answer.read())
+
+          body = {
+              "label": config["label"],
+              "wan_pop_count": backbone["wan_pop_count"],
+              "backbone_number_of_diverse_circuits": backbone["number_of_diverse_circuits"],
+              "homing_degree": homing["degree"],
+              "convergence_promotion": backbone["promote_high_degree_convergences"],
+              "knobs": {"backbone_coverage_target_miles": backbone["coverage_target_miles"]},
+              "settings": config.get("settings", {}),
+              "sites": [
+                  {
+                      "name": row["Name"], **placed(row),
+                      "exempt_from_distance_constraint": (
+                          row.get("ExemptFromDistanceConstraint", "No").strip().lower() == "yes"
+                      ),
+                  }
+                  for csv_path in inputs["sites"].values() for row in rows(csv_path)
+              ],
+              "hyperscale_cloud_service_provider_regions": [
+                  {field: value for field, value in region.items() if field != "id"}
+                  for region in call("GET", "/hyperscale-cloud-service-provider-regions")
+              ],
+              "off_net": [placed(row) for row in rows(inputs["off_net"])] if "off_net" in inputs else [],
+              "forced_wan_pops": forced.get("wan_pops", []),
+              "forced_circuits": forced.get("circuits", []),
+              "forced_homes": homing.get("forced", []),
+              "prohibited_wan_pops": prohibited.get("wan_pops", []),
+              "prohibited_circuits": prohibited.get("circuits", []),
+              "degree_exempt_wan_pops": backbone.get("degree_exempt", []),
+          }
+          created = call("POST", "/wan-syntheses", body)
+          print(f"Created {created['label']} from {path} as synthesis {created['id']}.")
+          EOF
+            done
+  e2e-tests:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - create-the-changed-syntheses
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: us-east-2
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pytest pyyaml
+      - name: Wait until no synthesis is still creating or synthesizing
+        run: |
+          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
+            --query Parameter.Value --output text)
+          echo "::add-mask::$KEY"
+          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
+          SYNTHESES="https://$API.execute-api.us-east-2.amazonaws.com/prod/wan-syntheses"
+          for ATTEMPT in $(seq 1 90); do
+            UNFINISHED=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
+              "$SYNTHESES" | jq --raw-output '.[].id' | while read -r ID; do
+                curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
+                  "$SYNTHESES/$ID" | jq --raw-output 'select(.status == "creating" or .status == "synthesizing") | .id'
+              done)
+            if [ -z "$UNFINISHED" ]; then
+              echo "Every synthesis has ended."
+              exit 0
+            fi
+            echo "Attempt $ATTEMPT: still running: $(echo "$UNFINISHED" | tr '\n' ' ')"
+            sleep 60
+          done
+          echo "A synthesis is still running after ninety minutes."
+          exit 1
+      - name: Check every delivered synthesis against the run that asked for it
+        run: >-
+          python3 -m pytest test/api/endpoints/wan_syntheses/post_deployment/e2e/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
   mypy-source:
     runs-on: ubuntu-latest
     steps:
@@ -242,6 +403,22 @@ jobs:
           python3 -m pytest test/api/endpoints/wan_syntheses/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
+  pre-deployment-integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 highspy==1.15.1 pytest pyyaml
+      - name: Run the pre-deployment integration tests over the solver
+        run: >-
+          python3 -m pytest test/api/endpoints/wan_syntheses/pre_deployment/integration/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
   pylint-source:
     runs-on: ubuntu-latest
     steps:
@@ -252,7 +429,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install pylint boto3
+        run: pip install pylint boto3 highspy==1.15.1
       - name: Run pylint on the source
         run: >-
           python3 -m pylint --recursive=y src/ lib/python/
@@ -268,7 +445,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install pylint boto3 pytest pyyaml
+        run: pip install pylint boto3 highspy==1.15.1 pytest pyyaml
       - name: Run pylint on the tests
         run: >-
           python3 -m pylint --recursive=y test/
@@ -297,6 +474,7 @@ jobs:
       - mypy-tests
       - opentofu-format
       - opentofu-validate
+      - pre-deployment-integration-tests
       - pylint-source
       - pylint-tests
       - test-repo-libraries
@@ -316,6 +494,21 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+      - name: Fetch, check and unpack the solver wheels the Lambda layer is built from
+        run: |
+          WHEELS=$RUNNER_TEMP/solver_wheels
+          LAYER=src/api/endpoints/wan_syntheses/.terraform/solver_layer/python
+          HIGHS=$WHEELS/highspy-1.15.1-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl
+          NUMPY=$WHEELS/numpy-2.3.5-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+          mkdir -p "$WHEELS" "$LAYER"
+          curl -fsSL -o "$HIGHS" https://files.pythonhosted.org/packages/2f/97/4b5e345affc107f1f315c55dd0b6f35f13be07092feccbdfe1d9bfe38e63/highspy-1.15.1-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl
+          curl -fsSL -o "$NUMPY" https://files.pythonhosted.org/packages/95/03/dc0723a013c7d7c19de5ef29e932c3081df1c14ba582b8b86b5de9db7f0f/numpy-2.3.5-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+          sha256sum -c <<EOF
+          383cd3f28cce0753dec8e949719b10864e068c53a485624fcab4c6b585496dd7  $HIGHS
+          9c75442b2209b8470d6d5d8b1c25714270686f14c749028d2199c54e29f20b4d  $NUMPY
+          EOF
+          unzip -q -o "$HIGHS" -d "$LAYER"
+          unzip -q -o "$NUMPY" -d "$LAYER"
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@v2
         with:
@@ -362,7 +555,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install boto3 pytest pyyaml
+        run: pip install boto3 highspy==1.15.1 pytest pyyaml
       - name: Run the unit tests
         run: >-
           python3 -m pytest test/api/endpoints/wan_syntheses/pre_deployment/unit/
@@ -414,6 +607,8 @@ on:
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/wan_syntheses/**
+      - data/sites/**
+      - etc/**
       - src/www/**
       - test/api/conftest.py
       - test/api/endpoints/wan_syntheses/**

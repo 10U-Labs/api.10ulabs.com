@@ -66,7 +66,7 @@ MINUTEMAN = {
     "id": 1, "label": "minuteman",
     "wan_pop_count": {"min": 3, "max": 6}, "backbone_number_of_diverse_circuits": 3,
     "homing_degree": 2, "convergence_promotion": False,
-    "knobs": {"coverage_target_miles": 1200},
+    "knobs": {"backbone_coverage_target_miles": 1200},
     "settings": {"compass_sector_count": 8, "wan_pop_search_memory_share": 0.6},
     "status": "success",
     "coverage": {"delivered_miles": 1250.5, "target_miles": 1200},

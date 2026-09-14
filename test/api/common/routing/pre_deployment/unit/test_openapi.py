@@ -130,9 +130,18 @@ UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
 ]
-SYNTHESES_OPERATIONS = (
+READINGS = (
     [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
 )
+SYNTHESES_OPERATIONS = READINGS + [(SYNTHESES, "post")]
+RUN_FIELDS = [
+    "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
+    "convergence_promotion", "knobs", "settings", "sites",
+    "hyperscale_cloud_service_provider_regions", "off_net", "forced_wan_pops", "forced_circuits",
+    "forced_homes", "prohibited_wan_pops", "prohibited_circuits", "degree_exempt_wan_pops",
+]
+NAMED_LISTS = ["forced_wan_pops", "prohibited_wan_pops", "degree_exempt_wan_pops"]
+ENDED_LISTS = ["forced_circuits", "forced_homes", "prohibited_circuits"]
 SYNTHESIS_FIELDS = [
     "id", "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
     "convergence_promotion", "knobs", "settings", "status",
@@ -211,7 +220,9 @@ ADDITIONS = [
     (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS),
     (REGIONS, "post", REGION_FIELDS),
 ]
-CREATIONS = [("/carriers", "post")] + [(path, method) for path, method, _ in ADDITIONS]
+CREATIONS = [("/carriers", "post"), (SYNTHESES, "post")] + [
+    (path, method) for path, method, _ in ADDITIONS
+]
 DELETIONS = [
     ("/carriers/{carrier}", "delete"),
     (POP, "delete"),
@@ -380,16 +391,75 @@ def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[s
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
 
 
-@pytest.mark.parametrize(("path", "method"), SYNTHESES_OPERATIONS)
+@pytest.mark.parametrize(("path", "method"), READINGS)
 def test_the_syntheses_are_served_by_the_syntheses_handler(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
 
 
-@pytest.mark.parametrize("path", [path for path, _ in SYNTHESES_OPERATIONS])
+def test_a_synthesis_is_created_by_the_creator(openapi: Dict[str, Any]) -> None:
+    assert openapi["paths"][SYNTHESES]["post"][INTEGRATION]["uri"] == (
+        "${WanSynthesesPostHandlerArn}"
+    )
+
+
+def test_the_syntheses_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SYNTHESES]) == ["get", "post"]
+
+
+@pytest.mark.parametrize("path", [path for path, _ in READINGS if path != SYNTHESES])
 def test_a_path_under_the_syntheses_answers_get_alone(openapi: Dict[str, Any], path: str) -> None:
     assert list(openapi["paths"][path]) == ["get"]
+
+
+def test_a_run_is_created_from_its_label_its_scalars_and_its_nine_lists(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _request_body(openapi, SYNTHESES, "post")["required"] == RUN_FIELDS
+
+
+def test_a_run_is_created_with_no_other_field(openapi: Dict[str, Any]) -> None:
+    assert _request_body(openapi, SYNTHESES, "post")["additionalProperties"] is False
+
+
+@pytest.mark.parametrize("field", NAMED_LISTS)
+def test_a_named_list_input_is_a_list_of_names(openapi: Dict[str, Any], field: str) -> None:
+    items = _request_body(openapi, SYNTHESES, "post")["properties"][field]["items"]
+    assert (items["type"], items["minLength"]) == ("string", 1)
+
+
+@pytest.mark.parametrize("field", ENDED_LISTS)
+def test_an_ended_list_input_is_a_list_of_source_and_target(
+    openapi: Dict[str, Any], field: str
+) -> None:
+    items = _request_body(openapi, SYNTHESES, "post")["properties"][field]["items"]
+    assert items["required"] == ["source", "target"]
+
+
+def test_a_site_is_given_named_placed_and_exempt_or_not(openapi: Dict[str, Any]) -> None:
+    items = _request_body(openapi, SYNTHESES, "post")["properties"]["sites"]["items"]
+    assert items["required"] == SITE_FIELDS[1:]
+
+
+def test_a_region_is_given_as_the_catalog_serves_it(openapi: Dict[str, Any]) -> None:
+    field = "hyperscale_cloud_service_provider_regions"
+    items = _request_body(openapi, SYNTHESES, "post")["properties"][field]["items"]
+    assert items["required"] == REGION_FIELDS[1:]
+
+
+def test_an_off_net_pop_is_given_placed(openapi: Dict[str, Any]) -> None:
+    items = _request_body(openapi, SYNTHESES, "post")["properties"]["off_net"]["items"]
+    assert items["required"] == POP_FIELDS[1:]
+
+
+def test_a_creation_answers_the_record_creating(openapi: Dict[str, Any]) -> None:
+    created = openapi["paths"][SYNTHESES]["post"]["responses"]["201"]
+    assert created["content"]["application/json"]["schema"]["required"] == SYNTHESIS_FIELDS
+
+
+def test_a_creation_refuses_a_body_it_cannot_take(openapi: Dict[str, Any]) -> None:
+    assert "400" in openapi["paths"][SYNTHESES]["post"]["responses"]
 
 
 def _served(openapi: Dict[str, Any], path: str) -> Dict[str, Any]:

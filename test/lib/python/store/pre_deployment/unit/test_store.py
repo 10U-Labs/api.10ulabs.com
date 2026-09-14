@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    advance, conditional, conditioned, delete, member, members, next_id, partition, plain, put,
-    sort_id,
+    advance, assign, conditional, conditioned, delete, member, members, next_id, partition, plain,
+    put, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -32,7 +32,7 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
     def update_item(**request: Any) -> Dict[str, Any]:
         dynamodb.updates.append(request)
-        field = request["ExpressionAttributeNames"]["#next"]
+        field = next(iter(request["ExpressionAttributeNames"].values()))
         return {"Attributes": {field: {"N": "7"}}}
 
     def put_item(**request: Any) -> Dict[str, Any]:
@@ -294,3 +294,68 @@ def test_the_sort_id_of_a_top_level_item_is_its_sort_key() -> None:
 
 def test_the_sort_id_of_an_item_under_a_member_follows_its_prefix() -> None:
     assert sort_id({"PK": {"S": "carriers/1"}, "SK": {"S": "pops/7"}}) == 7
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("minuteman", {"S": "minuteman"}),
+    (3, {"N": "3"}),
+    (-12, {"N": "-12"}),
+    (0.6, {"N": "0.6"}),
+    (False, {"BOOL": False}),
+    (None, {"NULL": True}),
+    ({"min": 3, "max": 6}, {"M": {"min": {"N": "3"}, "max": {"N": "6"}}}),
+    (["a", 1], {"L": [{"S": "a"}, {"N": "1"}]}),
+    ({"ceilings": [{"miles": 1.5}]}, {"M": {"ceilings": {"L": [{"M": {"miles": {"N": "1.5"}}}]}}}),
+])
+def test_typed_turns_json_into_an_attribute_value(value: Any, expected: Dict[str, Any]) -> None:
+    assert typed(value) == expected
+
+
+@pytest.mark.parametrize("value", [3, 0.6, "3", False, None, {"a": [1]}])
+def test_typed_is_undone_by_plain(value: Any) -> None:
+    assert plain(typed(value)) == value
+
+
+STATUS = {"status": "fail", "reason": "No backbone"}
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_an_assignment_answers_the_attributes_the_store_returns() -> None:
+    assert assign("the-table", "wan-syntheses", "1", STATUS) == {"status": {"N": "7"}}
+
+
+def test_an_assignment_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["TableName"] == "the-table"
+
+
+def test_an_assignment_is_of_the_key_it_names(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["Key"] == {"PK": {"S": "wan-syntheses"}, "SK": {"S": "1"}}
+
+
+def test_an_assignment_sets_every_attribute_by_a_placeholder(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["UpdateExpression"] == "SET #0 = :0, #1 = :1"
+
+
+def test_an_assignment_names_the_attributes_it_sets(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["ExpressionAttributeNames"] == {"#0": "status", "#1": "reason"}
+
+
+def test_an_assignment_types_the_values_it_sets(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["ExpressionAttributeValues"] == {
+        ":0": {"S": "fail"}, ":1": {"S": "No backbone"},
+    }
+
+
+def test_an_assignment_requires_the_item_to_exist(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_an_assignment_asks_for_the_whole_item(dynamodb: SimpleNamespace) -> None:
+    assign("the-table", "wan-syntheses", "1", STATUS)
+    assert _update(dynamodb)["ReturnValues"] == "ALL_NEW"

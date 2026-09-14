@@ -2451,6 +2451,488 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "post": {
+        "summary": "Create WAN Synthesis",
+        "description": "Creates a WAN synthesis: one run over the inputs the body carries. The record is written under the next id, never reused, with status creating, each element of a list input under it numbered in body order, and the synthesizer is started on it; the record then moves through synthesizing to success, fail or timeout, and the WAN's parts appear under the run once it ended success. Nothing under a run is written after creation; a changed input is a new run.",
+        "operationId": "createWanSynthesis",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label",
+                  "wan_pop_count",
+                  "backbone_number_of_diverse_circuits",
+                  "homing_degree",
+                  "convergence_promotion",
+                  "knobs",
+                  "settings",
+                  "sites",
+                  "hyperscale_cloud_service_provider_regions",
+                  "off_net",
+                  "forced_wan_pops",
+                  "forced_circuits",
+                  "forced_homes",
+                  "prohibited_wan_pops",
+                  "prohibited_circuits",
+                  "degree_exempt_wan_pops"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The run, as its inputs name it",
+                    "example": "minuteman"
+                  },
+                  "wan_pop_count": {
+                    "type": "object",
+                    "description": "How many WAN PoPs the backbone may have",
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "min": {
+                        "type": "integer",
+                        "example": 3
+                      },
+                      "max": {
+                        "type": "integer",
+                        "example": 6
+                      }
+                    }
+                  },
+                  "backbone_number_of_diverse_circuits": {
+                    "type": "integer",
+                    "description": "How many diverse backbone circuits each WAN PoP is asked for",
+                    "example": 3
+                  },
+                  "homing_degree": {
+                    "type": "integer",
+                    "description": "How many WAN PoPs each site homes to",
+                    "example": 2
+                  },
+                  "convergence_promotion": {
+                    "type": "boolean",
+                    "description": "Whether high-degree convergences are promoted to WAN PoPs",
+                    "example": false
+                  },
+                  "knobs": {
+                    "type": "object",
+                    "description": "The algorithm's knobs; backbone_coverage_target_miles is required",
+                    "additionalProperties": true,
+                    "example": {
+                      "backbone_coverage_target_miles": 1200
+                    }
+                  },
+                  "settings": {
+                    "type": "object",
+                    "description": "The implementation's settings: compass_sector_count, wan_pop_search_memory_share, bytes_per_wan_pop_combination",
+                    "additionalProperties": true,
+                    "example": {
+                      "compass_sector_count": 8,
+                      "wan_pop_search_memory_share": 0.6,
+                      "bytes_per_wan_pop_combination": 160
+                    }
+                  },
+                  "sites": {
+                    "type": "array",
+                    "description": "The sites the WAN homes, in the order that gives them their ids",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "municipality",
+                        "state",
+                        "country",
+                        "latitude",
+                        "longitude",
+                        "exempt_from_distance_constraint"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The site's name, as the run gave it",
+                          "example": "F.E. Warren AFB",
+                          "minLength": 1
+                        },
+                        "municipality": {
+                          "type": "string",
+                          "example": "Cheyenne",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "The state or province; empty outside a country that has them",
+                          "example": "WY"
+                        },
+                        "country": {
+                          "type": "string",
+                          "example": "United States",
+                          "minLength": 1
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "example": 41.1517
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "example": -104.8678
+                        },
+                        "exempt_from_distance_constraint": {
+                          "type": "boolean",
+                          "description": "Whether the site may home farther than the run allows others to",
+                          "example": false
+                        }
+                      },
+                      "additionalProperties": false,
+                      "description": "A site the WAN homes, named and placed, and whether it may home farther than the run allows others to"
+                    }
+                  },
+                  "hyperscale_cloud_service_provider_regions": {
+                    "type": "array",
+                    "description": "The provider regions the WAN homes, in the order that gives them their ids",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "municipality",
+                        "state",
+                        "country",
+                        "latitude",
+                        "longitude"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The region's name as its provider publishes it",
+                          "example": "us-east-2",
+                          "minLength": 1
+                        },
+                        "municipality": {
+                          "type": "string",
+                          "example": "Columbus",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "The state or province; empty outside a country that has them",
+                          "example": "OH"
+                        },
+                        "country": {
+                          "type": "string",
+                          "example": "US",
+                          "minLength": 1
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "example": 39.9612
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "example": -82.9988
+                        }
+                      },
+                      "additionalProperties": true,
+                      "description": "A hyperscale cloud service provider region the WAN homes, as the catalog serves it; a catalog id is ignored"
+                    }
+                  },
+                  "off_net": {
+                    "type": "array",
+                    "description": "The candidate PoPs in cities no carrier serves, in the order that gives them their ids",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "municipality",
+                        "state",
+                        "country",
+                        "latitude",
+                        "longitude"
+                      ],
+                      "properties": {
+                        "municipality": {
+                          "type": "string",
+                          "example": "Dulles",
+                          "minLength": 1
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "The state or province; empty outside a country that has them",
+                          "example": "VA"
+                        },
+                        "country": {
+                          "type": "string",
+                          "example": "United States",
+                          "minLength": 1
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "example": 38.9519
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "example": -77.448
+                        }
+                      },
+                      "additionalProperties": false,
+                      "description": "A candidate PoP in a city no carrier serves, placed"
+                    }
+                  },
+                  "forced_wan_pops": {
+                    "type": "array",
+                    "description": "The carrier PoPs the WAN must place",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "A carrier PoP, named by its municipality and state",
+                      "example": "Ashburn, VA"
+                    }
+                  },
+                  "forced_circuits": {
+                    "type": "array",
+                    "description": "The backbone circuits the WAN must carry",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "source",
+                        "target"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "source": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A carrier PoP, named by its municipality and state",
+                          "example": "Ashburn, VA"
+                        },
+                        "target": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A carrier PoP, named by its municipality and state",
+                          "example": "Cheyenne, WY"
+                        }
+                      }
+                    }
+                  },
+                  "forced_homes": {
+                    "type": "array",
+                    "description": "The homing circuits the WAN must carry",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "source",
+                        "target"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "source": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A site, named as the run's sites name it",
+                          "example": "F.E. Warren AFB"
+                        },
+                        "target": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A carrier PoP, named by its municipality and state",
+                          "example": "Cheyenne, WY"
+                        }
+                      }
+                    }
+                  },
+                  "prohibited_wan_pops": {
+                    "type": "array",
+                    "description": "The carrier PoPs the WAN must not place",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "A carrier PoP, named by its municipality and state",
+                      "example": "Chicago, IL"
+                    }
+                  },
+                  "prohibited_circuits": {
+                    "type": "array",
+                    "description": "The backbone circuits the WAN must not carry",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "source",
+                        "target"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "source": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A carrier PoP, named by its municipality and state",
+                          "example": "Minot, ND"
+                        },
+                        "target": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "A carrier PoP, named by its municipality and state",
+                          "example": "Great Falls, MT"
+                        }
+                      }
+                    }
+                  },
+                  "degree_exempt_wan_pops": {
+                    "type": "array",
+                    "description": "The carrier PoPs the WAN may place with fewer backbone circuits than the run asks",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "A carrier PoP, named by its municipality and state",
+                      "example": "Great Falls, MT"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The record, by the id the API gave it, with status creating",
+            "headers": {
+              "Location": {
+                "description": "The synthesis's own URL, /wan-syntheses/{id}",
+                "schema": {
+                  "type": "string",
+                  "example": "/wan-syntheses/1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "label",
+                    "wan_pop_count",
+                    "backbone_number_of_diverse_circuits",
+                    "homing_degree",
+                    "convergence_promotion",
+                    "knobs",
+                    "settings",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "label": {
+                      "type": "string",
+                      "description": "The run the synthesis records, as its inputs name it",
+                      "example": "minuteman"
+                    },
+                    "wan_pop_count": {
+                      "type": "object",
+                      "description": "How many WAN PoPs the backbone may have",
+                      "required": [
+                        "min",
+                        "max"
+                      ],
+                      "properties": {
+                        "min": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "max": {
+                          "type": "integer",
+                          "example": 6
+                        }
+                      }
+                    },
+                    "backbone_number_of_diverse_circuits": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "homing_degree": {
+                      "type": "integer",
+                      "description": "How many WAN PoPs each site homes to",
+                      "example": 2
+                    },
+                    "convergence_promotion": {
+                      "type": "boolean",
+                      "description": "Whether high-degree convergences are promoted to WAN PoPs",
+                      "example": false
+                    },
+                    "knobs": {
+                      "type": "object",
+                      "description": "The algorithm's knobs, as the run set them",
+                      "additionalProperties": true
+                    },
+                    "settings": {
+                      "type": "object",
+                      "description": "The implementation's settings, as the run set them",
+                      "additionalProperties": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Where the run stands: creating while its inputs are written, synthesizing while the WAN is computed, then success, fail or timeout",
+                      "enum": [
+                        "creating",
+                        "synthesizing",
+                        "success",
+                        "fail",
+                        "timeout"
+                      ],
+                      "example": "creating"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body missing a field, carrying one too many, or with a field that is not as described",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "500": {
+            "description": "The store could not be written, or the synthesizer could not be started"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesPostHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
       }
     },
     "/wan-syntheses/{synthesis}": {

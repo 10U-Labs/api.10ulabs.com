@@ -41,14 +41,17 @@ def store_fixture() -> SimpleNamespace:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, operation)
         return item
 
-    def rename(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
-        item["name"] = request["ExpressionAttributeValues"][":name"]
-        return {"Attributes": item}
-
-    def advance(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
-        field = request["ExpressionAttributeNames"]["#next"]
-        item[field] = {"N": str(int(item.get(field, {"N": "1"})["N"]) + 1)}
-        return {"Attributes": {field: item[field]}}
+    def assign(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
+        names = request["ExpressionAttributeNames"]
+        values = request["ExpressionAttributeValues"]
+        for clause in request["UpdateExpression"].removeprefix("SET ").split(", "):
+            target, _, expression = clause.partition(" = ")
+            if "+" in expression:
+                held = int(item.get(names[target], {"N": "1"})["N"])
+                item[names[target]] = {"N": str(held + 1)}
+            else:
+                item[names[target]] = values[expression]
+        return {"Attributes": dict(item)}
 
     def query(**request: Any) -> Dict[str, Any]:
         store.queries.append(request)
@@ -72,8 +75,7 @@ def store_fixture() -> SimpleNamespace:
         refuse("UpdateItem")
         conditional = "ConditionExpression" in request
         item = required(request["Key"], "UpdateItem") if conditional else counter(request["Key"])
-        renaming = ":name" in request["ExpressionAttributeValues"]
-        return rename(request, item) if renaming else advance(request, item)
+        return assign(request, item)
 
     def delete_item(**request: Any) -> Dict[str, Any]:
         store.deletes.append(request)
@@ -104,18 +106,32 @@ def store_fixture() -> SimpleNamespace:
 
 
 
+@pytest.fixture(name="invoker")
+def invoker_fixture() -> SimpleNamespace:
+    invoker = SimpleNamespace(invocations=[])
+
+    def invoke(**request: Any) -> Dict[str, Any]:
+        invoker.invocations.append(request)
+        return {"StatusCode": 202}
+
+    invoker.invoke = invoke
+    return invoker
+
+
 @pytest.fixture
 def endpoint(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     store: SimpleNamespace,
-) -> Callable[[str], ModuleType]:
-    def load(stack: str) -> ModuleType:
-        handler = load_handler(f"api/endpoints/{stack}")
+    invoker: SimpleNamespace,
+) -> Callable[..., ModuleType]:
+    def load(stack: str, handler_dir: str = "lambda") -> ModuleType:
+        handler = load_handler(f"api/endpoints/{stack}", handler_dir)
         monkeypatch.setenv("STORE_TABLE", "store")
+        clients = {"dynamodb": store, "lambda": invoker}
         for module in (handler, library):
             monkeypatch.setattr(
-                module, "aws_client", lambda service: {"dynamodb": store}[service], raising=False
+                module, "aws_client", lambda service: clients[service], raising=False
             )
         return handler
     return load

@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+import fixtures
+from synthesizer.model import RoleExclusions, SynthesisParams, Tuning
+
+_TWO_SEATS = SynthesisParams(
+    min_wan_pop_count=2,
+    max_wan_pop_count=2,
+    exclusions=RoleExclusions(prohibited_wan_pop_names=fixtures.funnel_transit_names()),
+    promote_high_degree_convergences=False,
+    tuning=Tuning(backbone_number_of_diverse_circuits=2),
+)
+ARTIFACTS = fixtures.run_synthesis(
+    fixtures.funnel_sites(), fixtures.FUNNEL_FIBER, _TWO_SEATS
+)
+
+
+def test_the_synthesis_selects_two_wan_pop_sites() -> None:
+    assert len(ARTIFACTS.synthesis.wan_pop_ids) == 2
+
+
+def test_the_backbone_holds_the_site_whose_fiber_carries_the_most_circuits() -> None:
+    assert "spread" in ARTIFACTS.synthesis.wan_pop_ids
+
+
+def test_the_backbone_leaves_one_of_the_funnelled_sites_out() -> None:
+    selected = set(ARTIFACTS.synthesis.wan_pop_ids)
+    assert not {"funnel", "second_funnel"} <= selected

@@ -7,3 +7,18 @@ output "lambda_function_name" {
   description = "Name of the wan syntheses Lambda."
   value       = aws_lambda_function.handler.function_name
 }
+
+output "creator_function_name" {
+  description = "Name of the Lambda that creates a wan synthesis."
+  value       = aws_lambda_function.creator.function_name
+}
+
+output "synthesizer_function_name" {
+  description = "Name of the Lambda that computes a wan synthesis."
+  value       = aws_lambda_function.synthesizer.function_name
+}
+
+output "failure_handler_function_name" {
+  description = "Name of the Lambda that marks a killed synthesis timeout."
+  value       = aws_lambda_function.failure_handler.function_name
+}

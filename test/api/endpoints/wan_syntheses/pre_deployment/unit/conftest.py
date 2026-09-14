@@ -8,7 +8,7 @@ INPUTS = {
     "backbone_number_of_diverse_circuits": {"N": "3"},
     "homing_degree": {"N": "2"},
     "convergence_promotion": {"BOOL": False},
-    "knobs": {"M": {"coverage_target_miles": {"N": "1200"}}},
+    "knobs": {"M": {"backbone_coverage_target_miles": {"N": "1200"}}},
     "settings": {"M": {
         "compass_sector_count": {"N": "8"}, "wan_pop_search_memory_share": {"N": "0.6"},
     }},
@@ -139,4 +139,60 @@ def syntheses() -> List[Dict[str, Any]]:
          "name": {"S": "Great Falls, MT"}},
         {"PK": {"S": "wan-syntheses/2"}, "SK": {"S": "degree-exempt-wan-pops/1"},
          "name": {"S": "Columbus, OH"}},
+    ]
+
+
+def _placed(municipality: str, state: str, latitude: str, longitude: str) -> Dict[str, Any]:
+    return {
+        "municipality": {"S": municipality}, "state": {"S": state},
+        "country": {"S": "United States"},
+        "latitude": {"N": latitude}, "longitude": {"N": longitude},
+    }
+
+
+def _span(a_municipality: str, a_state: str, z_municipality: str, z_state: str) -> Dict[str, Any]:
+    return {
+        "a_municipality": {"S": a_municipality}, "a_state": {"S": a_state},
+        "z_municipality": {"S": z_municipality}, "z_state": {"S": z_state},
+        "submarine": {"BOOL": False},
+    }
+
+
+ASHBURN = _placed("Ashburn", "VA", "39.0438", "-77.4874")
+CHICAGO = _placed("Chicago", "IL", "41.8781", "-87.6298")
+CHEYENNE = _placed("Cheyenne", "WY", "41.14", "-104.8202")
+
+
+@pytest.fixture
+def run() -> List[Dict[str, Any]]:
+    return [
+        {"PK": {"S": "wan-syntheses"}, "SK": {"S": "#"}, "next": {"N": "2"}},
+        {"PK": {"S": "wan-syntheses"}, "SK": {"S": "1"}, "label": {"S": "minuteman"}, **INPUTS,
+         "status": {"S": "creating"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "sites/1"}, "name": {"S": "F.E. Warren AFB"},
+         **_placed("Cheyenne", "WY", "41.1517", "-104.8678"),
+         "exempt_from_distance_constraint": {"BOOL": False}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "hyperscale-cloud-service-provider-regions/1"},
+         "name": {"S": "Provider A"}, **_placed("Columbus", "OH", "39.9612", "-82.9988")},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "off-net/1"},
+         **_placed("Dulles", "VA", "38.9519", "-77.448")},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "forced-wan-pops/1"},
+         "name": {"S": "Ashburn, VA"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "forced-circuits/1"},
+         "source": {"S": "Ashburn, VA"}, "target": {"S": "Cheyenne, WY"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "degree-exempt-wan-pops/1"},
+         "name": {"S": "Chicago, IL"}},
+        {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}},
+        {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "lumen"}},
+        {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "zayo"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}, **ASHBURN},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/2"}, **CHICAGO},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/1"},
+         **_span("Ashburn", "VA", "Chicago", "IL")},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/2"},
+         **_span("Chicago", "IL", "Cheyenne", "WY")},
+        {"PK": {"S": "carriers/2"}, "SK": {"S": "pops/1"}, **CHICAGO},
+        {"PK": {"S": "carriers/2"}, "SK": {"S": "pops/2"}, **CHEYENNE},
+        {"PK": {"S": "carriers/2"}, "SK": {"S": "fiber-segments/1"},
+         **_span("Chicago", "IL", "Cheyenne", "WY")},
     ]

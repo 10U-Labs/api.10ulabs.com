@@ -1,0 +1,26 @@
+---
+backbone:
+  coverage_target_miles: 745
+  forced:
+    circuits: []
+    wan_pops:
+      - Ashburn, VA
+  number_of_diverse_circuits: 2
+  prohibited:
+    circuits: []
+    wan_pops: []
+  promote_high_degree_convergences: false
+  wan_pop_count:
+    max: 99
+    min: 3
+homing:
+  degree: 2
+  forced: []
+inputs:
+  sites:
+    F-35: data/sites/f_35.csv
+label: F-35
+settings:
+  bytes_per_wan_pop_combination: 160
+  compass_sector_count: 8
+  wan_pop_search_memory_share: 0.6

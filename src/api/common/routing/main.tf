@@ -26,6 +26,7 @@ locals {
     RackConfigurationsHandlerArn                    = local.integration.rack_configurations
     SessionsHandlerArn                              = local.integration.sessions
     WanSynthesesHandlerArn                          = local.integration.wan_syntheses
+    WanSynthesesPostHandlerArn                      = local.integration.wan_syntheses_post
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

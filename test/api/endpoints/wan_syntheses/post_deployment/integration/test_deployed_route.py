@@ -138,3 +138,24 @@ def test_the_first_input_of_every_listed_synthesis_is_served_at_its_own_url(
         for given in get_json(f"{stage_url}{SYNTHESES}/{one['id']}/{part}", bearer)[1][:1]
     ]
     assert [get_json(url, bearer) for url, _ in firsts] == [(200, one) for _, one in firsts]
+
+
+def test_a_creation_refuses_a_call_without_a_token_through_the_deployed_api(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]]
+) -> None:
+    status, _ = post_json(f"{stage_url}{SYNTHESES}", {})
+    assert status == 401
+
+
+def test_the_workflows_key_is_admitted_to_create_a_synthesis_through_the_deployed_api(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = post_json(f"{stage_url}{SYNTHESES}", {}, bearer)
+    assert status == 400
+
+
+def test_a_body_without_the_run_s_inputs_names_every_field_through_the_deployed_api(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = post_json(f"{stage_url}{SYNTHESES}", {"label": "minuteman"}, bearer)
+    assert body["error"].startswith("The body must be exactly the run's label, wan_pop_count")
