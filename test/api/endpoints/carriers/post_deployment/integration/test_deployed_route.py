@@ -4,6 +4,11 @@ import pytest
 
 MEMBERS = ["pops", "fiber-segments"]
 MISSING_MEMBERS = list(zip(MEMBERS, ["No such pop", "No such fiber segment"]))
+BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
+         "latitude": 43.615, "longitude": -116.2023}
+DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
+           "z_municipality": "Salt Lake City", "z_state": "UT", "submarine": False}
+CORRECTIONS = list(zip(MEMBERS, [BOISE, DEN_SLC]))
 
 
 def test_the_carriers_are_listed_through_the_deployed_api(
@@ -99,10 +104,6 @@ def test_every_listed_carrier_answers_a_list_of_pops_through_the_deployed_api(
     assert [(status, type(pops)) for status, pops in answered] == [(200, list)] * len(listed)
 
 
-BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
-         "latitude": 43.615, "longitude": -116.2023}
-
-
 def test_a_pop_without_a_place_is_refused_through_the_deployed_api(
     stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
 ) -> None:
@@ -181,23 +182,28 @@ def test_the_first_member_of_every_listed_carrier_is_served_at_its_own_url_throu
     assert [get_json(url, bearer) for url, _ in firsts] == [(200, one) for _, one in firsts]
 
 
-def test_the_workflows_key_is_refused_a_pop_correction_through_the_deployed_api(
-    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize(("members", "correction"), CORRECTIONS)
+def test_the_workflows_key_is_refused_a_member_correction_through_the_deployed_api(
+    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str, correction: Dict[str, Any],
 ) -> None:
-    status, _ = put_json(f"{stage_url}/carriers/0/pops/0", BOISE, bearer)
+    status, _ = put_json(f"{stage_url}/carriers/0/{members}/0", correction, bearer)
     assert status == 403
 
 
-def test_a_refused_correction_leaves_the_first_pop_of_every_listed_carrier_as_it_was(
+@pytest.mark.parametrize(("members", "correction"), CORRECTIONS)
+def test_a_refused_correction_leaves_the_first_member_of_every_listed_carrier_as_it_was(
     stage_url: str,
     get_json: Callable[..., Tuple[int, Any]],
     put_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
+    members: str,
+    correction: Dict[str, Any],
 ) -> None:
-    firsts = _firsts(stage_url, get_json, bearer, "pops")
-    refused = [put_json(url, BOISE, bearer)[0] for url, _ in firsts]
+    firsts = _firsts(stage_url, get_json, bearer, members)
+    refused = [put_json(url, correction, bearer)[0] for url, _ in firsts]
     assert (refused, [get_json(url, bearer)[1] for url, _ in firsts]) == (
-        [403] * len(firsts), [pop for _, pop in firsts]
+        [403] * len(firsts), [one for _, one in firsts]
     )
 
 
@@ -246,10 +252,6 @@ def test_every_listed_carrier_answers_a_list_of_fiber_segments_through_the_deplo
     _, listed = get_json(f"{stage_url}/carriers", bearer)
     spans = [get_json(f"{stage_url}/carriers/{one['id']}/fiber-segments", bearer) for one in listed]
     assert [(status, type(fiber)) for status, fiber in spans] == [(200, list)] * len(listed)
-
-
-DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
-           "z_municipality": "Salt Lake City", "z_state": "UT", "submarine": False}
 
 
 def test_a_fiber_segment_without_ends_is_refused_through_the_deployed_api(

@@ -453,20 +453,30 @@ def _read_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
     return _on_member(event, FIBER_SEGMENT_KIND, stored, 'Failed to read the fiber segment')
 
 
-def _replace_pop(carrier_id: str, pop_id: str, body: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _replace_under(
+    carrier_id: str, member_id: str, kind: Kind, body: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     try:
-        return _put_pop(carrier_id, pop_id, body, ConditionExpression='attribute_exists(PK)')
+        return kind.put(carrier_id, member_id, body, ConditionExpression='attribute_exists(PK)')
     except ClientError as error:
         if _conditional(error):
             return None
         raise
 
 
-def _update_pop(event: Dict[str, Any]) -> Dict[str, Any]:
-    body = _pop_body(event)
+def _update_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    body = kind.body(event)
     if body is None:
-        return json_response(400, {'error': POP_BODY})
-    return _on_member(event, POP_KIND, partial(_replace_pop, body=body), 'Failed to update the pop')
+        return json_response(400, {'error': kind.refusal})
+    return _on_member(event, kind, partial(_replace_under, kind=kind, body=body), failure)
+
+
+def _update_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _update_under(event, POP_KIND, 'Failed to update the pop')
+
+
+def _update_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _update_under(event, FIBER_SEGMENT_KIND, 'Failed to update the fiber segment')
 
 
 def _remove_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
@@ -495,4 +505,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/fiber-segments', 'GET'): _list_fiber_segments,
         ('/carriers/{carrier}/fiber-segments', 'POST'): _add_fiber_segment,
         ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'GET'): _read_fiber_segment,
+        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'PUT'): _update_fiber_segment,
     })

@@ -50,7 +50,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Carriers endpoint: list the carriers in the store, create one, serve, rename or delete one by its id, list or add its PoPs or serve, correct or remove one by its id, and list or add its fiber segments or serve one by its id."
+  description      = "Carriers endpoint: list the carriers in the store, create one, serve, rename or delete one by its id, list or add its PoPs or serve, correct or remove one by its id, and list or add its fiber segments or serve or correct one by its id."
 
   environment {
     variables = {

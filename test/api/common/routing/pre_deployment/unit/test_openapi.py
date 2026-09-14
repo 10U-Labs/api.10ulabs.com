@@ -63,17 +63,19 @@ CARRIERS_OPERATIONS = [
     (FIBER_SEGMENTS, "get"),
     (FIBER_SEGMENTS, "post"),
     (FIBER_SEGMENT, "get"),
+    (FIBER_SEGMENT, "put"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 POP_SERVINGS = ["get", "put"]
 POP_METHODS = POP_SERVINGS + ["delete"]
 FIBER_SEGMENTS_METHODS = ["get", "post"]
+FIBER_SEGMENT_METHODS = ["get", "put"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ] + [(FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS]
 UNDER_A_POP = [(POP, method) for method in POP_METHODS]
-UNDER_A_FIBER_SEGMENT = [(FIBER_SEGMENT, "get")]
+UNDER_A_FIBER_SEGMENT = [(FIBER_SEGMENT, method) for method in FIBER_SEGMENT_METHODS]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT]
@@ -83,7 +85,7 @@ FIBER_SEGMENT_FIELDS = [
 ]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
-SPANNED_BODIES = [(FIBER_SEGMENTS, "post")]
+SPANNED_BODIES = [(FIBER_SEGMENTS, "post"), (FIBER_SEGMENT, "put")]
 MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
     (path, method, FIBER_SEGMENT_FIELDS) for path, method in SPANNED_BODIES
 ]
@@ -136,8 +138,8 @@ def _listed_fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
     return schema
 
 
-def _served_fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    served = openapi["paths"][FIBER_SEGMENT]["get"]["responses"]["200"]
+def _served_fiber_segment(openapi: Dict[str, Any], method: str) -> Dict[str, Any]:
+    served = openapi["paths"][FIBER_SEGMENT][method]["responses"]["200"]
     schema: Dict[str, Any] = served["content"]["application/json"]["schema"]
     return schema
 
@@ -146,9 +148,9 @@ def _fiber_segment_schemas(openapi: Dict[str, Any]) -> List[Dict[str, Any]]:
     added = openapi["paths"][FIBER_SEGMENTS]["post"]["responses"]["201"]
     return [
         _listed_fiber_segment(openapi),
-        _served_fiber_segment(openapi),
         added["content"]["application/json"]["schema"],
-        _request_body(openapi, FIBER_SEGMENTS, "post"),
+    ] + [_served_fiber_segment(openapi, method) for method in FIBER_SEGMENT_METHODS] + [
+        _request_body(openapi, path, method) for path, method in SPANNED_BODIES
     ]
 
 
@@ -158,19 +160,20 @@ def test_a_fiber_segment_is_a_span_between_two_municipalities_with_an_id(
     assert _listed_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
 
 
+@pytest.mark.parametrize("method", FIBER_SEGMENT_METHODS)
 def test_a_fiber_segment_is_served_as_a_span_between_two_municipalities_with_an_id(
-    openapi: Dict[str, Any]
+    openapi: Dict[str, Any], method: str
 ) -> None:
-    assert _served_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
+    assert _served_fiber_segment(openapi, method)["required"] == FIBER_SEGMENT_FIELDS
 
 
 def test_a_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
     submarine = [one["properties"]["submarine"]["type"] for one in _fiber_segment_schemas(openapi)]
-    assert submarine == ["boolean"] * 4
+    assert submarine == ["boolean"] * 6
 
 
-def test_a_fiber_segment_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][FIBER_SEGMENT]) == ["get"]
+def test_a_fiber_segment_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][FIBER_SEGMENT]) == FIBER_SEGMENT_METHODS
 
 
 def test_a_pop_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
