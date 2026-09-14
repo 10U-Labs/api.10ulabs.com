@@ -2750,6 +2750,136 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}": {
+      "get": {
+        "summary": "Get WAN PoP",
+        "description": "Serves one WAN PoP of one synthesis's WAN, by the id the synthesizer gave it, its name, where it is and its carrier.",
+        "operationId": "getWanPop",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "wan-pop",
+            "in": "path",
+            "description": "The id the synthesizer gave the WAN PoP within its WAN",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The WAN PoP, by its id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "municipality",
+                    "state",
+                    "country",
+                    "latitude",
+                    "longitude",
+                    "carrier"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "The id the synthesizer gave the WAN PoP when it published the WAN",
+                      "example": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The vertex name, the municipality and its state",
+                      "example": "Ashburn, VA"
+                    },
+                    "municipality": {
+                      "type": "string",
+                      "example": "Chicago"
+                    },
+                    "state": {
+                      "type": "string",
+                      "example": "IL"
+                    },
+                    "country": {
+                      "type": "string",
+                      "example": "US"
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "example": 41.8781
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "example": -87.6298
+                    },
+                    "carrier": {
+                      "type": "string",
+                      "description": "The carrier whose PoP this is, by its name",
+                      "example": "zayo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id, its run has no WAN, or its WAN has no PoP with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

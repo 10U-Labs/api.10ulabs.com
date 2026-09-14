@@ -76,3 +76,28 @@ def test_every_succeeded_synthesis_answers_a_list_of_wan_pops_through_the_deploy
     succeeded = _succeeded(stage_url, get_json, bearer)
     answered = [get_json(f"{stage_url}{SYNTHESES}/{one}/wan-pops", bearer) for one in succeeded]
     assert [(status, type(pops)) for status, pops in answered] == [(200, list)] * len(succeeded)
+
+
+def test_a_wan_pop_of_a_synthesis_that_is_not_there_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(f"{stage_url}{SYNTHESES}/0/wan-pops/0", bearer)
+    assert status == 404
+
+
+def test_a_wan_pop_of_a_synthesis_that_is_not_there_names_the_synthesis_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(f"{stage_url}{SYNTHESES}/0/wan-pops/0", bearer)
+    assert body["error"] == "No such wan synthesis"
+
+
+def test_the_first_wan_pop_of_every_succeeded_synthesis_is_served_at_its_own_url(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    firsts = [
+        (f"{stage_url}{SYNTHESES}/{one}/wan-pops/{pop['id']}", pop)
+        for one in _succeeded(stage_url, get_json, bearer)
+        for pop in get_json(f"{stage_url}{SYNTHESES}/{one}/wan-pops", bearer)[1][:1]
+    ]
+    assert [get_json(url, bearer) for url, _ in firsts] == [(200, pop) for _, pop in firsts]

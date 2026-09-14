@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, NamedTuple, Optional
 
 from botocore.exceptions import ClientError
 
@@ -48,11 +48,26 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, _record(item))
 
 
+class Part(NamedTuple):
+    prefix: str
+    parameter: str
+    missing: str
+
+
+WAN_POPS = Part('wan-pops', 'wan-pop', 'No such wan pop')
+
+
 def _has_wan(record: Optional[Dict[str, Any]]) -> bool:
     return record is not None and record['status']['S'] == 'success'
 
 
-def _list_under(event: Dict[str, Any], prefix: str, failure: str) -> Dict[str, Any]:
+def _wan_refusal(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if record is None:
+        return error_response(404, MISSING)
+    return None if _has_wan(record) else error_response(404, NO_WAN)
+
+
+def _list_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any]:
     synthesis_id = path_id(event, 'synthesis')
     if synthesis_id is None:
         return error_response(404, MISSING)
@@ -60,19 +75,47 @@ def _list_under(event: Dict[str, Any], prefix: str, failure: str) -> Dict[str, A
     try:
         record = member(table, COLLECTION, synthesis_id)
         under = f'{COLLECTION}/{synthesis_id}'
-        items = partition(table, under, f'{prefix}/') if _has_wan(record) else []
+        items = partition(table, under, f'{part.prefix}/') if _has_wan(record) else []
     except ClientError as error:
-        logger.error('Error reading the %s of wan synthesis %s: %s', prefix, synthesis_id, error)
+        logger.error('Error reading the %s of synthesis %s: %s', part.prefix, synthesis_id, error)
         return error_response(500, failure)
-    if record is None:
-        return error_response(404, MISSING)
-    if not _has_wan(record):
-        return error_response(404, NO_WAN)
+    refused = _wan_refusal(record)
+    if refused is not None:
+        return refused
     return json_response(200, sorted(map(_record, items), key=lambda one: one['id']))
 
 
+def _read_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any]:
+    synthesis_id = path_id(event, 'synthesis')
+    if synthesis_id is None:
+        return error_response(404, MISSING)
+    part_id = path_id(event, part.parameter)
+    if part_id is None:
+        return error_response(404, part.missing)
+    table = os.environ['STORE_TABLE']
+    try:
+        record = member(table, COLLECTION, synthesis_id)
+        under = f'{COLLECTION}/{synthesis_id}'
+        item = member(table, under, f'{part.prefix}/{part_id}') if _has_wan(record) else None
+    except ClientError as error:
+        logger.error(
+            'Error reading %s/%s of synthesis %s: %s', part.prefix, part_id, synthesis_id, error
+        )
+        return error_response(500, failure)
+    refused = _wan_refusal(record)
+    if refused is not None:
+        return refused
+    if item is None:
+        return error_response(404, part.missing)
+    return json_response(200, _record(item))
+
+
 def _list_wan_pops(event: Dict[str, Any]) -> Dict[str, Any]:
-    return _list_under(event, 'wan-pops', 'Failed to read the wan pops')
+    return _list_under(event, WAN_POPS, 'Failed to read the wan pops')
+
+
+def _read_wan_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _read_under(event, WAN_POPS, 'Failed to read the wan pop')
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
@@ -80,4 +123,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}/{{synthesis}}', 'GET'): _read,
         (f'/{COLLECTION}/{{synthesis}}/wan-pops', 'GET'): _list_wan_pops,
+        (f'/{COLLECTION}/{{synthesis}}/wan-pops/{{wan-pop}}', 'GET'): _read_wan_pop,
     })

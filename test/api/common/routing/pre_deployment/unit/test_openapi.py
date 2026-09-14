@@ -76,11 +76,13 @@ REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A
 SYNTHESES = "/wan-syntheses"
 SYNTHESIS = "/wan-syntheses/{synthesis}"
 WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
+WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
 UNDER_A_SYNTHESIS = [(SYNTHESIS, "get"), (WAN_POPS, "get")]
+UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
 ]
-SYNTHESES_OPERATIONS = [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS
+SYNTHESES_OPERATIONS = [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP
 SYNTHESIS_FIELDS = [
     "id", "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
     "convergence_promotion", "knobs", "settings", "status",
@@ -103,7 +105,9 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT] + [
     (path, method, ["region"]) for path, method in UNDER_A_REGION
-] + [(path, method, ["synthesis"]) for path, method in UNDER_A_SYNTHESIS]
+] + [(path, method, ["synthesis"]) for path, method in UNDER_A_SYNTHESIS] + [
+    (path, method, ["synthesis", "wan-pop"]) for path, method in UNDER_A_WAN_POP
+]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
@@ -345,6 +349,15 @@ def test_a_wan_pop_is_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == WAN_POP_FIELDS
 
 
+def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][WAN_POP]) == ["get"]
+
+
+def test_a_wan_pop_is_served_as_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -> None:
+    served = openapi["paths"][WAN_POP]["get"]["responses"]["200"]
+    assert served["content"]["application/json"]["schema"]["required"] == WAN_POP_FIELDS
+
+
 def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][REGION]) == REGION_METHODS
 
@@ -383,7 +396,8 @@ def test_an_id_in_the_path_is_a_positive_integer(
 
 @pytest.mark.parametrize(
     ("path", "method"),
-    UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS,
+    UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS
+    + UNDER_A_WAN_POP,
 )
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
