@@ -15,6 +15,7 @@ COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 MISSING_POP = 'No such pop'
+MISSING_FIBER_SEGMENT = 'No such fiber segment'
 POPS = 'pops'
 FIBER_SEGMENTS = 'fiber-segments'
 ENDS = ('a_municipality', 'a_state', 'z_municipality', 'z_state')
@@ -218,44 +219,6 @@ def _no_content() -> Dict[str, Any]:
     return {'statusCode': 204, 'headers': {}, 'body': ''}
 
 
-OnPop = Callable[[str, str], Optional[Dict[str, Any]]]
-Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
-
-
-def _served_pop(pop: Dict[str, Any]) -> Dict[str, Any]:
-    return json_response(200, _pop(pop))
-
-
-def _on_pop(
-    event: Dict[str, Any], act: OnPop, failure: str, answer: Answer = _served_pop
-) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
-    if carrier_id is None:
-        return json_response(404, {'error': MISSING})
-    pop_id = _path_id(event, 'pop')
-    if pop_id is None:
-        return json_response(404, {'error': MISSING_POP})
-    try:
-        carrier = _member(COLLECTION, carrier_id)
-        pop = act(carrier_id, pop_id) if carrier else None
-    except ClientError as error:
-        logger.error('Error with pop %s of carrier %s: %s', pop_id, carrier_id, error)
-        return json_response(500, {'error': failure})
-    if carrier is None:
-        return json_response(404, {'error': MISSING})
-    if pop is None:
-        return json_response(404, {'error': MISSING_POP})
-    return answer(pop)
-
-
-def _stored_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
-    return _member(f'{COLLECTION}/{carrier_id}', f'{POPS}/{pop_id}')
-
-
-def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
-    return _on_pop(event, _stored_pop, 'Failed to read the pop')
-
-
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
@@ -399,6 +362,8 @@ Put = Callable[..., Dict[str, Any]]
 
 class Kind(NamedTuple):
     prefix: str
+    parameter: str
+    missing: str
     counter: str
     body: Body
     refusal: str
@@ -407,10 +372,14 @@ class Kind(NamedTuple):
     failure: str
 
 
-POP_KIND = Kind(POPS, 'next_pop', _pop_body, POP_BODY, _put_pop, _pop, 'Failed to add the pop')
+POP_KIND = Kind(
+    POPS, 'pop', MISSING_POP, 'next_pop', _pop_body, POP_BODY, _put_pop, _pop,
+    'Failed to add the pop',
+)
 FIBER_SEGMENT_KIND = Kind(
-    FIBER_SEGMENTS, 'next_fiber_segment', _fiber_segment_body, FIBER_SEGMENT_BODY,
-    _put_fiber_segment, _fiber_segment, 'Failed to add the fiber segment',
+    FIBER_SEGMENTS, 'fiber-segment', MISSING_FIBER_SEGMENT, 'next_fiber_segment',
+    _fiber_segment_body, FIBER_SEGMENT_BODY, _put_fiber_segment, _fiber_segment,
+    'Failed to add the fiber segment',
 )
 
 
@@ -442,6 +411,48 @@ def _add_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
     return _add_under(event, FIBER_SEGMENT_KIND)
 
 
+Act = Callable[[str, str], Optional[Dict[str, Any]]]
+Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
+
+
+def _on_member(
+    event: Dict[str, Any], kind: Kind, act: Act, failure: str, answer: Optional[Answer] = None
+) -> Dict[str, Any]:
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    member_id = _path_id(event, kind.parameter)
+    if member_id is None:
+        return json_response(404, {'error': kind.missing})
+    try:
+        carrier = _member(COLLECTION, carrier_id)
+        item = act(carrier_id, member_id) if carrier else None
+    except ClientError as error:
+        logger.error(
+            'Error with %s %s of carrier %s: %s', kind.parameter, member_id, carrier_id, error
+        )
+        return json_response(500, {'error': failure})
+    if carrier is None:
+        return json_response(404, {'error': MISSING})
+    if item is None:
+        return json_response(404, {'error': kind.missing})
+    return answer(item) if answer else json_response(200, kind.row(item))
+
+
+def _stored_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
+    return _member(f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
+
+
+def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    stored = partial(_stored_under, prefix=POPS)
+    return _on_member(event, POP_KIND, stored, 'Failed to read the pop')
+
+
+def _read_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
+    stored = partial(_stored_under, prefix=FIBER_SEGMENTS)
+    return _on_member(event, FIBER_SEGMENT_KIND, stored, 'Failed to read the fiber segment')
+
+
 def _replace_pop(carrier_id: str, pop_id: str, body: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     try:
         return _put_pop(carrier_id, pop_id, body, ConditionExpression='attribute_exists(PK)')
@@ -455,7 +466,7 @@ def _update_pop(event: Dict[str, Any]) -> Dict[str, Any]:
     body = _pop_body(event)
     if body is None:
         return json_response(400, {'error': POP_BODY})
-    return _on_pop(event, partial(_replace_pop, body=body), 'Failed to update the pop')
+    return _on_member(event, POP_KIND, partial(_replace_pop, body=body), 'Failed to update the pop')
 
 
 def _remove_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
@@ -464,7 +475,9 @@ def _remove_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _delete_pop(event: Dict[str, Any]) -> Dict[str, Any]:
-    return _on_pop(event, _remove_pop, 'Failed to delete the pop', lambda _gone: _no_content())
+    return _on_member(
+        event, POP_KIND, _remove_pop, 'Failed to delete the pop', lambda _gone: _no_content()
+    )
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
@@ -481,4 +494,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/pops/{pop}', 'DELETE'): _delete_pop,
         ('/carriers/{carrier}/fiber-segments', 'GET'): _list_fiber_segments,
         ('/carriers/{carrier}/fiber-segments', 'POST'): _add_fiber_segment,
+        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'GET'): _read_fiber_segment,
     })

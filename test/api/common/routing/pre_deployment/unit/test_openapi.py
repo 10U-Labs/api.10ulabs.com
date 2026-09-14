@@ -48,6 +48,7 @@ def test_the_routing_stack_supplies_every_template_variable(
 
 POP = "/carriers/{carrier}/pops/{pop}"
 FIBER_SEGMENTS = "/carriers/{carrier}/fiber-segments"
+FIBER_SEGMENT = "/carriers/{carrier}/fiber-segments/{fiber-segment}"
 CARRIERS_OPERATIONS = [
     ("/carriers", "get"),
     ("/carriers", "post"),
@@ -61,6 +62,7 @@ CARRIERS_OPERATIONS = [
     (POP, "delete"),
     (FIBER_SEGMENTS, "get"),
     (FIBER_SEGMENTS, "post"),
+    (FIBER_SEGMENT, "get"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
@@ -71,9 +73,10 @@ UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ] + [(FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS]
 UNDER_A_POP = [(POP, method) for method in POP_METHODS]
+UNDER_A_FIBER_SEGMENT = [(FIBER_SEGMENT, "get")]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
-]
+] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
     "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
@@ -133,10 +136,17 @@ def _listed_fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
     return schema
 
 
+def _served_fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    served = openapi["paths"][FIBER_SEGMENT]["get"]["responses"]["200"]
+    schema: Dict[str, Any] = served["content"]["application/json"]["schema"]
+    return schema
+
+
 def _fiber_segment_schemas(openapi: Dict[str, Any]) -> List[Dict[str, Any]]:
     added = openapi["paths"][FIBER_SEGMENTS]["post"]["responses"]["201"]
     return [
         _listed_fiber_segment(openapi),
+        _served_fiber_segment(openapi),
         added["content"]["application/json"]["schema"],
         _request_body(openapi, FIBER_SEGMENTS, "post"),
     ]
@@ -148,9 +158,19 @@ def test_a_fiber_segment_is_a_span_between_two_municipalities_with_an_id(
     assert _listed_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
 
 
+def test_a_fiber_segment_is_served_as_a_span_between_two_municipalities_with_an_id(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _served_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
+
+
 def test_a_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
     submarine = [one["properties"]["submarine"]["type"] for one in _fiber_segment_schemas(openapi)]
-    assert submarine == ["boolean"] * 3
+    assert submarine == ["boolean"] * 4
+
+
+def test_a_fiber_segment_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][FIBER_SEGMENT]) == ["get"]
 
 
 def test_a_pop_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
@@ -249,7 +269,7 @@ def test_an_id_in_the_path_is_a_positive_integer(
     assert [(one["type"], one["minimum"]) for one in schemas] == [("integer", 1)] * len(names)
 
 
-@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER + UNDER_A_POP)
+@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT)
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:

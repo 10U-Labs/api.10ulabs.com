@@ -1,5 +1,10 @@
 from typing import Any, Callable, Dict, List, Tuple
 
+import pytest
+
+MEMBERS = ["pops", "fiber-segments"]
+MISSING_MEMBERS = list(zip(MEMBERS, ["No such pop", "No such fiber segment"]))
+
 
 def test_the_carriers_are_listed_through_the_deployed_api(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
@@ -128,44 +133,52 @@ def test_a_pop_for_a_carrier_that_is_not_there_names_the_error_through_the_deplo
     assert body["error"] == "No such carrier"
 
 
-def test_a_pop_of_a_carrier_that_is_not_there_answers_404_through_the_deployed_api(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize("members", MEMBERS)
+def test_a_member_of_a_carrier_that_is_not_there_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str,
 ) -> None:
-    status, _ = get_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    status, _ = get_json(f"{stage_url}/carriers/0/{members}/0", bearer)
     assert status == 404
 
 
-def test_a_pop_of_a_carrier_that_is_not_there_names_the_carrier_through_the_deployed_api(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize("members", MEMBERS)
+def test_a_member_of_a_carrier_that_is_not_there_names_the_carrier_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str,
 ) -> None:
-    _, body = get_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    _, body = get_json(f"{stage_url}/carriers/0/{members}/0", bearer)
     assert body["error"] == "No such carrier"
 
 
-def test_no_listed_carrier_has_a_pop_zero_through_the_deployed_api(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize(("members", "missing"), MISSING_MEMBERS)
+def test_no_listed_carrier_has_a_member_zero_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str, missing: str,
 ) -> None:
     _, listed = get_json(f"{stage_url}/carriers", bearer)
-    answered = [get_json(f"{stage_url}/carriers/{one['id']}/pops/0", bearer) for one in listed]
-    assert answered == [(404, {"error": "No such pop"})] * len(listed)
+    answered = [get_json(f"{stage_url}/carriers/{one['id']}/{members}/0", bearer) for one in listed]
+    assert answered == [(404, {"error": missing})] * len(listed)
 
 
-def _first_pops(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+def _firsts(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str], members: str
 ) -> List[Tuple[str, Dict[str, Any]]]:
     _, listed = get_json(f"{stage_url}/carriers", bearer)
     return [
-        (f"{stage_url}/carriers/{one['id']}/pops/{pop['id']}", pop)
+        (f"{stage_url}/carriers/{one['id']}/{members}/{member['id']}", member)
         for one in listed
-        for pop in get_json(f"{stage_url}/carriers/{one['id']}/pops", bearer)[1][:1]
+        for member in get_json(f"{stage_url}/carriers/{one['id']}/{members}", bearer)[1][:1]
     ]
 
 
-def test_the_first_pop_of_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize("members", MEMBERS)
+def test_the_first_member_of_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str,
 ) -> None:
-    firsts = _first_pops(stage_url, get_json, bearer)
-    assert [get_json(url, bearer) for url, _ in firsts] == [(200, pop) for _, pop in firsts]
+    firsts = _firsts(stage_url, get_json, bearer, members)
+    assert [get_json(url, bearer) for url, _ in firsts] == [(200, one) for _, one in firsts]
 
 
 def test_the_workflows_key_is_refused_a_pop_correction_through_the_deployed_api(
@@ -181,7 +194,7 @@ def test_a_refused_correction_leaves_the_first_pop_of_every_listed_carrier_as_it
     put_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
 ) -> None:
-    firsts = _first_pops(stage_url, get_json, bearer)
+    firsts = _firsts(stage_url, get_json, bearer, "pops")
     refused = [put_json(url, BOISE, bearer)[0] for url, _ in firsts]
     assert (refused, [get_json(url, bearer)[1] for url, _ in firsts]) == (
         [403] * len(firsts), [pop for _, pop in firsts]
