@@ -72,6 +72,11 @@ def has_numbers(body: Dict[str, Any], fields: Iterable[str]) -> bool:
     )
 
 
+def path_id(event: Dict[str, Any], name: str) -> Optional[str]:
+    member_id = str((event.get('pathParameters') or {}).get(name) or '')
+    return member_id if member_id.isdigit() else None
+
+
 def dispatch(event: Dict[str, Any], routes: Mapping[Route, Handler]) -> Dict[str, Any]:
     handler = routes.get((event.get('resource', ''), event.get('httpMethod', '')))
     if handler is None:

@@ -39,3 +39,25 @@ def test_a_region_without_a_place_is_told_what_is_expected_through_the_deployed_
         'The body must be exactly '
         '{"name", "municipality", "state", "country", "latitude", "longitude"}'
     )
+
+
+def test_a_region_that_is_not_there_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(f"{stage_url}{REGIONS}/0", bearer)
+    assert status == 404
+
+
+def test_a_region_that_is_not_there_names_the_error_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(f"{stage_url}{REGIONS}/0", bearer)
+    assert body["error"] == "No such hyperscale cloud service provider region"
+
+
+def test_every_listed_region_is_served_at_its_own_url_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}{REGIONS}", bearer)
+    served = [get_json(f"{stage_url}{REGIONS}/{region['id']}", bearer) for region in listed]
+    assert served == [(200, region) for region in listed]

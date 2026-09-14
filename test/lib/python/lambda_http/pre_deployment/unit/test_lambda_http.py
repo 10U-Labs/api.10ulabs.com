@@ -8,7 +8,7 @@ import pytest
 import lambda_http
 from lambda_http import (
     aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_body,
-    parse_fields, parse_object, parse_valid,
+    parse_fields, parse_object, parse_valid, path_id,
 )
 
 
@@ -131,6 +131,23 @@ def test_parse_valid_refuses_an_object_the_check_refuses() -> None:
 
 def test_parse_valid_refuses_an_object_of_other_fields_before_checking() -> None:
     assert parse_valid({'body': '{"b": 1}'}, ('a',), lambda body: body['a'] == 1) is None
+
+
+def test_path_id_reads_the_digits_of_the_named_parameter() -> None:
+    assert path_id({'pathParameters': {'carrier': '12'}}, 'carrier') == '12'
+
+
+@pytest.mark.parametrize('value', ['#', '', 'lumen', '-1', '3/'])
+def test_path_id_refuses_a_parameter_that_is_not_all_digits(value: str) -> None:
+    assert path_id({'pathParameters': {'carrier': value}}, 'carrier') is None
+
+
+def test_path_id_refuses_a_parameter_that_is_absent() -> None:
+    assert path_id({'pathParameters': {'pop': '3'}}, 'carrier') is None
+
+
+def test_path_id_refuses_an_event_without_path_parameters() -> None:
+    assert path_id({'pathParameters': None}, 'carrier') is None
 
 
 def test_dispatch_calls_the_handler_of_the_resource_and_method() -> None:

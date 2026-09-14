@@ -202,3 +202,80 @@ def test_a_store_that_refuses_the_region_names_the_error(
     store.failing = True
     error = served(_post(PHOENIX))["error"]
     assert error == "Failed to create the hyperscale cloud service provider region"
+
+
+REGION = "/hyperscale-cloud-service-provider-regions/{region}"
+MISSING = "No such hyperscale cloud service provider region"
+
+
+def _get_one(region: str) -> Dict[str, Any]:
+    return {**_get(REGION), "pathParameters": {"region": region}}
+
+
+def test_a_stored_region_answers_200(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    assert answer(_get_one("2"))["statusCode"] == 200
+
+
+def test_a_stored_region_answers_by_its_id_and_place(
+    served: Served, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    assert served(_get_one("2")) == DUBLIN
+
+
+def test_a_region_is_read_from_the_table_the_environment_names(
+    answer: Handler, store: SimpleNamespace
+) -> None:
+    answer(_get_one("2"))
+    assert store.gets[0]["TableName"] == "store"
+
+
+def test_a_region_is_read_by_its_key_in_the_collection(
+    answer: Handler, store: SimpleNamespace
+) -> None:
+    answer(_get_one("2"))
+    assert store.gets[0]["Key"] == {
+        "PK": {"S": "hyperscale-cloud-service-provider-regions"}, "SK": {"S": "2"},
+    }
+
+
+def test_an_unknown_region_answers_404(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    assert answer(_get_one("3"))["statusCode"] == 404
+
+
+def test_an_unknown_region_names_the_error(served: Served) -> None:
+    assert served(_get_one("3"))["error"] == MISSING
+
+
+@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+def test_a_region_id_that_is_not_a_number_answers_404(answer: Handler, region: str) -> None:
+    assert answer(_get_one(region))["statusCode"] == 404
+
+
+def test_the_regions_counter_is_never_asked_for_as_a_region(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    answer(_get_one("#"))
+    assert store.gets == []
+
+
+def test_a_store_that_refuses_the_region_read_answers_500(
+    answer: Handler, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert answer(_get_one("2"))["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_region_read_names_the_error(
+    served: Served, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    error = served(_get_one("2"))["error"]
+    assert error == "Failed to read the hyperscale cloud service provider region"

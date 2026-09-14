@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 from lambda_http import (
     aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_fields,
-    parse_valid,
+    parse_valid, path_id,
 )
 from store import advance, member, members, next_id, partition, put
 
@@ -90,13 +90,8 @@ def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, An
     )
 
 
-def _path_id(event: Dict[str, Any], name: str) -> Optional[str]:
-    member_id = str((event.get('pathParameters') or {}).get(name) or '')
-    return member_id if member_id.isdigit() else None
-
-
 def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
-    return _path_id(event, 'carrier')
+    return path_id(event, 'carrier')
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -344,7 +339,7 @@ def _on_member(
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return json_response(404, {'error': MISSING})
-    member_id = _path_id(event, kind.parameter)
+    member_id = path_id(event, kind.parameter)
     if member_id is None:
         return json_response(404, {'error': kind.missing})
     try:

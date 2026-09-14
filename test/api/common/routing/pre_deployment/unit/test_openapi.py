@@ -68,7 +68,10 @@ CARRIERS_OPERATIONS = [
 ]
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
-REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS]
+REGION = "/hyperscale-cloud-service-provider-regions/{region}"
+REGION_METHODS = ["get"]
+UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
+REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
@@ -84,7 +87,9 @@ UNDER_A_POP = [(POP, method) for method in POP_METHODS]
 UNDER_A_FIBER_SEGMENT = [(FIBER_SEGMENT, method) for method in FIBER_SEGMENT_METHODS]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
-] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT]
+] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT] + [
+    (path, method, ["region"]) for path, method in UNDER_A_REGION
+]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
@@ -278,6 +283,18 @@ def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[s
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
 
 
+def test_a_region_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][REGION]) == REGION_METHODS
+
+
+@pytest.mark.parametrize("method", REGION_METHODS)
+def test_a_region_is_served_as_a_named_and_located_municipality_with_an_id(
+    openapi: Dict[str, Any], method: str
+) -> None:
+    served = openapi["paths"][REGION][method]["responses"]["200"]
+    assert served["content"]["application/json"]["schema"]["required"] == REGION_FIELDS
+
+
 @pytest.mark.parametrize(("path", "method"), SECURED)
 def test_a_secured_operation_is_reached_with_a_bearer_token(
     openapi: Dict[str, Any], path: str, method: str
@@ -302,7 +319,9 @@ def test_an_id_in_the_path_is_a_positive_integer(
     assert [(one["type"], one["minimum"]) for one in schemas] == [("integer", 1)] * len(names)
 
 
-@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT)
+@pytest.mark.parametrize(
+    ("path", "method"), UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION
+)
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:

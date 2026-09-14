@@ -4,8 +4,10 @@ from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
-from lambda_http import created, dispatch, has_numbers, has_strings, json_response, parse_valid
-from store import members, next_id, put
+from lambda_http import (
+    created, dispatch, has_numbers, has_strings, json_response, parse_valid, path_id,
+)
+from store import member, members, next_id, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -14,6 +16,7 @@ COLLECTION = 'hyperscale-cloud-service-provider-regions'
 WORDED = ('name', 'municipality', 'state', 'country')
 NAMED = ('name', 'municipality', 'country')
 COORDINATES = ('latitude', 'longitude')
+MISSING = 'No such hyperscale cloud service provider region'
 REGION_BODY = (
     'The body must be exactly '
     '{"name", "municipality", "state", "country", "latitude", "longitude"}'
@@ -37,6 +40,22 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
             500, {'error': 'Failed to read the hyperscale cloud service provider regions'}
         )
     return json_response(200, sorted(map(_region, regions), key=lambda region: region['id']))
+
+
+def _read(event: Dict[str, Any]) -> Dict[str, Any]:
+    region_id = path_id(event, 'region')
+    if region_id is None:
+        return json_response(404, {'error': MISSING})
+    try:
+        item = member(os.environ['STORE_TABLE'], COLLECTION, region_id)
+    except ClientError as error:
+        logger.error('Error reading region %s: %s', region_id, error)
+        return json_response(
+            500, {'error': 'Failed to read the hyperscale cloud service provider region'}
+        )
+    if item is None:
+        return json_response(404, {'error': MISSING})
+    return json_response(200, _region(item))
 
 
 def _region_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -69,4 +88,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}', 'POST'): _create,
+        (f'/{COLLECTION}/{{region}}', 'GET'): _read,
     })
