@@ -71,19 +71,33 @@ def stage_url(api_id: str) -> str:
     return f"https://{api_id}.execute-api.{REGION}.amazonaws.com/{STAGE}"
 
 
+def _decoded(response: Any) -> Any:
+    raw = response.read()
+    return json.loads(raw) if raw else None
+
+
 def _answer(request: Request) -> Tuple[int, Any]:
     try:
         with urlopen(request, timeout=10) as response:
-            return int(response.status), json.load(response)
+            return int(response.status), _decoded(response)
     except HTTPError as error:
-        return int(error.code), json.load(error)
+        return int(error.code), _decoded(error)
+
+
+def _bodiless(method: str) -> Callable[..., Tuple[int, Any]]:
+    def send(url: str, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
+        return _answer(Request(url, headers=headers or {}, method=method))
+    return send
 
 
 @pytest.fixture(scope="session")
 def get_json() -> Callable[..., Tuple[int, Any]]:
-    def get(url: str, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
-        return _answer(Request(url, headers=headers or {}))
-    return get
+    return _bodiless("GET")
+
+
+@pytest.fixture(scope="session")
+def delete_json() -> Callable[..., Tuple[int, Any]]:
+    return _bodiless("DELETE")
 
 
 def _sender(method: str) -> Callable[..., Tuple[int, Any]]:

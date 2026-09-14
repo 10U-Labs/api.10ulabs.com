@@ -41,10 +41,14 @@ def test_the_api_key_creates_a_carrier(authorizer: ModuleType) -> None:
     assert _granted(authorizer, "Bearer the-workflows-key", "POST", "carriers")
 
 
+def test_the_api_key_deletes_a_carrier(authorizer: ModuleType) -> None:
+    assert _granted(authorizer, "Bearer the-workflows-key", "DELETE", "carriers/3")
+
+
 @pytest.mark.parametrize("method, path", [
     ("POST", "carriers/3/pops"),
     ("PUT", "carriers/3"),
-    ("DELETE", "carriers/3"),
+    ("DELETE", "carriers"),
 ])
 def test_the_api_key_writes_nothing_else_yet(
     authorizer: ModuleType, method: str, path: str

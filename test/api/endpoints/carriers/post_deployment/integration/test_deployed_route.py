@@ -56,3 +56,17 @@ def test_the_workflows_key_is_refused_a_rename_through_the_deployed_api(
 ) -> None:
     status, _ = put_json(f"{stage_url}/carriers/0", {"name": "nobody"}, bearer)
     assert status == 403
+
+
+def test_the_workflows_key_deletes_no_carrier_that_is_not_there_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = delete_json(f"{stage_url}/carriers/0", bearer)
+    assert status == 404
+
+
+def test_a_deletion_of_a_carrier_that_is_not_there_names_the_error_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = delete_json(f"{stage_url}/carriers/0", bearer)
+    assert body["error"] == "No such carrier"

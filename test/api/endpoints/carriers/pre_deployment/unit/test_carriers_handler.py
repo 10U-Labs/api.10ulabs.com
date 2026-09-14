@@ -381,3 +381,105 @@ def test_a_store_that_refuses_the_rename_names_the_error(
     store.failing = True
     error = _body(carriers_handler, _put({"name": "zayo group"}))["error"]
     assert error == "Failed to update the carrier"
+
+
+def _delete(carrier: str = "1") -> Dict[str, Any]:
+    return {**_get(CARRIER), "httpMethod": "DELETE", "pathParameters": {"carrier": carrier}}
+
+
+@pytest.fixture(name="deleted")
+def deleted_fixture(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    store.items.extend(carriers)
+    return _answer(carriers_handler, _delete())
+
+
+def test_a_stored_carrier_is_deleted_with_204(deleted: Dict[str, Any]) -> None:
+    assert deleted["statusCode"] == 204
+
+
+def test_a_deletion_answers_no_body(deleted: Dict[str, Any]) -> None:
+    assert deleted["body"] == ""
+
+
+def test_a_deleted_carrier_is_no_longer_listed(
+    carriers_handler: ModuleType, deleted: Dict[str, Any]
+) -> None:
+    assert _body(carriers_handler, _get()) == [{"id": 2, "name": "zayo"}]
+
+
+def test_a_deleted_carrier_is_no_longer_served(
+    carriers_handler: ModuleType, deleted: Dict[str, Any]
+) -> None:
+    assert _answer(carriers_handler, _get_one("1"))["statusCode"] == 404
+
+
+def test_everything_under_a_deleted_carrier_goes_with_it(
+    store: SimpleNamespace, deleted: Dict[str, Any]
+) -> None:
+    assert [item for item in store.items if item["PK"] == {"S": "carriers/1"}] == []
+
+
+def test_a_deletion_leaves_the_other_carriers_alone(
+    store: SimpleNamespace, deleted: Dict[str, Any]
+) -> None:
+    assert [item["SK"]["S"] for item in store.items] == ["#", "2"]
+
+
+def test_a_deletion_goes_to_the_table_the_environment_names(
+    store: SimpleNamespace, deleted: Dict[str, Any]
+) -> None:
+    assert {request["TableName"] for request in store.deletes} == {"store"}
+
+
+def test_the_carrier_is_deleted_after_everything_under_it(
+    store: SimpleNamespace, deleted: Dict[str, Any]
+) -> None:
+    assert [request["Key"] for request in store.deletes] == [
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}},
+        {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
+    ]
+
+
+def test_deleting_the_carrier_requires_it_to_exist_in_the_store(
+    store: SimpleNamespace, deleted: Dict[str, Any]
+) -> None:
+    assert store.deletes[-1]["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_deleting_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
+    assert _answer(carriers_handler, _delete("3"))["statusCode"] == 404
+
+
+def test_deleting_an_unknown_carrier_names_the_error(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _delete("3"))["error"] == "No such carrier"
+
+
+@pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
+def test_deleting_an_id_that_is_not_a_number_answers_404(
+    carriers_handler: ModuleType, carrier: str
+) -> None:
+    assert _answer(carriers_handler, _delete(carrier))["statusCode"] == 404
+
+
+def test_deleting_an_id_that_is_not_a_number_deletes_nothing(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _delete("#"))
+    assert (store.deletes, len(store.items)) == ([], 4)
+
+
+def test_a_store_that_refuses_the_deletion_answers_500(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _answer(carriers_handler, _delete())["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_deletion_names_the_error(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _body(carriers_handler, _delete())["error"] == "Failed to delete the carrier"

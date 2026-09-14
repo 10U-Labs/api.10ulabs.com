@@ -15,13 +15,18 @@ BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 
 
-def _members(collection: str) -> List[Dict[str, Any]]:
+def _partition(partition: str) -> List[Dict[str, Any]]:
     answer = aws_client('dynamodb').query(
         TableName=os.environ['STORE_TABLE'],
         KeyConditionExpression='PK = :pk',
-        ExpressionAttributeValues={':pk': {'S': collection}},
+        ExpressionAttributeValues={':pk': {'S': partition}},
     )
-    return [item for item in answer['Items'] if item['SK']['S'] != COUNTER]
+    items: List[Dict[str, Any]] = answer['Items']
+    return items
+
+
+def _members(collection: str) -> List[Dict[str, Any]]:
+    return [item for item in _partition(collection) if item['SK']['S'] != COUNTER]
 
 
 def _carrier(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -54,6 +59,11 @@ def _name(event: Dict[str, Any]) -> Optional[str]:
     return name if isinstance(name, str) and name else None
 
 
+def _conditional(error: ClientError) -> bool:
+    code: str = error.response['Error']['Code']
+    return code == 'ConditionalCheckFailedException'
+
+
 def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
     try:
         answer = aws_client('dynamodb').update_item(
@@ -66,7 +76,7 @@ def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, An
             ReturnValues='ALL_NEW',
         )
     except ClientError as error:
-        if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+        if _conditional(error):
             return None
         raise
     item: Dict[str, Any] = answer['Attributes']
@@ -107,6 +117,38 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     if item is None:
         return json_response(404, {'error': MISSING})
     return json_response(200, _carrier(item))
+
+
+def _remove(collection: str, member_id: str) -> bool:
+    table = os.environ['STORE_TABLE']
+    store = aws_client('dynamodb')
+    for item in _partition(f'{collection}/{member_id}'):
+        store.delete_item(TableName=table, Key={'PK': item['PK'], 'SK': item['SK']})
+    try:
+        store.delete_item(
+            TableName=table,
+            Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+            ConditionExpression='attribute_exists(PK)',
+        )
+    except ClientError as error:
+        if _conditional(error):
+            return False
+        raise
+    return True
+
+
+def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    try:
+        removed = _remove(COLLECTION, carrier_id)
+    except ClientError as error:
+        logger.error('Error deleting carrier %s: %s', carrier_id, error)
+        return json_response(500, {'error': 'Failed to delete the carrier'})
+    if not removed:
+        return json_response(404, {'error': MISSING})
+    return {'statusCode': 204, 'headers': {}, 'body': ''}
 
 
 def _next_id(collection: str) -> int:
@@ -155,4 +197,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers', 'POST'): _create,
         ('/carriers/{carrier}', 'GET'): _read,
         ('/carriers/{carrier}', 'PUT'): _update,
+        ('/carriers/{carrier}', 'DELETE'): _delete,
     })

@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
-    store = SimpleNamespace(items=[], failing=False, queries=[], gets=[], updates=[])
+    store = SimpleNamespace(items=[], failing=False, queries=[], gets=[], updates=[], deletes=[])
 
     def refuse(operation: str) -> None:
         if store.failing:
@@ -27,10 +27,14 @@ def store_fixture() -> SimpleNamespace:
             store.items.append(item)
         return item
 
-    def rename(request: Dict[str, Any]) -> Dict[str, Any]:
+    def required(request: Dict[str, Any], operation: str) -> Dict[str, Any]:
         item = held(request["Key"])
         if item is None:
-            raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem")
+            raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, operation)
+        return item
+
+    def rename(request: Dict[str, Any]) -> Dict[str, Any]:
+        item = required(request, "UpdateItem")
         item["name"] = request["ExpressionAttributeValues"][":name"]
         return {"Attributes": item}
 
@@ -56,6 +60,15 @@ def store_fixture() -> SimpleNamespace:
         item["next"] = {"N": str(int(item["next"]["N"]) + 1)}
         return {"Attributes": {"next": item["next"]}}
 
+    def delete_item(**request: Any) -> Dict[str, Any]:
+        store.deletes.append(request)
+        refuse("DeleteItem")
+        conditional = "ConditionExpression" in request
+        item = required(request, "DeleteItem") if conditional else held(request["Key"])
+        if item is not None:
+            store.items.remove(item)
+        return {}
+
     def put_item(**request: Any) -> Dict[str, Any]:
         refuse("PutItem")
         store.items.append(request["Item"])
@@ -64,6 +77,7 @@ def store_fixture() -> SimpleNamespace:
     store.query = query
     store.get_item = get_item
     store.update_item = update_item
+    store.delete_item = delete_item
     store.put_item = put_item
     return store
 
