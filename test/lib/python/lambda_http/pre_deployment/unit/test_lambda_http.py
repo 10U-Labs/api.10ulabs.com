@@ -6,7 +6,7 @@ from typing import Any, Dict
 import pytest
 
 import lambda_http
-from lambda_http import aws_client, dispatch, json_response, parse_body, parse_object
+from lambda_http import aws_client, dispatch, json_response, parse_body, parse_fields, parse_object
 
 
 def _echo(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -58,6 +58,22 @@ def test_parse_object_refuses_a_json_value_that_is_not_an_object() -> None:
 def test_parse_object_refuses_base64_that_is_not_utf_8() -> None:
     encoded = base64.b64encode(b'\xff').decode('ascii')
     assert parse_object({'body': encoded, 'isBase64Encoded': True}) is None
+
+
+def test_parse_fields_reads_an_object_of_exactly_the_fields() -> None:
+    assert parse_fields({'body': '{"a": 1, "b": 2}'}, ('b', 'a')) == {'a': 1, 'b': 2}
+
+
+def test_parse_fields_refuses_an_object_missing_a_field() -> None:
+    assert parse_fields({'body': '{"a": 1}'}, ('a', 'b')) is None
+
+
+def test_parse_fields_refuses_an_object_with_another_field() -> None:
+    assert parse_fields({'body': '{"a": 1, "b": 2}'}, ('a',)) is None
+
+
+def test_parse_fields_refuses_a_json_value_that_is_not_an_object() -> None:
+    assert parse_fields({'body': '["a"]'}, ('a',)) is None
 
 
 def test_dispatch_calls_the_handler_of_the_resource_and_method() -> None:

@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import Any, Callable, Dict, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple
 
 import boto3
 
@@ -37,6 +37,11 @@ def parse_object(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     except ValueError:
         return None
     return body if isinstance(body, dict) else None
+
+
+def parse_fields(event: Dict[str, Any], fields: Iterable[str]) -> Optional[Dict[str, Any]]:
+    body = parse_object(event)
+    return body if body is not None and set(body) == set(fields) else None
 
 
 def dispatch(event: Dict[str, Any], routes: Mapping[Route, Handler]) -> Dict[str, Any]:

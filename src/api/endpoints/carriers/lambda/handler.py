@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, dispatch, json_response, parse_object
+from lambda_http import aws_client, dispatch, json_response, parse_fields
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -72,8 +72,8 @@ def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _name(event: Dict[str, Any]) -> Optional[str]:
-    body = parse_object(event)
-    if body is None or set(body) != {'name'}:
+    body = parse_fields(event, ('name',))
+    if body is None:
         return None
     name = body['name']
     return name if isinstance(name, str) and name else None
@@ -346,10 +346,8 @@ Valid = Callable[[Dict[str, Any]], bool]
 
 
 def _body(event: Dict[str, Any], fields: Tuple[str, ...], valid: Valid) -> Optional[Dict[str, Any]]:
-    body = parse_object(event)
-    if body is None or set(body) != set(fields):
-        return None
-    return body if valid(body) else None
+    body = parse_fields(event, fields)
+    return body if body is not None and valid(body) else None
 
 
 def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:

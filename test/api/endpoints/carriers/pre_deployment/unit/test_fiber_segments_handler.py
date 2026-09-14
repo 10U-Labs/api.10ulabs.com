@@ -158,20 +158,25 @@ def test_the_added_fiber_segment_is_located_under_the_carrier_s_fiber_segments(
     assert headers["Location"] == "/carriers/1/fiber-segments/4"
 
 
-def test_the_carrier_s_next_fiber_segment_moves_past_the_id_it_gave(
+@pytest.fixture(name="added_to")
+def added_to_fixture(
     answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]], lumen: Dict[str, Any]
-) -> None:
+) -> Dict[str, Any]:
     store.items.extend(carriers)
     answer(_post_fiber_segment(DEN_SLC))
-    assert lumen["next_fiber_segment"] == {"N": "5"}
+    return lumen
+
+
+def test_the_carrier_s_next_fiber_segment_moves_past_the_id_it_gave(
+    added_to: Dict[str, Any]
+) -> None:
+    assert added_to["next_fiber_segment"] == {"N": "5"}
 
 
 def test_adding_a_fiber_segment_leaves_the_carrier_s_next_pop_where_it_was(
-    answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]], lumen: Dict[str, Any]
+    added_to: Dict[str, Any]
 ) -> None:
-    store.items.extend(carriers)
-    answer(_post_fiber_segment(DEN_SLC))
-    assert lumen["next_pop"] == {"N": "4"}
+    assert added_to["next_pop"] == {"N": "4"}
 
 
 def test_a_fiber_segment_id_is_never_reused(
