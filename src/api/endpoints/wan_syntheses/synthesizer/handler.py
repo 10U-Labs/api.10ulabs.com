@@ -68,7 +68,7 @@ def _lists(inputs: dict[str, list[dict[str, Any]]]) -> dict[str, list[Any]]:
 def _carrier_rows(table: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     pops: list[dict[str, Any]] = []
     segments: list[dict[str, Any]] = []
-    for carrier in members(table, CARRIERS):
+    for carrier in sorted(members(table, CARRIERS), key=sort_id):
         name = carrier["name"]["S"]
         under = f"{CARRIERS}/{carrier['SK']['S']}"
         pops += [{**row, "carrier": name} for row in _rows(table, under, "pops")]

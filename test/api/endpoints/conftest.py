@@ -1,4 +1,5 @@
 import json
+import re
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional
 
@@ -44,7 +45,7 @@ def store_fixture() -> SimpleNamespace:
     def assign(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
         names = request["ExpressionAttributeNames"]
         values = request["ExpressionAttributeValues"]
-        for clause in request["UpdateExpression"].removeprefix("SET ").split(", "):
+        for clause in re.split(r", (?=#)", request["UpdateExpression"].removeprefix("SET ")):
             target, _, expression = clause.partition(" = ")
             if "+" in expression:
                 held = int(item.get(names[target], {"N": "1"})["N"])

@@ -142,10 +142,7 @@ def test_a_second_circuit_to_each_peer_is_proved_however_far_it_runs() -> None:
     assert diverse_circuit_ceiling("sea", inputs) == 4
 
 
-_PACIFIC_ADJACENCY = build_adjacency(physical({
-    ("sea", "pdx"): 10.0, ("pdx", "hil"): 10.0, ("pdx", "eug"): 10.0,
-    ("sea", "tok"): 1000.0, ("tok", "hil"): 1000.0, ("tok", "eug"): 1000.0,
-}))
+_PACIFIC_ADJACENCY = build_adjacency(physical(fixtures.CROSSING_SEGMENTS))
 _PACIFIC_BACKBONE = ("eug", "hil", "sea")
 
 

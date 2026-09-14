@@ -9,6 +9,7 @@ from dataclasses import replace
 from synthesizer.input_graph import FiberSegment, Site
 from synthesizer.model import (
     HomingSites,
+    ShortestPaths,
     Synthesis,
     SynthesisInputs,
     SynthesisParams,
@@ -67,12 +68,12 @@ def convergence_promotion_ids(
 def all_pairs_shortest(
     carrier_pops: list[Site],
     adjacency: dict[str, list[tuple[str, float]]],
-) -> tuple[dict[str, dict[str, float]], dict[str, dict[str, str]]]:
+) -> ShortestPaths:
     all_distances: dict[str, dict[str, float]] = {}
     all_predecessors: dict[str, dict[str, str]] = {}
     for pop in carrier_pops:
         all_distances[pop.id], all_predecessors[pop.id] = dijkstra(adjacency, pop.id)
-    return all_distances, all_predecessors
+    return ShortestPaths(all_distances, all_predecessors)
 
 
 def validate_pop_graph(
@@ -209,7 +210,6 @@ def build_synthesis_inputs(
     homing_sites = [site for site in sites if not is_carrier_pop(site)]
     adjacency = build_adjacency(fiber_segments)
     validate_pop_graph(carrier_pops, fiber_segments, adjacency)
-    all_distances, all_predecessors = all_pairs_shortest(carrier_pops, adjacency)
     return SynthesisInputs(
         homing_sites=HomingSites(
             [site for site in homing_sites if site.kind != PROVIDER_KIND],
@@ -219,8 +219,7 @@ def build_synthesis_inputs(
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=set(),
         adjacency=adjacency,
-        all_distances=all_distances,
-        all_predecessors=all_predecessors,
+        paths=all_pairs_shortest(carrier_pops, adjacency),
         carrier_blocks=biconnected_block_membership(adjacency),
     )
 

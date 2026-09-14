@@ -7,8 +7,8 @@ import yaml
 from published_syntheses import published_synthesis
 
 
-@pytest.fixture(scope="session")
-def runs(repo_root: Path) -> Dict[str, Dict[str, Any]]:
+@pytest.fixture(scope="session", name="runs")
+def runs_fixture(repo_root: Path) -> Dict[str, Dict[str, Any]]:
     return {
         path.stem.replace("_", "-"): yaml.safe_load(path.read_text(encoding="utf-8"))
         for path in sorted((repo_root / "etc").glob("*.yml"))

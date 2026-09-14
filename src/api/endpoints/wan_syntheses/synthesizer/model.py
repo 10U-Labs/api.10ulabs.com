@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import NamedTuple, TypedDict
 
 from synthesizer.input_graph import FiberSegment, Site
 
@@ -118,6 +118,10 @@ class RoleOverrides:
     degree_exempt_wan_pop_ids: frozenset[str] = frozenset()
     forced_circuits: ForcedCircuits = field(default_factory=ForcedCircuits)
 
+class ShortestPaths(NamedTuple):
+    distances: dict[str, dict[str, float]]
+    predecessors: dict[str, dict[str, str]]
+
 @dataclass(frozen=True)
 class SynthesisInputs:
     homing_sites: HomingSites
@@ -125,8 +129,7 @@ class SynthesisInputs:
     fiber_segments: dict[tuple[str, str], FiberSegment]
     eligible_wan_pop_ids: set[str]
     adjacency: dict[str, list[tuple[str, float]]]
-    all_distances: dict[str, dict[str, float]]
-    all_predecessors: dict[str, dict[str, str]]
+    paths: ShortestPaths
     carrier_blocks: dict[str, frozenset[int]]
 
 @dataclass(frozen=True)

@@ -260,12 +260,9 @@ def synthesis_over_segments(
     segments: dict[tuple[str, str], float],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
-    min_wan_pop_count: int | None = None,
-    homing_degree: int = 2,
 ) -> SynthesisArtifacts:
     return synthesis_over_fiber(
-        site_ids, fiber_segments_from(segments), number_of_diverse_circuits,
-        transit_ids, min_wan_pop_count, homing_degree,
+        site_ids, fiber_segments_from(segments), number_of_diverse_circuits, transit_ids
     )
 
 
@@ -285,11 +282,9 @@ def synthesis_over_fiber(
     fiber: dict[tuple[str, str], FiberSegment],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
-    min_wan_pop_count: int | None = None,
-    homing_degree: int = 2,
 ) -> SynthesisArtifacts:
     cities = site_ids + transit_ids
-    fewest = len(site_ids) if min_wan_pop_count is None else min_wan_pop_count
+    fewest = len(site_ids)
     return run_synthesis(
         [
             carrier_pop(city, 38.0, -115.0 + 2.0 * index)
@@ -422,24 +417,19 @@ def synthesis_inputs_from_fiber(
     fiber_segments: dict[tuple[str, str], FiberSegment],
     eligible: set[str],
     tenant_sites: list[Site] | None = None,
-    provider_regions: list[Site] | None = None,
     coords: dict[str, tuple[float, float]] | None = None,
 ) -> SynthesisInputs:
     places = coords or {}
     pops = [carrier_pop(site_id, *places.get(site_id, (0.0, 0.0))) for site_id in site_ids]
     adjacency = build_adjacency(fiber_segments)
-    distances, predecessors = all_pairs_shortest(pops, adjacency)
+    paths = all_pairs_shortest(pops, adjacency)
     return SynthesisInputs(
-        homing_sites=HomingSites(
-            tenant_sites if tenant_sites is not None else [],
-            provider_regions if provider_regions is not None else [],
-        ),
+        homing_sites=HomingSites(tenant_sites if tenant_sites is not None else [], []),
         carrier_pops=pops,
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=eligible,
         adjacency=adjacency,
-        all_distances=distances,
-        all_predecessors=predecessors,
+        paths=paths,
         carrier_blocks=biconnected_block_membership(adjacency),
     )
 
@@ -520,24 +510,13 @@ def funnel_transit_names() -> tuple[str, ...]:
     return tuple(sorted(set(FUNNEL_COORDS) - FUNNEL_ELIGIBLE))
 
 
-CROSSING_FIBER = fiber_segments_from({
-    ("sea", "pdx"): 10.0,
-    ("pdx", "hil"): 10.0,
-    ("pdx", "eug"): 10.0,
-    ("sea", "tok"): 1000.0,
-    ("tok", "hil"): 1000.0,
-    ("tok", "eug"): 1000.0,
-})
+CROSSING_SEGMENTS = {
+    ("sea", "pdx"): 10.0, ("pdx", "hil"): 10.0, ("pdx", "eug"): 10.0,
+    ("sea", "tok"): 1000.0, ("tok", "hil"): 1000.0, ("tok", "eug"): 1000.0,
+}
+CROSSING_FIBER = fiber_segments_from(CROSSING_SEGMENTS)
 CROSSING_SUBMARINE_FIBER = fiber_segments_under_water(
-    {
-        ("sea", "pdx"): 10.0,
-        ("pdx", "hil"): 10.0,
-        ("pdx", "eug"): 10.0,
-        ("sea", "tok"): 1000.0,
-        ("tok", "hil"): 1000.0,
-        ("tok", "eug"): 1000.0,
-    },
-    {("sea", "tok"), ("tok", "hil"), ("tok", "eug")},
+    CROSSING_SEGMENTS, {("sea", "tok"), ("tok", "hil"), ("tok", "eug")}
 )
 CROSSING_IDS = ["sea", "hil", "eug", "pdx", "tok"]
 CROSSING_ELIGIBLE = {"sea", "hil", "eug"}

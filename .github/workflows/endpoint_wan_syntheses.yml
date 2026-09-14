@@ -211,9 +211,7 @@ jobs:
           import os
           import sys
           from urllib.request import Request, urlopen
-
           import yaml
-
           path = sys.argv[1]
           config = yaml.safe_load(open(path, encoding="utf-8"))
           backbone, homing, inputs = config["backbone"], config["homing"], config["inputs"]
@@ -222,24 +220,20 @@ jobs:
               "Authorization": f"Bearer {os.environ['API_KEY']}",
               "Content-Type": "application/json",
           }
-
           def rows(csv_path):
               with open(csv_path, encoding="utf-8") as handle:
                   return list(csv.DictReader(handle))
-
           def placed(row):
               return {
                   "municipality": row["Municipality"], "state": row["State"],
                   "country": row["Country"],
                   "latitude": float(row["Latitude"]), "longitude": float(row["Longitude"]),
               }
-
           def call(method, resource, body=None):
               data = None if body is None else json.dumps(body).encode()
               request = Request(os.environ["API_URL"] + resource, data, headers, method=method)
               with urlopen(request, timeout=30) as answer:
                   return json.loads(answer.read())
-
           body = {
               "label": config["label"],
               "wan_pop_count": backbone["wan_pop_count"],
