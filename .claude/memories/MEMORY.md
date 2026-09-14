@@ -39,7 +39,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [find-a-run-by-the-full-hash](find-a-run-by-the-full-hash.md) — `gh run list --commit` returns nothing for a short hash, so match `headSha` by prefix locally
 - [a-wait-runs-in-the-background](a-wait-runs-in-the-background.md) — a wait for CI is a background shell or a Monitor, never a foreground sleep or `gh run watch`, so the reminders keep firing
 - [a-fix-forward-fires-every-stack-the-red-commit-changed](a-fix-forward-fires-every-stack-the-red-commit-changed.md) — a fix forward touches a path that fires every workflow whose stack the red commit changed, or their skipped reconciliations never run
-- [a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix](a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix.md) — a red run whose twin on the same commit is green through reconciliation is not a red gate; group runs by workflow when a push fired twice
+- [a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix](a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix.md) — a red run whose twin on the same commit is green through reconciliation is not a red gate, and a job that tripped on a transient registry or download error is re-run on the same commit; group runs by workflow when a push fired twice
 
 ### Workflows
 
