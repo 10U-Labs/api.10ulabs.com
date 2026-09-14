@@ -14,7 +14,8 @@ def store_fixture() -> SimpleNamespace:
             raise ClientError({"Error": {"Code": "InternalServerError"}}, operation)
 
     def counter(key: Dict[str, Any]) -> Dict[str, Any]:
-        for item in store.items:
+        items: List[Dict[str, Any]] = store.items
+        for item in items:
             if item["PK"] == key["PK"] and item["SK"] == key["SK"]:
                 return item
         item = {**key, "next": {"N": "1"}}
