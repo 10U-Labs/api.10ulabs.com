@@ -104,8 +104,8 @@ def store_fixture() -> SimpleNamespace:
 
 
 
-@pytest.fixture(name="endpoint")
-def endpoint_fixture(
+@pytest.fixture
+def endpoint(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     store: SimpleNamespace,
@@ -114,7 +114,9 @@ def endpoint_fixture(
         handler = load_handler(f"api/endpoints/{stack}")
         monkeypatch.setenv("STORE_TABLE", "store")
         for module in (handler, library):
-            monkeypatch.setattr(module, "aws_client", lambda service: {"dynamodb": store}[service])
+            monkeypatch.setattr(
+                module, "aws_client", lambda service: {"dynamodb": store}[service], raising=False
+            )
         return handler
     return load
 

@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 from botocore.exceptions import ClientError
 
 from lambda_http import aws_client, created, dispatch, json_response, parse_fields
-from store import COUNTER, members, partition
+from store import COUNTER, member, members, partition
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -45,12 +45,7 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
-    answer = aws_client('dynamodb').get_item(
-        TableName=os.environ['STORE_TABLE'],
-        Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
-    )
-    item: Optional[Dict[str, Any]] = answer.get('Item')
-    return item
+    return member(os.environ['STORE_TABLE'], collection, member_id)
 
 
 def _name(event: Dict[str, Any]) -> Optional[str]:

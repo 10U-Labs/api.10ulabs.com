@@ -22,3 +22,12 @@ def partition(table: str, key: str, prefix: Optional[str] = None) -> List[Dict[s
 
 def members(table: str, collection: str) -> List[Dict[str, Any]]:
     return [item for item in partition(table, collection) if item['SK']['S'] != COUNTER]
+
+
+def member(table: str, collection: str, member_id: str) -> Optional[Dict[str, Any]]:
+    answer = aws_client('dynamodb').get_item(
+        TableName=table,
+        Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+    )
+    item: Optional[Dict[str, Any]] = answer.get('Item')
+    return item

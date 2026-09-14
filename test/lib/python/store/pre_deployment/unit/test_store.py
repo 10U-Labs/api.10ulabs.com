@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 import pytest
 
 import store
-from store import members, partition
+from store import member, members, partition
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
 LUMEN = {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "lumen"}}
@@ -13,13 +13,19 @@ ZAYO = {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "zayo"}}
 
 @pytest.fixture(name="dynamodb")
 def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    dynamodb = SimpleNamespace(queries=[], items=[COUNTER, ZAYO, LUMEN])
+    dynamodb = SimpleNamespace(queries=[], gets=[], items=[COUNTER, ZAYO, LUMEN])
 
     def query(**request: Any) -> Dict[str, Any]:
         dynamodb.queries.append(request)
         return {"Items": list(dynamodb.items), "Count": len(dynamodb.items)}
 
+    def get_item(**request: Any) -> Dict[str, Any]:
+        dynamodb.gets.append(request)
+        found = [item for item in dynamodb.items if item["SK"] == request["Key"]["SK"]]
+        return {"Item": found[0]} if found else {}
+
     dynamodb.query = query
+    dynamodb.get_item = get_item
     monkeypatch.setattr(store, "aws_client", lambda service: {"dynamodb": dynamodb}[service])
     return dynamodb
 
@@ -73,3 +79,23 @@ def test_the_members_are_read_from_the_collection_s_own_partition(
 ) -> None:
     members("the-table", "carriers")
     assert _query(dynamodb)["ExpressionAttributeValues"] == {":pk": {"S": "carriers"}}
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_member_answers_the_item_the_store_holds() -> None:
+    assert member("the-table", "carriers", "2") == ZAYO
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_member_the_store_does_not_hold_answers_none() -> None:
+    assert member("the-table", "carriers", "3") is None
+
+
+def test_a_member_is_read_from_the_table_it_names(dynamodb: SimpleNamespace) -> None:
+    member("the-table", "carriers", "2")
+    assert dynamodb.gets[0]["TableName"] == "the-table"
+
+
+def test_a_member_is_read_by_its_collection_and_its_id(dynamodb: SimpleNamespace) -> None:
+    member("the-table", "carriers", "2")
+    assert dynamodb.gets[0]["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "2"}}

@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 
-@pytest.fixture(name="handler")
-def handler_fixture(endpoint: Callable[[str], ModuleType]) -> ModuleType:
+@pytest.fixture
+def handler(endpoint: Callable[[str], ModuleType]) -> ModuleType:
     return endpoint("hyperscale_cloud_service_provider_regions")
 
 
