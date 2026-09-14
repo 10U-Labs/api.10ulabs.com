@@ -1039,7 +1039,7 @@
             }
           },
           "500": {
-            "description": "The store could not be written"
+            "description": "The store could not be read or written"
           }
         },
         "x-amazon-apigateway-integration": {
