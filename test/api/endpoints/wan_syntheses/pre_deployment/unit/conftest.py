@@ -33,4 +33,10 @@ def syntheses() -> List[Dict[str, Any]]:
          "homing_miles": {"M": {"tenant": {"N": "210.25"}, "provider": {"N": "80"}}},
          "diverse_circuits": {"M": {"number_of_diverse_circuits": {"N": "3"},
                                     "ceilings": {"L": [{"N": "3"}, {"N": "2"}]}}}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "wan-pops/2"}, "name": {"S": "Cheyenne, WY"},
+         "municipality": {"S": "Cheyenne"}, "state": {"S": "WY"}, "country": {"S": "US"},
+         "latitude": {"N": "41.14"}, "longitude": {"N": "-104.8202"}, "carrier": {"S": "lumen"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "wan-pops/1"}, "name": {"S": "Ashburn, VA"},
+         "municipality": {"S": "Ashburn"}, "state": {"S": "VA"}, "country": {"S": "US"},
+         "latitude": {"N": "39.0438"}, "longitude": {"N": "-77.4874"}, "carrier": {"S": "zayo"}},
     ]

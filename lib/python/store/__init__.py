@@ -99,3 +99,8 @@ def plain(value: Dict[str, Any]) -> Any:
     if kind == 'L':
         return [plain(inner) for inner in held]
     return None if kind == 'NULL' else held
+
+
+def member_id(item: Dict[str, Any]) -> int:
+    sort_key: str = item['SK']['S']
+    return int(sort_key.rpartition('/')[2])

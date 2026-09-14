@@ -75,7 +75,11 @@ UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
 REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
 SYNTHESES = "/wan-syntheses"
 SYNTHESIS = "/wan-syntheses/{synthesis}"
-UNDER_A_SYNTHESIS = [(SYNTHESIS, "get")]
+WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
+UNDER_A_SYNTHESIS = [(SYNTHESIS, "get"), (WAN_POPS, "get")]
+WAN_POP_FIELDS = [
+    "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
+]
 SYNTHESES_OPERATIONS = [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS
 SYNTHESIS_FIELDS = [
     "id", "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
@@ -330,6 +334,15 @@ def test_a_synthesis_is_served_as_its_record_with_an_id(openapi: Dict[str, Any])
 
 def test_a_synthesis_s_status_is_one_of_five(openapi: Dict[str, Any]) -> None:
     assert _served_synthesis(openapi)["properties"]["status"]["enum"] == STATUSES
+
+
+def test_the_wan_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][WAN_POPS]) == ["get"]
+
+
+def test_a_wan_pop_is_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][WAN_POPS]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == WAN_POP_FIELDS
 
 
 def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
