@@ -151,6 +151,24 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
 ]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
+LISTED = [
+    (SYNTHESES, ["id", "label"]),
+    (WAN_POPS, WAN_POP_FIELDS),
+    (BACKBONE_CIRCUITS, CIRCUIT_FIELDS),
+    (HOMING_CIRCUITS, HOMING_FIELDS),
+    (RIDDEN_FIBER, RIDDEN_FIBER_FIELDS),
+    (SITES, SITE_FIELDS),
+    (RUN_REGIONS, REGION_FIELDS),
+    (OFF_NET, POP_FIELDS),
+    (FORCED_WAN_POPS, NAMED_INPUT_FIELDS),
+    (FORCED_CIRCUITS, ENDS_INPUT_FIELDS),
+]
+SERVED = [
+    (SYNTHESIS, SYNTHESIS_FIELDS),
+    (WAN_POP, WAN_POP_FIELDS),
+    (SITE, SITE_FIELDS),
+    (RUN_REGION, REGION_FIELDS),
+]
 FIBER_SEGMENT_FIELDS = [
     "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
 ]
@@ -354,183 +372,58 @@ def test_the_syntheses_are_served_by_the_syntheses_handler(
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
 
 
-def test_the_syntheses_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][SYNTHESES]) == ["get"]
+@pytest.mark.parametrize("path", [path for path, _ in SYNTHESES_OPERATIONS])
+def test_a_path_under_the_syntheses_answers_get_alone(openapi: Dict[str, Any], path: str) -> None:
+    assert list(openapi["paths"][path]) == ["get"]
 
 
-def test_a_synthesis_is_a_labelled_run_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][SYNTHESES]["get"]["responses"]["200"]
-    assert listed["content"]["application/json"]["schema"]["items"]["required"] == ["id", "label"]
-
-
-def test_a_synthesis_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][SYNTHESIS]) == ["get"]
-
-
-def _served_synthesis(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    served = openapi["paths"][SYNTHESIS]["get"]["responses"]["200"]
+def _served(openapi: Dict[str, Any], path: str) -> Dict[str, Any]:
+    served = openapi["paths"][path]["get"]["responses"]["200"]
     schema: Dict[str, Any] = served["content"]["application/json"]["schema"]
     return schema
 
 
-def test_a_synthesis_is_served_as_its_record_with_an_id(openapi: Dict[str, Any]) -> None:
-    assert _served_synthesis(openapi)["required"] == SYNTHESIS_FIELDS
+def _listed(openapi: Dict[str, Any], path: str) -> Dict[str, Any]:
+    items: Dict[str, Any] = _served(openapi, path)["items"]
+    return items
+
+
+@pytest.mark.parametrize(("path", "fields"), LISTED)
+def test_a_listing_under_the_syntheses_lists_its_fields_with_an_id(
+    openapi: Dict[str, Any], path: str, fields: List[str]
+) -> None:
+    assert _listed(openapi, path)["required"] == fields
+
+
+@pytest.mark.parametrize(("path", "fields"), SERVED)
+def test_a_member_under_the_syntheses_is_served_with_its_fields_and_an_id(
+    openapi: Dict[str, Any], path: str, fields: List[str]
+) -> None:
+    assert _served(openapi, path)["required"] == fields
 
 
 def test_a_synthesis_s_status_is_one_of_five(openapi: Dict[str, Any]) -> None:
-    assert _served_synthesis(openapi)["properties"]["status"]["enum"] == STATUSES
-
-
-def test_the_wan_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][WAN_POPS]) == ["get"]
-
-
-def test_a_wan_pop_is_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][WAN_POPS]["get"]["responses"]["200"]
-    assert listed["content"]["application/json"]["schema"]["items"]["required"] == WAN_POP_FIELDS
-
-
-def test_the_backbone_circuits_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][BACKBONE_CIRCUITS]) == ["get"]
-
-
-def _listed_backbone_circuit(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    listed = openapi["paths"][BACKBONE_CIRCUITS]["get"]["responses"]["200"]
-    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
-    return schema
-
-
-def test_a_backbone_circuit_runs_between_two_wan_pops_along_a_route(
-    openapi: Dict[str, Any]
-) -> None:
-    assert _listed_backbone_circuit(openapi)["required"] == CIRCUIT_FIELDS
+    assert _served(openapi, SYNTHESIS)["properties"]["status"]["enum"] == STATUSES
 
 
 def test_a_backbone_circuit_s_route_is_the_names_it_runs_through(openapi: Dict[str, Any]) -> None:
-    route = _listed_backbone_circuit(openapi)["properties"]["route"]
+    route = _listed(openapi, BACKBONE_CIRCUITS)["properties"]["route"]
     assert (route["type"], route["items"]["type"]) == ("array", "string")
 
 
-def test_the_homing_circuits_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][HOMING_CIRCUITS]) == ["get"]
-
-
-def _listed_homing_circuit(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    listed = openapi["paths"][HOMING_CIRCUITS]["get"]["responses"]["200"]
-    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
-    return schema
-
-
-def test_a_homing_circuit_runs_from_a_kinded_source_to_a_wan_pop(openapi: Dict[str, Any]) -> None:
-    assert _listed_homing_circuit(openapi)["required"] == HOMING_FIELDS
-
-
 def test_a_homing_circuit_s_kind_says_whose_id_its_source_is(openapi: Dict[str, Any]) -> None:
-    assert _listed_homing_circuit(openapi)["properties"]["homing_kind"]["enum"] == HOMING_KINDS
-
-
-def test_the_fiber_a_synthesis_rides_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][RIDDEN_FIBER]) == ["get"]
-
-
-def _listed_ridden_fiber(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    listed = openapi["paths"][RIDDEN_FIBER]["get"]["responses"]["200"]
-    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
-    return schema
-
-
-def test_a_ridden_fiber_segment_is_a_carrier_s_span_with_both_ends_placed(
-    openapi: Dict[str, Any]
-) -> None:
-    assert _listed_ridden_fiber(openapi)["required"] == RIDDEN_FIBER_FIELDS
+    kind = _listed(openapi, HOMING_CIRCUITS)["properties"]["homing_kind"]
+    assert kind["enum"] == HOMING_KINDS
 
 
 def test_a_ridden_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
-    assert _listed_ridden_fiber(openapi)["properties"]["submarine"]["type"] == "boolean"
-
-
-def test_the_sites_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][SITES]) == ["get"]
-
-
-def test_a_site_is_a_named_and_placed_input_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][SITES]["get"]["responses"]["200"]
-    assert listed["content"]["application/json"]["schema"]["items"]["required"] == SITE_FIELDS
-
-
-def test_a_site_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][SITE]) == ["get"]
-
-
-def test_a_site_is_served_as_named_and_placed_with_an_id(openapi: Dict[str, Any]) -> None:
-    served = openapi["paths"][SITE]["get"]["responses"]["200"]
-    assert served["content"]["application/json"]["schema"]["required"] == SITE_FIELDS
-
-
-def test_the_regions_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][RUN_REGIONS]) == ["get"]
-
-
-def test_a_synthesis_s_region_is_served_as_the_catalog_serves_it(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][RUN_REGIONS]["get"]["responses"]["200"]
-    assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
-
-
-def test_a_synthesis_s_region_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][RUN_REGION]) == ["get"]
-
-
-def test_a_synthesis_s_region_is_served_by_id_as_the_catalog_serves_it(
-    openapi: Dict[str, Any]
-) -> None:
-    served = openapi["paths"][RUN_REGION]["get"]["responses"]["200"]
-    assert served["content"]["application/json"]["schema"]["required"] == REGION_FIELDS
-
-
-def test_the_off_net_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][OFF_NET]) == ["get"]
-
-
-def test_an_off_net_pop_is_a_placed_and_unnamed_input_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][OFF_NET]["get"]["responses"]["200"]
-    assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
-
-
-def test_the_forced_wan_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][FORCED_WAN_POPS]) == ["get"]
-
-
-def test_a_forced_wan_pop_is_a_named_input_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"][FORCED_WAN_POPS]["get"]["responses"]["200"]
-    required = listed["content"]["application/json"]["schema"]["items"]["required"]
-    assert required == NAMED_INPUT_FIELDS
-
-
-def test_the_forced_circuits_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][FORCED_CIRCUITS]) == ["get"]
-
-
-def test_a_forced_circuit_is_an_input_between_named_ends_with_an_id(
-    openapi: Dict[str, Any]
-) -> None:
-    listed = openapi["paths"][FORCED_CIRCUITS]["get"]["responses"]["200"]
-    required = listed["content"]["application/json"]["schema"]["items"]["required"]
-    assert required == ENDS_INPUT_FIELDS
+    assert _listed(openapi, RIDDEN_FIBER)["properties"]["submarine"]["type"] == "boolean"
 
 
 @pytest.mark.parametrize("path", GIVEN)
 def test_an_input_is_there_whatever_the_run_s_status(openapi: Dict[str, Any], path: str) -> None:
     missing = openapi["paths"][path]["get"]["responses"]["404"]["description"]
     assert missing.startswith("No synthesis has that id")
-
-
-def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][WAN_POP]) == ["get"]
-
-
-def test_a_wan_pop_is_served_as_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -> None:
-    served = openapi["paths"][WAN_POP]["get"]["responses"]["200"]
-    assert served["content"]["application/json"]["schema"]["required"] == WAN_POP_FIELDS
 
 
 def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
