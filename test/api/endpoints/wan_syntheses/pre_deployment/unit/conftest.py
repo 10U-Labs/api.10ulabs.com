@@ -49,4 +49,12 @@ def syntheses() -> List[Dict[str, Any]]:
          "route": {"L": [{"S": "Ashburn, VA"}, {"S": "Chicago, IL"}, {"S": "Cheyenne, WY"}]},
          "distance_miles": {"N": "1480"}, "reason": {"S": "circuit_for_target"},
          "requested_by": {"L": []}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "homing-circuits/2"},
+         "source_id": {"N": "1"}, "homing_kind": {"S": "provider_to_backbone"},
+         "target": {"N": "1"}, "route": {"L": [{"S": "Columbus, OH"}, {"S": "Ashburn, VA"}]},
+         "distance_miles": {"N": "331.25"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "homing-circuits/1"},
+         "source_id": {"N": "1"}, "homing_kind": {"S": "tenant_to_backbone"},
+         "target": {"N": "2"}, "route": {"L": [{"S": "Minot, ND"}, {"S": "Cheyenne, WY"}]},
+         "distance_miles": {"N": "590"}},
     ]
