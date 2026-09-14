@@ -57,6 +57,23 @@ def test_every_statement_on_every_resource_is_counted(iam_tf: str) -> None:
     assert iam_tf.count('resources = ["*"]') == len(_statements_on_every_resource(iam_tf))
 
 
+def test_the_solver_layer_is_declared_under_the_product_prefix_alone(iam_tf: str) -> None:
+    assert re.search(
+        r'sid\s*=\s*"DeclareTheSolverLayer"\s*actions\s*=\s*\[[^\]]*"lambda:PublishLayerVersion"'
+        r'[^\]]*\]\s*resources = \[local\.layers\]',
+        iam_tf,
+    )
+
+
+def test_layers_are_named_under_the_product_with_every_version(iam_tf: str) -> None:
+    arn = "arn:aws:lambda:${local.region}:${local.account}:layer:${local.product}-*"
+    assert f'layers       = "{arn}"' in iam_tf
+
+
+def test_the_handlers_take_a_failure_destination(iam_tf: str) -> None:
+    assert '"lambda:PutFunctionEventInvokeConfig",' in iam_tf
+
+
 def test_state_grant_stops_at_this_repository_prefix(iam_tf: str) -> None:
     assert STATE_PREFIX in iam_tf
 

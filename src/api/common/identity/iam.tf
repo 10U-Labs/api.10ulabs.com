@@ -4,6 +4,7 @@ locals {
   region       = module.common.aws_region
   state_bucket = "arn:aws:s3:::${module.common.state_bucket}"
   functions    = "arn:aws:lambda:${local.region}:${local.account}:function:${local.product}-*"
+  layers       = "arn:aws:lambda:${local.region}:${local.account}:layer:${local.product}-*"
   log_groups   = "arn:aws:logs:${local.region}:${local.account}:log-group:/aws/lambda/${local.product}-*"
   log_listing  = "arn:aws:logs:${local.region}:${local.account}:log-group::log-stream:"
   lambda_roles = "arn:aws:iam::${local.account}:role/${local.product}-*"
@@ -52,6 +53,10 @@ data "aws_iam_policy_document" "functions" {
       "lambda:ListVersionsByFunction",
       "lambda:UpdateFunctionCode",
       "lambda:UpdateFunctionConfiguration",
+      "lambda:GetFunctionEventInvokeConfig",
+      "lambda:PutFunctionEventInvokeConfig",
+      "lambda:UpdateFunctionEventInvokeConfig",
+      "lambda:DeleteFunctionEventInvokeConfig",
       "lambda:GetPolicy",
       "lambda:AddPermission",
       "lambda:RemovePermission",
@@ -60,6 +65,17 @@ data "aws_iam_policy_document" "functions" {
       "lambda:UntagResource",
     ]
     resources = [local.functions]
+  }
+
+  statement {
+    sid = "DeclareTheSolverLayer"
+    actions = [
+      "lambda:PublishLayerVersion",
+      "lambda:GetLayerVersion",
+      "lambda:DeleteLayerVersion",
+      "lambda:ListLayerVersions",
+    ]
+    resources = [local.layers]
   }
 
   statement {
