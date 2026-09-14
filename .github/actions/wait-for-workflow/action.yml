@@ -7,7 +7,7 @@ inputs:
     description: A token that may read this repository's workflow runs
     required: true
   workflow:
-    description: The workflow file to wait for, such as api_common_routing.yml
+    description: The workflow file to wait for, such as common_routing.yml
     required: true
 name: Wait For Workflow
 outputs:

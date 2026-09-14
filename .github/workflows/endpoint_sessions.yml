@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: api_endpoint_rack_configurations-${{ github.ref }}
+  group: endpoint_sessions-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -67,7 +67,7 @@ jobs:
       - name: Assert every OpenTofu resource is reached by something
         uses: 10U-Labs/assert-opentofu-resource-is-used@latest
         with:
-          directories: src/api/endpoints/rack_configurations lib/opentofu/common
+          directories: src/api/endpoints/sessions lib/opentofu/common
           search-in: .
           verbose: "true"
   assert-pytest-class-holds-state:
@@ -128,7 +128,7 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: src/api/endpoints/rack_configurations/lambda lib/python
+          trees: src/api/endpoints/sessions/lambda lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -213,8 +213,8 @@ jobs:
           tofu_wrapper: false
       - name: Validate the stack
         run: |
-          tofu -chdir=src/api/endpoints/rack_configurations init -backend=false -input=false
-          tofu -chdir=src/api/endpoints/rack_configurations validate
+          tofu -chdir=src/api/endpoints/sessions init -backend=false -input=false
+          tofu -chdir=src/api/endpoints/sessions validate
   post-deployment-integration-tests:
     if: github.ref == 'refs/heads/main'
     needs:
@@ -239,7 +239,7 @@ jobs:
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
         run: >-
-          python3 -m pytest test/api/endpoints/rack_configurations/post_deployment/integration/
+          python3 -m pytest test/api/endpoints/sessions/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   pylint-source:
@@ -277,8 +277,8 @@ jobs:
   reconciliation:
     if: >-
       github.ref == 'refs/heads/main'
-      && needs.wait-for-api-common-identity.outputs.apply == 'true'
-      && needs.wait-for-api-common-routing.outputs.apply == 'true'
+      && needs.wait-for-common-identity.outputs.apply == 'true'
+      && needs.wait-for-common-routing.outputs.apply == 'true'
     needs:
       - assert-no-comments
       - assert-no-inline-directives
@@ -303,8 +303,8 @@ jobs:
       - test-repo-libraries
       - tflint
       - unit-tests
-      - wait-for-api-common-identity
-      - wait-for-api-common-routing
+      - wait-for-common-identity
+      - wait-for-common-routing
       - yamllint
     permissions:
       contents: read
@@ -324,8 +324,8 @@ jobs:
           tofu_wrapper: false
       - name: Reconcile the stack to its declared state
         run: |
-          tofu -chdir=src/api/endpoints/rack_configurations init -input=false
-          tofu -chdir=src/api/endpoints/rack_configurations apply -auto-approve -input=false
+          tofu -chdir=src/api/endpoints/sessions init -input=false
+          tofu -chdir=src/api/endpoints/sessions apply -auto-approve -input=false
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -353,7 +353,7 @@ jobs:
         with:
           tflint_version: latest
       - name: Lint the stack
-        run: tflint --chdir=src/api/endpoints/rack_configurations
+        run: tflint --chdir=src/api/endpoints/sessions
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -367,10 +367,10 @@ jobs:
         run: pip install boto3 pytest pyyaml
       - name: Run the unit tests
         run: >-
-          python3 -m pytest test/api/endpoints/rack_configurations/pre_deployment/unit/
+          python3 -m pytest test/api/endpoints/sessions/pre_deployment/unit/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
-  wait-for-api-common-identity:
+  wait-for-common-identity:
     if: github.ref == 'refs/heads/main'
     outputs:
       apply: ${{ steps.wait.outputs.apply }}
@@ -382,12 +382,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - id: wait
-        name: Wait for api_common_identity on this commit
+        name: Wait for common_identity on this commit
         uses: ./.github/actions/wait-for-workflow
         with:
           github_token: ${{ github.token }}
-          workflow: api_common_identity.yml
-  wait-for-api-common-routing:
+          workflow: common_identity.yml
+  wait-for-common-routing:
     if: github.ref == 'refs/heads/main'
     outputs:
       apply: ${{ steps.wait.outputs.apply }}
@@ -399,11 +399,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - id: wait
-        name: Wait for api_common_routing on this commit
+        name: Wait for common_routing on this commit
         uses: ./.github/actions/wait-for-workflow
         with:
           github_token: ${{ github.token }}
-          workflow: api_common_routing.yml
+          workflow: common_routing.yml
   yamllint:
     runs-on: ubuntu-latest
     steps:
@@ -420,22 +420,22 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/api_endpoint_rack_configurations.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/endpoint_sessions.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: api_endpoint_rack_configurations
+name: endpoint_sessions
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/api_endpoint_rack_configurations.yml
+      - .github/workflows/endpoint_sessions.yml
       - lib/opentofu/common/**
       - lib/python/**
-      - src/api/endpoints/rack_configurations/**
+      - src/api/endpoints/sessions/**
       - src/www/**
       - test/api/conftest.py
-      - test/api/endpoints/rack_configurations/**
+      - test/api/endpoints/sessions/**
       - test/conftest.py
       - test/lib/python/**
   workflow_dispatch: {}

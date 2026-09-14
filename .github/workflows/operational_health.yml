@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: api_common_storage-${{ github.ref }}
+  group: operational_health-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -67,7 +67,7 @@ jobs:
       - name: Assert every OpenTofu resource is reached by something
         uses: 10U-Labs/assert-opentofu-resource-is-used@latest
         with:
-          directories: src/api/common/storage lib/opentofu/common
+          directories: src/api/operational/health lib/opentofu/common
           search-in: .
           verbose: "true"
   assert-pytest-class-holds-state:
@@ -128,7 +128,7 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: lib/python
+          trees: src/api/operational/health/lambda lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -213,8 +213,8 @@ jobs:
           tofu_wrapper: false
       - name: Validate the stack
         run: |
-          tofu -chdir=src/api/common/storage init -backend=false -input=false
-          tofu -chdir=src/api/common/storage validate
+          tofu -chdir=src/api/operational/health init -backend=false -input=false
+          tofu -chdir=src/api/operational/health validate
   post-deployment-integration-tests:
     if: github.ref == 'refs/heads/main'
     needs:
@@ -239,7 +239,7 @@ jobs:
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
         run: >-
-          python3 -m pytest test/api/common/storage/post_deployment/integration/
+          python3 -m pytest test/api/operational/health/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   pylint-source:
@@ -277,7 +277,8 @@ jobs:
   reconciliation:
     if: >-
       github.ref == 'refs/heads/main'
-      && needs.wait-for-api-common-identity.outputs.apply == 'true'
+      && needs.wait-for-common-identity.outputs.apply == 'true'
+      && needs.wait-for-common-routing.outputs.apply == 'true'
     needs:
       - assert-no-comments
       - assert-no-inline-directives
@@ -301,7 +302,9 @@ jobs:
       - pylint-tests
       - test-repo-libraries
       - tflint
-      - wait-for-api-common-identity
+      - unit-tests
+      - wait-for-common-identity
+      - wait-for-common-routing
       - yamllint
     permissions:
       contents: read
@@ -321,8 +324,8 @@ jobs:
           tofu_wrapper: false
       - name: Reconcile the stack to its declared state
         run: |
-          tofu -chdir=src/api/common/storage init -input=false
-          tofu -chdir=src/api/common/storage apply -auto-approve -input=false
+          tofu -chdir=src/api/operational/health init -input=false
+          tofu -chdir=src/api/operational/health apply -auto-approve -input=false
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -350,8 +353,24 @@ jobs:
         with:
           tflint_version: latest
       - name: Lint the stack
-        run: tflint --chdir=src/api/common/storage
-  wait-for-api-common-identity:
+        run: tflint --chdir=src/api/operational/health
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tools
+        run: pip install boto3 pytest pyyaml
+      - name: Run the unit tests
+        run: >-
+          python3 -m pytest test/api/operational/health/pre_deployment/unit/
+          --import-mode=importlib --confcutdir=test
+          --verbose --pythonwarnings=error
+  wait-for-common-identity:
     if: github.ref == 'refs/heads/main'
     outputs:
       apply: ${{ steps.wait.outputs.apply }}
@@ -363,11 +382,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - id: wait
-        name: Wait for api_common_identity on this commit
+        name: Wait for common_identity on this commit
         uses: ./.github/actions/wait-for-workflow
         with:
           github_token: ${{ github.token }}
-          workflow: api_common_identity.yml
+          workflow: common_identity.yml
+  wait-for-common-routing:
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      apply: ${{ steps.wait.outputs.apply }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - id: wait
+        name: Wait for common_routing on this commit
+        uses: ./.github/actions/wait-for-workflow
+        with:
+          github_token: ${{ github.token }}
+          workflow: common_routing.yml
   yamllint:
     runs-on: ubuntu-latest
     steps:
@@ -384,21 +420,22 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/api_common_storage.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/operational_health.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: api_common_storage
+name: operational_health
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/api_common_storage.yml
+      - .github/workflows/operational_health.yml
       - lib/opentofu/common/**
       - lib/python/**
-      - src/api/common/storage/**
-      - test/api/common/storage/**
+      - src/api/operational/health/**
+      - src/www/**
       - test/api/conftest.py
+      - test/api/operational/health/**
       - test/conftest.py
       - test/lib/python/**
   workflow_dispatch: {}
