@@ -77,7 +77,9 @@ SYNTHESES = "/wan-syntheses"
 SYNTHESIS = "/wan-syntheses/{synthesis}"
 WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
 WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
-UNDER_A_SYNTHESIS = [(SYNTHESIS, "get"), (WAN_POPS, "get")]
+BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis}/backbone-circuits"
+UNDER_A_SYNTHESIS = [(SYNTHESIS, "get"), (WAN_POPS, "get"), (BACKBONE_CIRCUITS, "get")]
+CIRCUIT_FIELDS = ["id", "source", "target", "route", "distance_miles", "reason", "requested_by"]
 UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
@@ -347,6 +349,27 @@ def test_the_wan_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -
 def test_a_wan_pop_is_a_placed_carrier_pop_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"][WAN_POPS]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == WAN_POP_FIELDS
+
+
+def test_the_backbone_circuits_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][BACKBONE_CIRCUITS]) == ["get"]
+
+
+def _listed_backbone_circuit(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    listed = openapi["paths"][BACKBONE_CIRCUITS]["get"]["responses"]["200"]
+    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
+    return schema
+
+
+def test_a_backbone_circuit_runs_between_two_wan_pops_along_a_route(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _listed_backbone_circuit(openapi)["required"] == CIRCUIT_FIELDS
+
+
+def test_a_backbone_circuit_s_route_is_the_names_it_runs_through(openapi: Dict[str, Any]) -> None:
+    route = _listed_backbone_circuit(openapi)["properties"]["route"]
+    assert (route["type"], route["items"]["type"]) == ("array", "string")
 
 
 def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:

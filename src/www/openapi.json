@@ -2880,6 +2880,137 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/backbone-circuits": {
+      "get": {
+        "summary": "List Backbone Circuits",
+        "description": "Lists the backbone circuits of one synthesis's WAN, each between two WAN PoPs by id and along the route of places it runs through.",
+        "operationId": "listBackboneCircuits",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The WAN's backbone circuits, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "source",
+                      "target",
+                      "route",
+                      "distance_miles",
+                      "reason",
+                      "requested_by"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the synthesizer gave the circuit when it published the WAN",
+                        "example": 1
+                      },
+                      "source": {
+                        "type": "integer",
+                        "description": "The WAN PoP the circuit starts from, by its id",
+                        "example": 1
+                      },
+                      "target": {
+                        "type": "integer",
+                        "description": "The WAN PoP the circuit ends at, by its id",
+                        "example": 2
+                      },
+                      "route": {
+                        "type": "array",
+                        "description": "The names of the places the circuit runs through, its ends included",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "Ashburn, VA",
+                          "Chicago, IL",
+                          "Cheyenne, WY"
+                        ]
+                      },
+                      "distance_miles": {
+                        "type": "number",
+                        "description": "The miles of fiber the circuit rides",
+                        "example": 1480
+                      },
+                      "reason": {
+                        "type": "string",
+                        "description": "Why the synthesizer drew the circuit",
+                        "example": "circuit_for_target"
+                      },
+                      "requested_by": {
+                        "type": "array",
+                        "description": "The names of the sites whose homing asked for the circuit",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": []
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id, or its run has no WAN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

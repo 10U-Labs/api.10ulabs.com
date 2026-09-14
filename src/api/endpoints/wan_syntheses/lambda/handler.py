@@ -55,6 +55,7 @@ class Part(NamedTuple):
 
 
 WAN_POPS = Part('wan-pops', 'wan-pop', 'No such wan pop')
+BACKBONE_CIRCUITS = Part('backbone-circuits', 'backbone-circuit', 'No such backbone circuit')
 
 
 def _has_wan(record: Optional[Dict[str, Any]]) -> bool:
@@ -118,10 +119,15 @@ def _read_wan_pop(event: Dict[str, Any]) -> Dict[str, Any]:
     return _read_under(event, WAN_POPS, 'Failed to read the wan pop')
 
 
+def _list_backbone_circuits(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, BACKBONE_CIRCUITS, 'Failed to read the backbone circuits')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}/{{synthesis}}', 'GET'): _read,
         (f'/{COLLECTION}/{{synthesis}}/wan-pops', 'GET'): _list_wan_pops,
         (f'/{COLLECTION}/{{synthesis}}/wan-pops/{{wan-pop}}', 'GET'): _read_wan_pop,
+        (f'/{COLLECTION}/{{synthesis}}/backbone-circuits', 'GET'): _list_backbone_circuits,
     })
