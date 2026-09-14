@@ -14,6 +14,7 @@
   - [Priority](#priority)
   - [Paths](#paths)
   - [Layout](#layout)
+  - [Issues](#issues)
 
 ## Overview
 
@@ -68,3 +69,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [one-gitignore-at-the-root](one-gitignore-at-the-root.md) — exactly one `.gitignore`, at the root; a stack never carries its own
 - [src-www-is-the-one-host](src-www-is-the-one-host.md) — `src/www` is `api.10ulabs.com` itself, so `openapi.json` sits directly there, with no `src/www/api`
+
+### Issues
+
+- [issues-have-no-house-style](issues-have-no-house-style.md) — no conventions on how an issue is written; a shape the existing issues share is not a rule, and a new issue is written however suits it
