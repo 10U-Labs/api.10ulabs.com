@@ -3136,6 +3136,155 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/fiber-segments": {
+      "get": {
+        "summary": "List Ridden Fiber Segments",
+        "description": "Lists the carrier fiber segments one synthesis's WAN rides, the union over every backbone circuit of the segments between consecutive hops of its route, each with its carrier and both ends placed so a map draws the line without looking anything up.",
+        "operationId": "listRiddenFiberSegments",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The fiber the WAN rides, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "carrier",
+                      "a_municipality",
+                      "a_state",
+                      "a_latitude",
+                      "a_longitude",
+                      "z_municipality",
+                      "z_state",
+                      "z_latitude",
+                      "z_longitude",
+                      "distance_miles",
+                      "submarine"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the synthesizer gave the segment when it published the WAN",
+                        "example": 1
+                      },
+                      "carrier": {
+                        "type": "string",
+                        "description": "The carrier whose fiber this is, by its name",
+                        "example": "zayo"
+                      },
+                      "a_municipality": {
+                        "type": "string",
+                        "example": "Ashburn"
+                      },
+                      "a_state": {
+                        "type": "string",
+                        "description": "The state or province of the A end; empty outside a country that has them",
+                        "example": "VA"
+                      },
+                      "a_latitude": {
+                        "type": "number",
+                        "description": "The latitude of the A end",
+                        "example": 39.0438
+                      },
+                      "a_longitude": {
+                        "type": "number",
+                        "description": "The longitude of the A end",
+                        "example": -77.4874
+                      },
+                      "z_municipality": {
+                        "type": "string",
+                        "example": "Chicago"
+                      },
+                      "z_state": {
+                        "type": "string",
+                        "description": "The state or province of the Z end; empty outside a country that has them",
+                        "example": "IL"
+                      },
+                      "z_latitude": {
+                        "type": "number",
+                        "description": "The latitude of the Z end",
+                        "example": 41.8781
+                      },
+                      "z_longitude": {
+                        "type": "number",
+                        "description": "The longitude of the Z end",
+                        "example": -87.6298
+                      },
+                      "distance_miles": {
+                        "type": "number",
+                        "description": "The miles of fiber between the two ends",
+                        "example": 599.5
+                      },
+                      "submarine": {
+                        "type": "boolean",
+                        "description": "Whether the segment runs under the sea",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id, or its run has no WAN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

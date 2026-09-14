@@ -57,6 +57,7 @@ class Part(NamedTuple):
 WAN_POPS = Part('wan-pops', 'wan-pop', 'No such wan pop')
 BACKBONE_CIRCUITS = Part('backbone-circuits', 'backbone-circuit', 'No such backbone circuit')
 HOMING_CIRCUITS = Part('homing-circuits', 'homing-circuit', 'No such homing circuit')
+FIBER_SEGMENTS = Part('fiber-segments', 'fiber-segment', 'No such fiber segment')
 
 
 def _has_wan(record: Optional[Dict[str, Any]]) -> bool:
@@ -128,6 +129,10 @@ def _list_homing_circuits(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, HOMING_CIRCUITS, 'Failed to read the homing circuits')
 
 
+def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, FIBER_SEGMENTS, 'Failed to read the fiber segments')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -136,4 +141,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}/{{synthesis}}/wan-pops/{{wan-pop}}', 'GET'): _read_wan_pop,
         (f'/{COLLECTION}/{{synthesis}}/backbone-circuits', 'GET'): _list_backbone_circuits,
         (f'/{COLLECTION}/{{synthesis}}/homing-circuits', 'GET'): _list_homing_circuits,
+        (f'/{COLLECTION}/{{synthesis}}/fiber-segments', 'GET'): _list_fiber_segments,
     })

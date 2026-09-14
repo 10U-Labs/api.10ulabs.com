@@ -79,8 +79,17 @@ WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
 WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
 BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis}/backbone-circuits"
 HOMING_CIRCUITS = "/wan-syntheses/{synthesis}/homing-circuits"
+RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
 UNDER_A_SYNTHESIS = [
-    (SYNTHESIS, "get"), (WAN_POPS, "get"), (BACKBONE_CIRCUITS, "get"), (HOMING_CIRCUITS, "get")
+    (SYNTHESIS, "get"),
+    (WAN_POPS, "get"),
+    (BACKBONE_CIRCUITS, "get"),
+    (HOMING_CIRCUITS, "get"),
+    (RIDDEN_FIBER, "get"),
+]
+RIDDEN_FIBER_FIELDS = [
+    "id", "carrier", "a_municipality", "a_state", "a_latitude", "a_longitude",
+    "z_municipality", "z_state", "z_latitude", "z_longitude", "distance_miles", "submarine",
 ]
 CIRCUIT_FIELDS = ["id", "source", "target", "route", "distance_miles", "reason", "requested_by"]
 HOMING_FIELDS = ["id", "source_id", "homing_kind", "target", "route", "distance_miles"]
@@ -393,6 +402,26 @@ def test_a_homing_circuit_runs_from_a_kinded_source_to_a_wan_pop(openapi: Dict[s
 
 def test_a_homing_circuit_s_kind_says_whose_id_its_source_is(openapi: Dict[str, Any]) -> None:
     assert _listed_homing_circuit(openapi)["properties"]["homing_kind"]["enum"] == HOMING_KINDS
+
+
+def test_the_fiber_a_synthesis_rides_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][RIDDEN_FIBER]) == ["get"]
+
+
+def _listed_ridden_fiber(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    listed = openapi["paths"][RIDDEN_FIBER]["get"]["responses"]["200"]
+    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
+    return schema
+
+
+def test_a_ridden_fiber_segment_is_a_carrier_s_span_with_both_ends_placed(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _listed_ridden_fiber(openapi)["required"] == RIDDEN_FIBER_FIELDS
+
+
+def test_a_ridden_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
+    assert _listed_ridden_fiber(openapi)["properties"]["submarine"]["type"] == "boolean"
 
 
 def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:

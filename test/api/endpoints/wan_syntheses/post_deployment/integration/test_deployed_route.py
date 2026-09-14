@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Tuple
 import pytest
 
 SYNTHESES = "/wan-syntheses"
-PARTS = ["wan-pops", "backbone-circuits", "homing-circuits"]
+PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
 
 
 def test_the_syntheses_are_listed_through_the_deployed_api(
