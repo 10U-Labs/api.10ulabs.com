@@ -14,6 +14,9 @@ COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 POPS = 'pops'
+PLACE = ('municipality', 'state', 'country')
+COORDINATES = ('latitude', 'longitude')
+POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
 
 
 def _partition(partition: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -183,16 +186,23 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     return {'statusCode': 204, 'headers': {}, 'body': ''}
 
 
-def _next_id(collection: str) -> int:
+def _advance(key: Dict[str, Any], field: str, **request: Any) -> int:
     answer = aws_client('dynamodb').update_item(
         TableName=os.environ['STORE_TABLE'],
-        Key={'PK': {'S': collection}, 'SK': {'S': COUNTER}},
-        UpdateExpression='SET #next = if_not_exists(#next, :one) + :one',
-        ExpressionAttributeNames={'#next': 'next'},
+        Key=key,
+        ExpressionAttributeNames={'#next': field},
         ExpressionAttributeValues={':one': {'N': '1'}},
         ReturnValues='UPDATED_NEW',
+        **request,
     )
-    return int(answer['Attributes']['next']['N']) - 1
+    return int(answer['Attributes'][field]['N']) - 1
+
+
+def _next_id(collection: str) -> int:
+    return _advance(
+        {'PK': {'S': collection}, 'SK': {'S': COUNTER}}, 'next',
+        UpdateExpression='SET #next = if_not_exists(#next, :one) + :one',
+    )
 
 
 def _put(carrier_id: int, name: str) -> None:
@@ -223,6 +233,68 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     return response
 
 
+def _next_pop_id(carrier_id: str) -> Optional[int]:
+    try:
+        return _advance(
+            {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, 'next_pop',
+            ConditionExpression='attribute_exists(PK)',
+            UpdateExpression='SET #next = #next + :one',
+        )
+    except ClientError as error:
+        if _conditional(error):
+            return None
+        raise
+
+
+def _placed(body: Dict[str, Any]) -> bool:
+    return all(isinstance(body[field], str) and body[field] for field in PLACE)
+
+
+def _located(body: Dict[str, Any]) -> bool:
+    return all(
+        isinstance(body[field], (int, float)) and not isinstance(body[field], bool)
+        for field in COORDINATES
+    )
+
+
+def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    body = parse_object(event)
+    if body is None or set(body) != set(PLACE + COORDINATES):
+        return None
+    return body if _placed(body) and _located(body) else None
+
+
+def _put_pop(carrier_id: str, pop_id: int, body: Dict[str, Any]) -> Dict[str, Any]:
+    item = {
+        'PK': {'S': f'{COLLECTION}/{carrier_id}'},
+        'SK': {'S': f'{POPS}/{pop_id}'},
+        **{field: {'S': body[field]} for field in PLACE},
+        **{field: {'N': str(body[field])} for field in COORDINATES},
+    }
+    aws_client('dynamodb').put_item(TableName=os.environ['STORE_TABLE'], Item=item)
+    return item
+
+
+def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    body = _pop_body(event)
+    if body is None:
+        return json_response(400, {'error': POP_BODY})
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    try:
+        pop_id = _next_pop_id(carrier_id)
+        item = _put_pop(carrier_id, pop_id, body) if pop_id is not None else None
+    except ClientError as error:
+        logger.error('Error adding a pop to carrier %s: %s', carrier_id, error)
+        return json_response(500, {'error': 'Failed to add the pop'})
+    if item is None:
+        return json_response(404, {'error': MISSING})
+    response = json_response(201, _pop(item))
+    response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}/{POPS}/{pop_id}'
+    return response
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         ('/carriers', 'GET'): _list,
@@ -231,4 +303,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}', 'PUT'): _update,
         ('/carriers/{carrier}', 'DELETE'): _delete,
         ('/carriers/{carrier}/pops', 'GET'): _list_pops,
+        ('/carriers/{carrier}/pops', 'POST'): _add_pop,
     })

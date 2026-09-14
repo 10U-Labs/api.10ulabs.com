@@ -11,7 +11,11 @@ from lambda_http import aws_client
 TOKENINFO = 'https://oauth2.googleapis.com/tokeninfo'
 ISSUERS = frozenset({'accounts.google.com', 'https://accounts.google.com'})
 API_KEY_PRINCIPAL = 'api-key'
-WORKFLOW_WRITES: Tuple[Tuple[str, str], ...] = (('POST', 'carriers'), ('DELETE', 'carriers/*'))
+WORKFLOW_WRITES: Tuple[Tuple[str, str], ...] = (
+    ('POST', 'carriers'),
+    ('DELETE', 'carriers/*'),
+    ('POST', 'carriers/*/pops'),
+)
 
 Operations = Callable[[str], Union[str, List[str]]]
 

@@ -23,7 +23,7 @@ def store_fixture() -> SimpleNamespace:
     def counter(key: Dict[str, Any]) -> Dict[str, Any]:
         item = held(key)
         if item is None:
-            item = {**key, "next": {"N": "1"}}
+            item = dict(key)
             store.items.append(item)
         return item
 
@@ -33,10 +33,14 @@ def store_fixture() -> SimpleNamespace:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, operation)
         return item
 
-    def rename(request: Dict[str, Any]) -> Dict[str, Any]:
-        item = required(request, "UpdateItem")
+    def rename(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
         item["name"] = request["ExpressionAttributeValues"][":name"]
         return {"Attributes": item}
+
+    def advance(request: Dict[str, Any], item: Dict[str, Any]) -> Dict[str, Any]:
+        field = request["ExpressionAttributeNames"]["#next"]
+        item[field] = {"N": str(int(item.get(field, {"N": "1"})["N"]) + 1)}
+        return {"Attributes": {field: item[field]}}
 
     def query(**request: Any) -> Dict[str, Any]:
         store.queries.append(request)
@@ -58,11 +62,10 @@ def store_fixture() -> SimpleNamespace:
     def update_item(**request: Any) -> Dict[str, Any]:
         store.updates.append(request)
         refuse("UpdateItem")
-        if "ConditionExpression" in request:
-            return rename(request)
-        item = counter(request["Key"])
-        item["next"] = {"N": str(int(item["next"]["N"]) + 1)}
-        return {"Attributes": {"next": item["next"]}}
+        conditional = "ConditionExpression" in request
+        item = required(request, "UpdateItem") if conditional else counter(request["Key"])
+        renaming = ":name" in request["ExpressionAttributeValues"]
+        return rename(request, item) if renaming else advance(request, item)
 
     def delete_item(**request: Any) -> Dict[str, Any]:
         store.deletes.append(request)

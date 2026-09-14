@@ -560,3 +560,165 @@ def test_a_store_that_refuses_the_pops_names_the_error(
 ) -> None:
     store.failing = True
     assert _body(carriers_handler, _get_pops())["error"] == "Failed to read the pops"
+
+
+BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
+         "latitude": 43.615, "longitude": -116.2023}
+POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
+
+
+def _post_pop(body: Any, carrier: str = "1") -> Dict[str, Any]:
+    return {**_post(body, POPS), "pathParameters": {"carrier": carrier}}
+
+
+def test_a_pop_is_added_with_201(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _post_pop(BOISE))["statusCode"] == 201
+
+
+def test_the_added_pop_answers_with_the_id_the_carrier_holds_next(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _post_pop(BOISE)) == {"id": 4, **BOISE}
+
+
+def test_the_added_pop_is_located_under_the_carrier_s_pops(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    headers = _answer(carriers_handler, _post_pop(BOISE))["headers"]
+    assert headers["Location"] == "/carriers/1/pops/4"
+
+
+def test_the_carrier_s_next_pop_moves_past_the_id_it_gave(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post_pop(BOISE))
+    assert _stored(store, "1")["next_pop"] == {"N": "5"}
+
+
+def test_a_pop_id_is_never_reused(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    pops = (BOISE, {**BOISE, "municipality": "Reno"})
+    assert [_body(carriers_handler, _post_pop(pop, "2"))["id"] for pop in pops] == [1, 2]
+
+
+def test_the_pop_is_written_under_the_carrier_by_its_id(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post_pop(BOISE))
+    assert store.items[-1] == {
+        "PK": {"S": "carriers/1"}, "SK": {"S": "pops/4"}, "municipality": {"S": "Boise"},
+        "state": {"S": "ID"}, "country": {"S": "US"},
+        "latitude": {"N": "43.615"}, "longitude": {"N": "-116.2023"},
+    }
+
+
+def test_the_added_pop_is_then_listed_last(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post_pop(BOISE))
+    assert _body(carriers_handler, _get_pops())[-1] == {"id": 4, **BOISE}
+
+
+@pytest.fixture(name="pop_request")
+def pop_request_fixture(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post_pop(BOISE))
+    return dict(store.updates[0])
+
+
+def test_a_pop_id_is_taken_in_the_table_the_environment_names(
+    pop_request: Dict[str, Any]
+) -> None:
+    assert pop_request["TableName"] == "store"
+
+
+def test_a_pop_id_is_taken_from_the_carrier_s_own_item(pop_request: Dict[str, Any]) -> None:
+    assert pop_request["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "1"}}
+
+
+def test_taking_a_pop_id_requires_the_carrier_to_exist_in_the_store(
+    pop_request: Dict[str, Any]
+) -> None:
+    assert pop_request["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_adding_a_pop_to_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
+    assert _answer(carriers_handler, _post_pop(BOISE, "3"))["statusCode"] == 404
+
+
+def test_adding_a_pop_to_an_unknown_carrier_names_the_error(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _post_pop(BOISE, "3"))["error"] == "No such carrier"
+
+
+def test_adding_a_pop_to_an_unknown_carrier_writes_nothing(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _post_pop(BOISE, "3"))
+    assert store.items == []
+
+
+@pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
+def test_adding_a_pop_to_an_id_that_is_not_a_number_answers_404(
+    carriers_handler: ModuleType, carrier: str
+) -> None:
+    assert _answer(carriers_handler, _post_pop(BOISE, carrier))["statusCode"] == 404
+
+
+@pytest.mark.parametrize("body", [
+    {},
+    {**BOISE, "id": 9},
+    {**BOISE, "latitude": "43.615"},
+    {**BOISE, "longitude": True},
+    {**BOISE, "municipality": ""},
+    {**BOISE, "country": 1},
+    dict(list(BOISE.items())[:4]),
+    [BOISE],
+])
+def test_a_pop_that_is_not_exactly_a_located_municipality_answers_400(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]], body: Any
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _post_pop(body))["statusCode"] == 400
+
+
+def test_a_pop_that_is_not_json_answers_400(carriers_handler: ModuleType) -> None:
+    event = {**_post_pop({}), "body": "{"}
+    assert _answer(carriers_handler, event)["statusCode"] == 400
+
+
+def test_a_refused_pop_names_what_is_expected(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _post_pop({}))["error"] == POP_BODY
+
+
+def test_a_refused_pop_changes_nothing(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _post_pop({}))
+    assert (store.updates, len(store.items)) == ([], 6)
+
+
+def test_a_store_that_refuses_the_pop_answers_500(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _answer(carriers_handler, _post_pop(BOISE))["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_pop_names_the_error(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _body(carriers_handler, _post_pop(BOISE))["error"] == "Failed to add the pop"

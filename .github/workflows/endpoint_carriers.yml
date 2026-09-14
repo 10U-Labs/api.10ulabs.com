@@ -348,7 +348,7 @@ jobs:
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
       - env:
           BEFORE: ${{ github.event.before }}
-        name: Delete and create again every carrier whose data this push changed
+        name: Delete and create again, with its PoPs, every carrier whose data this push changed
         run: |
           KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
             --query Parameter.Value --output text)
@@ -367,12 +367,23 @@ jobs:
                 curl --silent --show-error --fail --request DELETE \
                   --header "Authorization: Bearer $KEY" "$CARRIERS/$ID"
               fi
-              echo "Creating $CARRIER."
-              curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
+              ID=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
                 --header "Content-Type: application/json" \
                 --data "$(jq --compact-output --null-input --arg name "$CARRIER" '{name: $name}')" \
-                "$CARRIERS"
-              echo
+                "$CARRIERS" | jq --raw-output '.id')
+              echo "Created $CARRIER as carrier $ID."
+              if [ -f "data/pops/$CARRIER.csv" ]; then
+                tail --lines=+2 "data/pops/$CARRIER.csv" | jq --raw-input --compact-output \
+                  'split(",") | {municipality: .[0], state: .[1], country: .[2],
+                                 latitude: (.[3] | tonumber), longitude: (.[4] | tonumber)}' \
+                  | while read -r POP; do
+                    curl --silent --show-error --fail --output /dev/null \
+                      --header "Authorization: Bearer $KEY" \
+                      --header "Content-Type: application/json" \
+                      --data "$POP" "$CARRIERS/$ID/pops"
+                  done
+                echo "Added $(tail --lines=+2 "data/pops/$CARRIER.csv" | wc --lines) PoPs to $CARRIER."
+              fi
             done
   test-repo-libraries:
     runs-on: ubuntu-latest

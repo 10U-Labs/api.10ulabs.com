@@ -580,6 +580,180 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "post": {
+        "summary": "Add PoP",
+        "description": "Adds a point of presence to one carrier and gives it the next id, never reused.",
+        "operationId": "addPop",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "carrier",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "municipality",
+                  "state",
+                  "country",
+                  "latitude",
+                  "longitude"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "municipality": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "Chicago"
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "IL"
+                  },
+                  "country": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "US"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 41.8781
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": -87.6298
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The PoP, by the id the API gave it and where it is",
+            "headers": {
+              "Location": {
+                "description": "The PoP's own URL, /carriers/{carrier}/pops/{id}",
+                "schema": {
+                  "type": "string",
+                  "example": "/carriers/1/pops/1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "municipality",
+                    "state",
+                    "country",
+                    "latitude",
+                    "longitude"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "municipality": {
+                      "type": "string",
+                      "example": "Chicago"
+                    },
+                    "state": {
+                      "type": "string",
+                      "example": "IL"
+                    },
+                    "country": {
+                      "type": "string",
+                      "example": "US"
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "example": 41.8781
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "example": -87.6298
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that is not exactly {\"municipality\", \"state\", \"country\", \"latitude\", \"longitude\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No carrier has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be written"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
       }
     },
     "/diagnostics/echo": {

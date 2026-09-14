@@ -53,13 +53,16 @@ CARRIERS_OPERATIONS = [
     ("/carriers/{carrier}", "put"),
     ("/carriers/{carrier}", "delete"),
     ("/carriers/{carrier}/pops", "get"),
+    ("/carriers/{carrier}/pops", "post"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
+POPS_METHODS = ["get", "post"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
-    ("/carriers/{carrier}/pops", "get"),
+    ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
+CREATIONS = [("/carriers", "post"), ("/carriers/{carrier}/pops", "post")]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
@@ -70,13 +73,34 @@ def test_a_carrier_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers/{carrier}"]) == CARRIER_METHODS
 
 
-def test_the_pops_of_a_carrier_answer_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"]["/carriers/{carrier}/pops"]) == ["get"]
+def test_the_pops_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"]["/carriers/{carrier}/pops"]) == POPS_METHODS
 
 
 def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"]["/carriers/{carrier}/pops"]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
+
+
+def _pop_body(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    body = openapi["paths"]["/carriers/{carrier}/pops"]["post"]["requestBody"]
+    schema: Dict[str, Any] = body["content"]["application/json"]["schema"]
+    return schema
+
+
+def test_a_pop_is_added_as_a_located_municipality_without_an_id(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _pop_body(openapi)["required"] == POP_FIELDS[1:]
+
+
+def test_a_pop_is_added_with_no_other_field(openapi: Dict[str, Any]) -> None:
+    assert _pop_body(openapi)["additionalProperties"] is False
+
+
+def test_an_added_pop_answers_with_its_id(openapi: Dict[str, Any]) -> None:
+    created = openapi["paths"]["/carriers/{carrier}/pops"]["post"]["responses"]["201"]
+    assert created["content"]["application/json"]["schema"]["required"] == POP_FIELDS
 
 
 def test_a_deleted_carrier_answers_204(openapi: Dict[str, Any]) -> None:
@@ -133,8 +157,9 @@ def test_a_carrier_is_named_by_its_name_alone(
     assert body["schema"]["additionalProperties"] is False
 
 
-def test_a_created_carrier_is_located(openapi: Dict[str, Any]) -> None:
-    created = openapi["paths"]["/carriers"]["post"]["responses"]["201"]
+@pytest.mark.parametrize(("path", "method"), CREATIONS)
+def test_a_creation_is_located(openapi: Dict[str, Any], path: str, method: str) -> None:
+    created = openapi["paths"][path][method]["responses"]["201"]
     assert list(created["headers"]) == ["Location"]
 
 
