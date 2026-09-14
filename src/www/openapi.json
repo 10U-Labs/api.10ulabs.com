@@ -4365,6 +4365,97 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/degree-exempt-wan-pops": {
+      "get": {
+        "summary": "List Given Degree-Exempt WAN PoPs",
+        "description": "Lists the degree-exempt WAN PoPs one synthesis was given, the carrier PoPs the WAN may place with fewer backbone circuits than the run's degree asks, each named as the body carried it under the id given at creation; the degree-exempt WAN PoPs are an input, so they are there whatever the run's status.",
+        "operationId": "listGivenDegreeExemptWanPops",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run's degree-exempt WAN PoPs, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the degree-exempt WAN PoP was given at creation, in the order the body listed them",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The carrier PoP, named by its municipality and state as the body gave it",
+                        "example": "Great Falls, MT"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",
