@@ -54,7 +54,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 ### Priority
 
-- [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com` may go and stay red, its collateral is never fixed, and a CloudFront change it needs is applied by hand when its gates are red
+- [the-migration-outranks-10ulabs-com](the-migration-outranks-10ulabs-com.md) — moving the API here is all that matters; `10ulabs.com`'s runs are never read, not even to confirm a push, its collateral is never fixed, and a change it needs is applied by hand
 
 ### Paths
 

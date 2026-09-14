@@ -1,6 +1,6 @@
 ---
 name: the-migration-outranks-10ulabs-com
-description: "Moving the API into this repository is the only thing that matters; 10ulabs.com's workflows going red is accepted, its collateral is never fixed, and a change it needs is applied by hand when its gates are red"
+description: "Moving the API into this repository is the only thing that matters; 10ulabs.com's runs are never read, not even to confirm a push, its collateral is never fixed, and a change it needs is applied by hand"
 metadata: 
   node_type: memory
   type: feedback
@@ -33,9 +33,12 @@ to touch anything in `10ulabs.com` that the issue at hand does not name.
   that repository's run is red for any reason but the change itself,
   apply `src/api/common/routing` there by hand with `tofu`, the way the
   retirements destroy by hand, and move on.
-- Do not read a red `10ulabs.com` run for collateral to fix. Its
-  lints, tests, libraries and other stacks are not on the migration's
-  path.
+- Do not read a `10ulabs.com` run at all — not for collateral to fix,
+  and not to confirm a commit pushed there. Its lints, tests, libraries
+  and other stacks are not on the migration's path, and the push is the
+  end of the session's involvement; the user said so again on
+  2026-09-13 after the session kept waiting on that repository's runs
+  after each push.
 - In this repository nothing changes: every workflow that fires is green
   before an issue is done, per
   [ci-is-the-source-of-truth](ci-is-the-source-of-truth.md).
