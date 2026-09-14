@@ -373,6 +373,7 @@ def furnished_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
         dynamodb.queries.append(request)
         return {"Items": list(UNDER_LUMEN), "Count": len(UNDER_LUMEN)}
     dynamodb.query = query
+    dynamodb.items.extend(UNDER_LUMEN)
     return dynamodb
 
 
