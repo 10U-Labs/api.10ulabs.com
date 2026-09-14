@@ -32,6 +32,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [write-the-test-first](write-the-test-first.md) — the test is authored before the code, and red and green are observed in CI
 - [the-deployed-tests-hold-only-the-workflows-key](the-deployed-tests-hold-only-the-workflows-key.md) — post-deployment tests bear only the workflows' API key; a route it is denied is tested for its 403, its logic in the unit tests
+- [a-fixture-consumed-in-its-own-file-is-named](a-fixture-consumed-in-its-own-file-is-named.md) — `name=` on a `*_fixture` function when the file that defines a fixture also requests it, a plain `def` when only other files do; W0621 and `assert-pytest-fixture-name-is-needed` pull opposite ways
 
 ### Verification
 
@@ -47,6 +48,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [an-action-is-preferred-to-a-package-install](an-action-is-preferred-to-a-package-install.md) — a step uses the tool's published action, not `pip install` or `npm install` in a `run:` step; the exception is a tool whose action cannot take the needed flags
 - [an-assert-is-its-own-job](an-assert-is-its-own-job.md) — each `assert-*` check is a standalone job using its published `10U-Labs` action; linter jobs hold only the lint step; copy `10ulabs.com` for layout
 - [the-waits-form-a-chain-under-twenty-runners](the-waits-form-a-chain-under-twenty-runners.md) — 20 concurrent jobs, a polling wait holds one, so storage waits for identity, routing for both, everything else for routing alone; a new workflow adds one waiter
+- [a-grant-a-stack-needs-lands-before-the-stack](a-grant-a-stack-needs-lands-before-the-stack.md) — the chain sequences only workflows that fire on the same commit; a stack needing a new grant from identity is reconciled after the grant applied, by pushing the grant first or re-running the failed reconciliation on the same commit
 
 ### Cost
 
