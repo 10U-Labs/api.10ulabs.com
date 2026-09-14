@@ -251,7 +251,7 @@ def test_a_refused_pop_changes_nothing(
 ) -> None:
     store.items.extend(carriers)
     answer(_post_pop({}))
-    assert (store.updates, len(store.items)) == ([], 6)
+    assert (store.updates, len(store.items)) == ([], len(carriers))
 
 
 def test_a_store_that_refuses_the_pop_answers_500(answer: Handler, store: SimpleNamespace) -> None:
@@ -502,7 +502,7 @@ def test_correcting_an_unknown_pop_adds_none(
 ) -> None:
     store.items.extend(carriers)
     answer(_put_pop(BOISE, "1", "2"))
-    assert len(store.items) == 7
+    assert len(store.items) == len(carriers)
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
@@ -664,7 +664,7 @@ def test_removing_an_unknown_pop_removes_nothing(
 ) -> None:
     store.items.extend(carriers)
     answer(_delete_pop("1", "2"))
-    assert len(store.items) == 7
+    assert len(store.items) == len(carriers)
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])

@@ -445,7 +445,7 @@ def test_deleting_an_id_that_is_not_a_number_deletes_nothing(
 ) -> None:
     store.items.extend(carriers)
     answer(_delete("#"))
-    assert (store.deletes, len(store.items)) == ([], 6)
+    assert (store.deletes, len(store.items)) == ([], len(carriers))
 
 
 def test_a_store_that_refuses_the_deletion_answers_500(
