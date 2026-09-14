@@ -1,5 +1,5 @@
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pytest
 from botocore.exceptions import ClientError
@@ -13,14 +13,26 @@ def store_fixture() -> SimpleNamespace:
         if store.failing:
             raise ClientError({"Error": {"Code": "InternalServerError"}}, operation)
 
-    def counter(key: Dict[str, Any]) -> Dict[str, Any]:
+    def held(key: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         items: List[Dict[str, Any]] = store.items
         for item in items:
             if item["PK"] == key["PK"] and item["SK"] == key["SK"]:
                 return item
-        item = {**key, "next": {"N": "1"}}
-        store.items.append(item)
+        return None
+
+    def counter(key: Dict[str, Any]) -> Dict[str, Any]:
+        item = held(key)
+        if item is None:
+            item = {**key, "next": {"N": "1"}}
+            store.items.append(item)
         return item
+
+    def rename(request: Dict[str, Any]) -> Dict[str, Any]:
+        item = held(request["Key"])
+        if item is None:
+            raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem")
+        item["name"] = request["ExpressionAttributeValues"][":name"]
+        return {"Attributes": item}
 
     def query(**request: Any) -> Dict[str, Any]:
         store.queries.append(request)
@@ -32,15 +44,14 @@ def store_fixture() -> SimpleNamespace:
     def get_item(**request: Any) -> Dict[str, Any]:
         store.gets.append(request)
         refuse("GetItem")
-        key = request["Key"]
-        for item in store.items:
-            if item["PK"] == key["PK"] and item["SK"] == key["SK"]:
-                return {"Item": item}
-        return {}
+        item = held(request["Key"])
+        return {} if item is None else {"Item": item}
 
     def update_item(**request: Any) -> Dict[str, Any]:
         store.updates.append(request)
         refuse("UpdateItem")
+        if "ConditionExpression" in request:
+            return rename(request)
         item = counter(request["Key"])
         item["next"] = {"N": str(int(item["next"]["N"]) + 1)}
         return {"Attributes": {"next": item["next"]}}

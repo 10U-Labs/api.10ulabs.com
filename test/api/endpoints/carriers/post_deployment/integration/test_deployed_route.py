@@ -49,3 +49,10 @@ def test_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
     _, listed = get_json(f"{stage_url}/carriers", bearer)
     served = [get_json(f"{stage_url}/carriers/{carrier['id']}", bearer) for carrier in listed]
     assert served == [(200, carrier) for carrier in listed]
+
+
+def test_the_workflows_key_is_refused_a_rename_through_the_deployed_api(
+    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = put_json(f"{stage_url}/carriers/0", {"name": "nobody"}, bearer)
+    assert status == 403

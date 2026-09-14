@@ -86,13 +86,22 @@ def get_json() -> Callable[..., Tuple[int, Any]]:
     return get
 
 
-@pytest.fixture(scope="session")
-def post_json() -> Callable[..., Tuple[int, Any]]:
-    def post(url: str, body: Any, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
+def _sender(method: str) -> Callable[..., Tuple[int, Any]]:
+    def send(url: str, body: Any, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
         data = json.dumps(body).encode("utf-8")
         sent = {"Content-Type": "application/json", **(headers or {})}
-        return _answer(Request(url, data=data, headers=sent, method="POST"))
-    return post
+        return _answer(Request(url, data=data, headers=sent, method=method))
+    return send
+
+
+@pytest.fixture(scope="session")
+def post_json() -> Callable[..., Tuple[int, Any]]:
+    return _sender("POST")
+
+
+@pytest.fixture(scope="session")
+def put_json() -> Callable[..., Tuple[int, Any]]:
+    return _sender("PUT")
 
 
 @pytest.fixture(scope="session")

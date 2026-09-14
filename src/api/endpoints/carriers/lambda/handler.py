@@ -46,9 +46,41 @@ def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
     return item
 
 
-def _read(event: Dict[str, Any]) -> Dict[str, Any]:
+def _name(event: Dict[str, Any]) -> Optional[str]:
+    body = parse_object(event)
+    if body is None or set(body) != {'name'}:
+        return None
+    name = body['name']
+    return name if isinstance(name, str) and name else None
+
+
+def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
+    try:
+        answer = aws_client('dynamodb').update_item(
+            TableName=os.environ['STORE_TABLE'],
+            Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+            ConditionExpression='attribute_exists(PK)',
+            UpdateExpression='SET #name = :name',
+            ExpressionAttributeNames={'#name': 'name'},
+            ExpressionAttributeValues={':name': {'S': name}},
+            ReturnValues='ALL_NEW',
+        )
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            return None
+        raise
+    item: Dict[str, Any] = answer['Attributes']
+    return item
+
+
+def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
     carrier_id = str((event.get('pathParameters') or {}).get('carrier') or '')
-    if not carrier_id.isdigit():
+    return carrier_id if carrier_id.isdigit() else None
+
+
+def _read(event: Dict[str, Any]) -> Dict[str, Any]:
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
         return json_response(404, {'error': MISSING})
     try:
         item = _member(COLLECTION, carrier_id)
@@ -60,12 +92,21 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, _carrier(item))
 
 
-def _name(event: Dict[str, Any]) -> Optional[str]:
-    body = parse_object(event)
-    if body is None or set(body) != {'name'}:
-        return None
-    name = body['name']
-    return name if isinstance(name, str) and name else None
+def _update(event: Dict[str, Any]) -> Dict[str, Any]:
+    name = _name(event)
+    if name is None:
+        return json_response(400, {'error': BODY})
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    try:
+        item = _rename(COLLECTION, carrier_id, name)
+    except ClientError as error:
+        logger.error('Error renaming carrier %s: %s', carrier_id, error)
+        return json_response(500, {'error': 'Failed to update the carrier'})
+    if item is None:
+        return json_response(404, {'error': MISSING})
+    return json_response(200, _carrier(item))
 
 
 def _next_id(collection: str) -> int:
@@ -113,4 +154,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers', 'GET'): _list,
         ('/carriers', 'POST'): _create,
         ('/carriers/{carrier}', 'GET'): _read,
+        ('/carriers/{carrier}', 'PUT'): _update,
     })

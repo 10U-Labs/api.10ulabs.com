@@ -46,15 +46,22 @@ def test_the_routing_stack_supplies_every_template_variable(
     assert _template_variables(openapi) == _supplied_variables(routing_dir)
 
 
-CARRIERS_OPERATIONS = [("/carriers", "get"), ("/carriers", "post"), ("/carriers/{carrier}", "get")]
+CARRIERS_OPERATIONS = [
+    ("/carriers", "get"),
+    ("/carriers", "post"),
+    ("/carriers/{carrier}", "get"),
+    ("/carriers/{carrier}", "put"),
+]
+CARRIER_METHODS = ["get", "put"]
+NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers"]) == ["get", "post"]
 
 
-def test_a_carrier_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"]["/carriers/{carrier}"]) == ["get"]
+def test_a_carrier_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"]["/carriers/{carrier}"]) == CARRIER_METHODS
 
 
 @pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
@@ -71,23 +78,31 @@ def test_carriers_is_reached_with_a_bearer_token(
     assert openapi["paths"][path][method]["security"] == [{"bearer": []}]
 
 
-def test_a_carrier_is_named_by_its_id_in_the_path(openapi: Dict[str, Any]) -> None:
-    parameters = openapi["paths"]["/carriers/{carrier}"]["get"]["parameters"]
+@pytest.mark.parametrize("method", CARRIER_METHODS)
+def test_a_carrier_is_named_by_its_id_in_the_path(openapi: Dict[str, Any], method: str) -> None:
+    parameters = openapi["paths"]["/carriers/{carrier}"][method]["parameters"]
     named = [(one["name"], one["in"], one["required"]) for one in parameters]
     assert named == [("carrier", "path", True)]
 
 
-def test_a_carrier_id_is_a_positive_integer(openapi: Dict[str, Any]) -> None:
-    schema = openapi["paths"]["/carriers/{carrier}"]["get"]["parameters"][0]["schema"]
+@pytest.mark.parametrize("method", CARRIER_METHODS)
+def test_a_carrier_id_is_a_positive_integer(openapi: Dict[str, Any], method: str) -> None:
+    schema = openapi["paths"]["/carriers/{carrier}"][method]["parameters"][0]["schema"]
     assert (schema["type"], schema["minimum"]) == ("integer", 1)
 
 
-def test_a_carrier_that_is_not_there_is_documented_as_404(openapi: Dict[str, Any]) -> None:
-    assert "404" in openapi["paths"]["/carriers/{carrier}"]["get"]["responses"]
+@pytest.mark.parametrize("method", CARRIER_METHODS)
+def test_a_carrier_that_is_not_there_is_documented_as_404(
+    openapi: Dict[str, Any], method: str
+) -> None:
+    assert "404" in openapi["paths"]["/carriers/{carrier}"][method]["responses"]
 
 
-def test_a_carrier_is_created_from_its_name_alone(openapi: Dict[str, Any]) -> None:
-    body = openapi["paths"]["/carriers"]["post"]["requestBody"]["content"]["application/json"]
+@pytest.mark.parametrize(("path", "method"), NAMED_BODIES)
+def test_a_carrier_is_named_by_its_name_alone(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    body = openapi["paths"][path][method]["requestBody"]["content"]["application/json"]
     assert body["schema"]["additionalProperties"] is False
 
 
