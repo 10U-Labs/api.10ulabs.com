@@ -153,6 +153,12 @@ def _list_regions(event: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
+def _read_region(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _read_under(
+        event, REGIONS, 'Failed to read the hyperscale cloud service provider region'
+    )
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -165,4 +171,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}/{{synthesis}}/sites', 'GET'): _list_sites,
         (f'/{COLLECTION}/{{synthesis}}/sites/{{site}}', 'GET'): _read_site,
         (f'/{COLLECTION}/{{synthesis}}/{REGIONS.prefix}', 'GET'): _list_regions,
+        (f'/{COLLECTION}/{{synthesis}}/{REGIONS.prefix}/{{region}}', 'GET'): _read_region,
     })

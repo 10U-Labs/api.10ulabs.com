@@ -3656,6 +3656,129 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions/{region}": {
+      "summary": "Get Given Hyperscale Cloud Service Provider Region",
+      "description": "Serves one hyperscale cloud service provider region one synthesis was given, by the id given at creation, as the catalog serves it; the regions are an input, so it is there whatever the run's status.",
+      "operationId": "getGivenHyperscaleCloudServiceProviderRegion",
+      "tags": [
+        "/wan-syntheses"
+      ],
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "synthesis",
+          "in": "path",
+          "description": "The id the API assigned the synthesis",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        },
+        {
+          "name": "region",
+          "in": "path",
+          "description": "The id the region was given at creation, within its synthesis",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "The region, by its id",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "municipality",
+                  "state",
+                  "country",
+                  "latitude",
+                  "longitude"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The id the region was given at creation, in the order the body listed the regions",
+                    "example": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "The region's name as its provider publishes it",
+                    "example": "us-east-2"
+                  },
+                  "municipality": {
+                    "type": "string",
+                    "example": "Columbus"
+                  },
+                  "state": {
+                    "type": "string",
+                    "description": "The state or province; empty outside a country that has them",
+                    "example": "OH"
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "US"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 39.9612
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": -82.9988
+                  }
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "No bearer token, or one the authorizer refused"
+        },
+        "403": {
+          "description": "A bearer token the authorizer does not admit to this operation"
+        },
+        "404": {
+          "description": "No synthesis has that id, or it has no region with that id",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "error"
+                ],
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "The store could not be read"
+        }
+      },
+      "x-amazon-apigateway-integration": {
+        "uri": "${WanSynthesesHandlerArn}",
+        "httpMethod": "POST",
+        "type": "aws_proxy"
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

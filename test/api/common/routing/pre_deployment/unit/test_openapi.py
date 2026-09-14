@@ -83,7 +83,9 @@ RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
 SITES = "/wan-syntheses/{synthesis}/sites"
 SITE = "/wan-syntheses/{synthesis}/sites/{site}"
 RUN_REGIONS = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions"
+RUN_REGION = f"{RUN_REGIONS}/{{region}}"
 UNDER_A_SITE = [(SITE, "get")]
+UNDER_A_RUN_REGION = [(RUN_REGION, "get")]
 UNDER_A_SYNTHESIS = [
     (SYNTHESIS, "get"),
     (WAN_POPS, "get"),
@@ -93,7 +95,7 @@ UNDER_A_SYNTHESIS = [
     (SITES, "get"),
     (RUN_REGIONS, "get"),
 ]
-GIVEN = [SITES, RUN_REGIONS]
+GIVEN = [SITES, RUN_REGIONS, RUN_REGION]
 SITE_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude",
     "exempt_from_distance_constraint",
@@ -109,7 +111,9 @@ UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
 ]
-SYNTHESES_OPERATIONS = [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP + UNDER_A_SITE
+SYNTHESES_OPERATIONS = (
+    [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
+)
 SYNTHESIS_FIELDS = [
     "id", "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
     "convergence_promotion", "knobs", "settings", "status",
@@ -134,7 +138,9 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
     (path, method, ["region"]) for path, method in UNDER_A_REGION
 ] + [(path, method, ["synthesis"]) for path, method in UNDER_A_SYNTHESIS] + [
     (path, method, ["synthesis", "wan-pop"]) for path, method in UNDER_A_WAN_POP
-] + [(path, method, ["synthesis", "site"]) for path, method in UNDER_A_SITE]
+] + [(path, method, ["synthesis", "site"]) for path, method in UNDER_A_SITE] + [
+    (path, method, ["synthesis", "region"]) for path, method in UNDER_A_RUN_REGION
+]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
@@ -462,10 +468,21 @@ def test_a_synthesis_s_region_is_served_as_the_catalog_serves_it(openapi: Dict[s
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
 
 
+def test_a_synthesis_s_region_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][RUN_REGION]) == ["get"]
+
+
+def test_a_synthesis_s_region_is_served_by_id_as_the_catalog_serves_it(
+    openapi: Dict[str, Any]
+) -> None:
+    served = openapi["paths"][RUN_REGION]["get"]["responses"]["200"]
+    assert served["content"]["application/json"]["schema"]["required"] == REGION_FIELDS
+
+
 @pytest.mark.parametrize("path", GIVEN)
 def test_an_input_is_there_whatever_the_run_s_status(openapi: Dict[str, Any], path: str) -> None:
     missing = openapi["paths"][path]["get"]["responses"]["404"]["description"]
-    assert missing == "No synthesis has that id"
+    assert missing.startswith("No synthesis has that id")
 
 
 def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:
@@ -516,7 +533,7 @@ def test_an_id_in_the_path_is_a_positive_integer(
 @pytest.mark.parametrize(
     ("path", "method"),
     UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS
-    + UNDER_A_WAN_POP + UNDER_A_SITE,
+    + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION,
 )
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
