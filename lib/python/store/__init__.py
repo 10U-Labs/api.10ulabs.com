@@ -88,3 +88,14 @@ def conditioned(
 def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, Any]]:
     key = {'PK': {'S': partition_key}, 'SK': {'S': sort_key}}
     return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')
+
+
+def plain(value: Dict[str, Any]) -> Any:
+    kind, held = next(iter(value.items()))
+    if kind == 'N':
+        return int(held) if held.lstrip('-').isdigit() else float(held)
+    if kind == 'M':
+        return {field: plain(inner) for field, inner in held.items()}
+    if kind == 'L':
+        return [plain(inner) for inner in held]
+    return None if kind == 'NULL' else held

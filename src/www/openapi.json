@@ -2453,6 +2453,181 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}": {
+      "get": {
+        "summary": "Get WAN Synthesis",
+        "description": "Serves the record of one WAN synthesis: its label, its scalar inputs, its status and, once the run ended success, its figures. The record is the run whether or not a WAN came out of it, so any run that exists answers 200.",
+        "operationId": "getWanSynthesis",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The synthesis's record, by its id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "label",
+                    "wan_pop_count",
+                    "backbone_number_of_diverse_circuits",
+                    "homing_degree",
+                    "convergence_promotion",
+                    "knobs",
+                    "settings",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "label": {
+                      "type": "string",
+                      "description": "The run the synthesis records, as its inputs name it",
+                      "example": "minuteman"
+                    },
+                    "wan_pop_count": {
+                      "type": "object",
+                      "description": "How many WAN PoPs the backbone may have",
+                      "required": [
+                        "min",
+                        "max"
+                      ],
+                      "properties": {
+                        "min": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "max": {
+                          "type": "integer",
+                          "example": 6
+                        }
+                      }
+                    },
+                    "backbone_number_of_diverse_circuits": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "homing_degree": {
+                      "type": "integer",
+                      "description": "How many WAN PoPs each site homes to",
+                      "example": 2
+                    },
+                    "convergence_promotion": {
+                      "type": "boolean",
+                      "description": "Whether high-degree convergences are promoted to WAN PoPs",
+                      "example": false
+                    },
+                    "knobs": {
+                      "type": "object",
+                      "description": "The algorithm's knobs, as the run set them",
+                      "additionalProperties": true
+                    },
+                    "settings": {
+                      "type": "object",
+                      "description": "The implementation's settings, as the run set them",
+                      "additionalProperties": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Where the run stands: creating while its inputs are written, synthesizing while the WAN is computed, then success, fail or timeout",
+                      "enum": [
+                        "creating",
+                        "synthesizing",
+                        "success",
+                        "fail",
+                        "timeout"
+                      ],
+                      "example": "success"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Why the run ended fail or timeout; absent otherwise"
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "description": "The coverage the backbone delivered, on a run that ended success",
+                      "additionalProperties": true
+                    },
+                    "fiber_miles": {
+                      "type": "number",
+                      "description": "The physical miles of fiber the WAN rides, on a run that ended success"
+                    },
+                    "backbone_lower_bound_miles": {
+                      "type": "number",
+                      "description": "The lower bound on backbone miles, on a run that ended success"
+                    },
+                    "homing_miles": {
+                      "type": "object",
+                      "description": "The homing miles by kind, on a run that ended success",
+                      "additionalProperties": true
+                    },
+                    "diverse_circuits": {
+                      "type": "object",
+                      "description": "The diverse circuits delivered against those asked for, on a run that ended success",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

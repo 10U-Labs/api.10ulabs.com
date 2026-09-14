@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    advance, conditional, conditioned, delete, member, members, next_id, partition, put,
+    advance, conditional, conditioned, delete, member, members, next_id, partition, plain, put,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -266,3 +266,22 @@ def test_a_conditioned_write_answers_the_attributes_the_store_returns() -> None:
 def test_a_conditioned_write_requires_the_item_to_exist(dynamodb: SimpleNamespace) -> None:
     conditioned("update_item", "the-table", KEY, **RENAME)
     assert dynamodb.updates[0]["ConditionExpression"] == "attribute_exists(PK)"
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ({"S": "minuteman"}, "minuteman"),
+    ({"N": "3"}, 3),
+    ({"N": "-12"}, -12),
+    ({"N": "0.6"}, 0.6),
+    ({"BOOL": False}, False),
+    ({"NULL": True}, None),
+    ({"M": {"min": {"N": "3"}, "max": {"N": "6"}}}, {"min": 3, "max": 6}),
+    ({"L": [{"S": "a"}, {"N": "1"}]}, ["a", 1]),
+    ({"M": {"ceilings": {"L": [{"M": {"miles": {"N": "1.5"}}}]}}}, {"ceilings": [{"miles": 1.5}]}),
+])
+def test_plain_turns_an_attribute_value_into_json(value: Dict[str, Any], expected: Any) -> None:
+    assert plain(value) == expected
+
+
+def test_plain_keeps_an_integral_number_an_int() -> None:
+    assert isinstance(plain({"N": "3"}), int)

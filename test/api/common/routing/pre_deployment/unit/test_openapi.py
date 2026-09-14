@@ -74,7 +74,14 @@ REGION_METHODS = REGION_SERVINGS + ["delete"]
 UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
 REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
 SYNTHESES = "/wan-syntheses"
-SYNTHESES_OPERATIONS = [(SYNTHESES, "get")]
+SYNTHESIS = "/wan-syntheses/{synthesis}"
+UNDER_A_SYNTHESIS = [(SYNTHESIS, "get")]
+SYNTHESES_OPERATIONS = [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS
+SYNTHESIS_FIELDS = [
+    "id", "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
+    "convergence_promotion", "knobs", "settings", "status",
+]
+STATUSES = ["creating", "synthesizing", "success", "fail", "timeout"]
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS + SYNTHESES_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
@@ -92,7 +99,7 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT] + [
     (path, method, ["region"]) for path, method in UNDER_A_REGION
-]
+] + [(path, method, ["synthesis"]) for path, method in UNDER_A_SYNTHESIS]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
@@ -307,6 +314,24 @@ def test_a_synthesis_is_a_labelled_run_with_an_id(openapi: Dict[str, Any]) -> No
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == ["id", "label"]
 
 
+def test_a_synthesis_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SYNTHESIS]) == ["get"]
+
+
+def _served_synthesis(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    served = openapi["paths"][SYNTHESIS]["get"]["responses"]["200"]
+    schema: Dict[str, Any] = served["content"]["application/json"]["schema"]
+    return schema
+
+
+def test_a_synthesis_is_served_as_its_record_with_an_id(openapi: Dict[str, Any]) -> None:
+    assert _served_synthesis(openapi)["required"] == SYNTHESIS_FIELDS
+
+
+def test_a_synthesis_s_status_is_one_of_five(openapi: Dict[str, Any]) -> None:
+    assert _served_synthesis(openapi)["properties"]["status"]["enum"] == STATUSES
+
+
 def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][REGION]) == REGION_METHODS
 
@@ -344,7 +369,8 @@ def test_an_id_in_the_path_is_a_positive_integer(
 
 
 @pytest.mark.parametrize(
-    ("path", "method"), UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION
+    ("path", "method"),
+    UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS,
 )
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
