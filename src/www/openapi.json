@@ -195,6 +195,89 @@
         }
       }
     },
+    "/carriers/{carrier}": {
+      "get": {
+        "summary": "Get Carrier",
+        "description": "Serves one carrier, by the id the API assigned it and its name.",
+        "operationId": "getCarrier",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "carrier",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The carrier, by its id and name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "lumen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "404": {
+            "description": "No carrier has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
-    store = SimpleNamespace(items=[], failing=False, queries=[], updates=[])
+    store = SimpleNamespace(items=[], failing=False, queries=[], gets=[], updates=[])
 
     def refuse(operation: str) -> None:
         if store.failing:
@@ -29,6 +29,15 @@ def store_fixture() -> SimpleNamespace:
         found: List[Dict[str, Any]] = [item for item in store.items if item["PK"]["S"] == partition]
         return {"Items": found, "Count": len(found)}
 
+    def get_item(**request: Any) -> Dict[str, Any]:
+        store.gets.append(request)
+        refuse("GetItem")
+        key = request["Key"]
+        for item in store.items:
+            if item["PK"] == key["PK"] and item["SK"] == key["SK"]:
+                return {"Item": item}
+        return {}
+
     def update_item(**request: Any) -> Dict[str, Any]:
         store.updates.append(request)
         refuse("UpdateItem")
@@ -42,6 +51,7 @@ def store_fixture() -> SimpleNamespace:
         return {}
 
     store.query = query
+    store.get_item = get_item
     store.update_item = update_item
     store.put_item = put_item
     return store

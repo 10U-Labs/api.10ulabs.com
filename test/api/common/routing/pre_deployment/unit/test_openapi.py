@@ -46,18 +46,44 @@ def test_the_routing_stack_supplies_every_template_variable(
     assert _template_variables(openapi) == _supplied_variables(routing_dir)
 
 
+CARRIERS_OPERATIONS = [("/carriers", "get"), ("/carriers", "post"), ("/carriers/{carrier}", "get")]
+
+
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers"]) == ["get", "post"]
 
 
-@pytest.mark.parametrize("method", ["get", "post"])
-def test_carriers_is_served_by_the_carriers_handler(openapi: Dict[str, Any], method: str) -> None:
-    assert openapi["paths"]["/carriers"][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
+def test_a_carrier_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"]["/carriers/{carrier}"]) == ["get"]
 
 
-@pytest.mark.parametrize("method", ["get", "post"])
-def test_carriers_is_reached_with_a_bearer_token(openapi: Dict[str, Any], method: str) -> None:
-    assert openapi["paths"]["/carriers"][method]["security"] == [{"bearer": []}]
+@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
+def test_carriers_is_served_by_the_carriers_handler(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
+
+
+@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
+def test_carriers_is_reached_with_a_bearer_token(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert openapi["paths"][path][method]["security"] == [{"bearer": []}]
+
+
+def test_a_carrier_is_named_by_its_id_in_the_path(openapi: Dict[str, Any]) -> None:
+    parameters = openapi["paths"]["/carriers/{carrier}"]["get"]["parameters"]
+    named = [(one["name"], one["in"], one["required"]) for one in parameters]
+    assert named == [("carrier", "path", True)]
+
+
+def test_a_carrier_id_is_a_positive_integer(openapi: Dict[str, Any]) -> None:
+    schema = openapi["paths"]["/carriers/{carrier}"]["get"]["parameters"][0]["schema"]
+    assert (schema["type"], schema["minimum"]) == ("integer", 1)
+
+
+def test_a_carrier_that_is_not_there_is_documented_as_404(openapi: Dict[str, Any]) -> None:
+    assert "404" in openapi["paths"]["/carriers/{carrier}"]["get"]["responses"]
 
 
 def test_a_carrier_is_created_from_its_name_alone(openapi: Dict[str, Any]) -> None:
@@ -95,7 +121,7 @@ def _secured_operations(openapi: Dict[str, Any]) -> set[Tuple[str, str]]:
 
 
 def test_every_route_the_site_calls_stays_public(openapi: Dict[str, Any]) -> None:
-    assert _secured_operations(openapi) == {("/carriers", "get"), ("/carriers", "post")}
+    assert _secured_operations(openapi) == set(CARRIERS_OPERATIONS)
 
 
 def test_nothing_is_secured_for_the_whole_document(openapi: Dict[str, Any]) -> None:

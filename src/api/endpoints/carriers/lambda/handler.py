@@ -12,6 +12,7 @@ logger.setLevel(logging.INFO)
 COLLECTION = 'carriers'
 COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
+MISSING = 'No such carrier'
 
 
 def _members(collection: str) -> List[Dict[str, Any]]:
@@ -34,6 +35,29 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
         logger.error('Error reading the carriers: %s', error)
         return json_response(500, {'error': 'Failed to read the carriers'})
     return json_response(200, sorted(map(_carrier, members), key=lambda carrier: carrier['id']))
+
+
+def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
+    answer = aws_client('dynamodb').get_item(
+        TableName=os.environ['STORE_TABLE'],
+        Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+    )
+    item: Optional[Dict[str, Any]] = answer.get('Item')
+    return item
+
+
+def _read(event: Dict[str, Any]) -> Dict[str, Any]:
+    carrier_id = str((event.get('pathParameters') or {}).get('carrier') or '')
+    if not carrier_id.isdigit():
+        return json_response(404, {'error': MISSING})
+    try:
+        item = _member(COLLECTION, carrier_id)
+    except ClientError as error:
+        logger.error('Error reading carrier %s: %s', carrier_id, error)
+        return json_response(500, {'error': 'Failed to read the carrier'})
+    if item is None:
+        return json_response(404, {'error': MISSING})
+    return json_response(200, _carrier(item))
 
 
 def _name(event: Dict[str, Any]) -> Optional[str]:
@@ -85,4 +109,8 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
-    return dispatch(event, {('/carriers', 'GET'): _list, ('/carriers', 'POST'): _create})
+    return dispatch(event, {
+        ('/carriers', 'GET'): _list,
+        ('/carriers', 'POST'): _create,
+        ('/carriers/{carrier}', 'GET'): _read,
+    })

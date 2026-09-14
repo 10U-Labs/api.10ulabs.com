@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 import pytest
 
 CARRIERS = "/carriers"
+CARRIER = "/carriers/{carrier}"
 
 
 def _get(resource: str = CARRIERS) -> Dict[str, Any]:
@@ -64,7 +65,77 @@ def test_a_store_that_refuses_the_read_names_the_error(
 
 
 def test_another_resource_answers_404(carriers_handler: ModuleType) -> None:
-    assert _answer(carriers_handler, _get("/carriers/{carrier}"))["statusCode"] == 404
+    assert _answer(carriers_handler, _get("/carriers/{carrier}/pops"))["statusCode"] == 404
+
+
+def _get_one(carrier: str) -> Dict[str, Any]:
+    return {**_get(CARRIER), "pathParameters": {"carrier": carrier}}
+
+
+def test_a_stored_carrier_answers_200(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _get_one("2"))["statusCode"] == 200
+
+
+def test_a_stored_carrier_answers_by_id_and_name(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _get_one("2")) == {"id": 2, "name": "zayo"}
+
+
+def test_a_carrier_is_read_from_the_table_the_environment_names(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _get_one("2"))
+    assert store.gets[0]["TableName"] == "store"
+
+
+def test_a_carrier_is_read_by_its_key_in_the_collection(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    _answer(carriers_handler, _get_one("2"))
+    assert store.gets[0]["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "2"}}
+
+
+def test_an_unknown_carrier_answers_404(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _get_one("3"))["statusCode"] == 404
+
+
+def test_an_unknown_carrier_names_the_error(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _get_one("3"))["error"] == "No such carrier"
+
+
+@pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
+def test_an_id_that_is_not_a_number_answers_404(carriers_handler: ModuleType, carrier: str) -> None:
+    assert _answer(carriers_handler, _get_one(carrier))["statusCode"] == 404
+
+
+def test_the_counter_is_never_asked_for_as_a_carrier(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _get_one("#"))
+    assert store.gets == []
+
+
+def test_a_store_that_refuses_the_carrier_answers_500(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _answer(carriers_handler, _get_one("2"))["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_carrier_names_the_error(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _body(carriers_handler, _get_one("2"))["error"] == "Failed to read the carrier"
 
 
 def _post(body: Any, resource: str = CARRIERS) -> Dict[str, Any]:
