@@ -49,7 +49,7 @@ def test_no_content_carries_no_body() -> None:
 
 
 def test_no_content_carries_no_headers() -> None:
-    assert no_content()['headers'] == {}
+    assert not no_content()['headers']
 
 
 def test_created_answers_201() -> None:

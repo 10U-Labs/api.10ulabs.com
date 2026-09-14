@@ -9,7 +9,9 @@ from lambda_http import (
     aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
     no_content, parse_fields, parse_valid, path_id,
 )
-from store import advance, conditional, delete, member, members, next_id, partition, put
+from store import (
+    advance, conditional, conditioned, delete, member, members, next_id, partition, put,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -59,25 +61,9 @@ def _name(event: Dict[str, Any]) -> Optional[str]:
     return name if isinstance(name, str) and name else None
 
 
-def _attributes(write: str, key: Dict[str, Any], **request: Any) -> Optional[Dict[str, Any]]:
-    try:
-        answer = getattr(aws_client('dynamodb'), write)(
-            TableName=os.environ['STORE_TABLE'],
-            Key=key,
-            ConditionExpression='attribute_exists(PK)',
-            **request,
-        )
-    except ClientError as error:
-        if conditional(error):
-            return None
-        raise
-    item: Dict[str, Any] = answer['Attributes']
-    return item
-
-
 def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
-    return _attributes(
-        'update_item', {'PK': {'S': collection}, 'SK': {'S': member_id}},
+    return conditioned(
+        'update_item', os.environ['STORE_TABLE'], {'PK': {'S': collection}, 'SK': {'S': member_id}},
         UpdateExpression='SET #name = :name',
         ExpressionAttributeNames={'#name': 'name'},
         ExpressionAttributeValues={':name': {'S': name}},

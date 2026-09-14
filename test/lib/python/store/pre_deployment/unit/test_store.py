@@ -5,7 +5,9 @@ import pytest
 from botocore.exceptions import ClientError
 
 import store
-from store import advance, conditional, delete, member, members, next_id, partition, put
+from store import (
+    advance, conditional, conditioned, delete, member, members, next_id, partition, put,
+)
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
 LUMEN = {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "lumen"}}
@@ -251,3 +253,16 @@ def test_a_deletion_the_store_refuses_for_another_reason_is_raised(
     monkeypatch.setattr(dynamodb, "delete_item", refuse)
     with pytest.raises(ClientError):
         delete("the-table", "carriers", "2")
+
+
+RENAME = {"UpdateExpression": "SET #next = :one", "ExpressionAttributeNames": {"#next": "next"}}
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_conditioned_write_answers_the_attributes_the_store_returns() -> None:
+    assert conditioned("update_item", "the-table", KEY, **RENAME) == {"next": {"N": "7"}}
+
+
+def test_a_conditioned_write_requires_the_item_to_exist(dynamodb: SimpleNamespace) -> None:
+    conditioned("update_item", "the-table", KEY, **RENAME)
+    assert dynamodb.updates[0]["ConditionExpression"] == "attribute_exists(PK)"

@@ -67,13 +67,15 @@ def conditional(error: ClientError) -> bool:
     return code == 'ConditionalCheckFailedException'
 
 
-def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, Any]]:
+def conditioned(
+    write: str, table: str, key: Dict[str, Any], **request: Any
+) -> Optional[Dict[str, Any]]:
     try:
-        answer = aws_client('dynamodb').delete_item(
+        answer = getattr(aws_client('dynamodb'), write)(
             TableName=table,
-            Key={'PK': {'S': partition_key}, 'SK': {'S': sort_key}},
+            Key=key,
             ConditionExpression='attribute_exists(PK)',
-            ReturnValues='ALL_OLD',
+            **request,
         )
     except ClientError as error:
         if conditional(error):
@@ -81,3 +83,8 @@ def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, 
         raise
     item: Dict[str, Any] = answer['Attributes']
     return item
+
+
+def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, Any]]:
+    key = {'PK': {'S': partition_key}, 'SK': {'S': sort_key}}
+    return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')
