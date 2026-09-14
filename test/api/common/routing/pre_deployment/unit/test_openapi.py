@@ -73,7 +73,9 @@ REGION_SERVINGS = ["get", "put"]
 REGION_METHODS = REGION_SERVINGS + ["delete"]
 UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
 REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
-SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
+SYNTHESES = "/wan-syntheses"
+SYNTHESES_OPERATIONS = [(SYNTHESES, "get")]
+SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS + SYNTHESES_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 POP_SERVINGS = ["get", "put"]
@@ -287,6 +289,22 @@ def test_the_regions_answer_get_and_post(openapi: Dict[str, Any]) -> None:
 def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"][REGIONS]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
+
+
+@pytest.mark.parametrize(("path", "method"), SYNTHESES_OPERATIONS)
+def test_the_syntheses_are_served_by_the_syntheses_handler(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
+
+
+def test_the_syntheses_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SYNTHESES]) == ["get"]
+
+
+def test_a_synthesis_is_a_labelled_run_with_an_id(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][SYNTHESES]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == ["id", "label"]
 
 
 def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:

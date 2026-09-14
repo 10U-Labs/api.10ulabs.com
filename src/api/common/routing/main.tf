@@ -25,6 +25,7 @@ locals {
     HyperscaleCloudServiceProviderRegionsHandlerArn = local.integration.hyperscale_cloud_service_provider_regions
     RackConfigurationsHandlerArn                    = local.integration.rack_configurations
     SessionsHandlerArn                              = local.integration.sessions
+    WanSynthesesHandlerArn                          = local.integration.wan_syntheses
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

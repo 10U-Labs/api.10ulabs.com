@@ -45,5 +45,6 @@ output "lambda_handler_names" {
     hyperscale_cloud_service_provider_regions = "api-10ulabs-com-hyperscale-cloud-service-provider-regions"
     rack_configurations                       = "api-10ulabs-com-rack-configurations"
     sessions                                  = "api-10ulabs-com-sessions"
+    wan_syntheses                             = "api-10ulabs-com-wan-syntheses"
   }
 }

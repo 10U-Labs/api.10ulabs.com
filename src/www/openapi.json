@@ -25,6 +25,10 @@
       "description": "Hyperscale cloud service provider region endpoints"
     },
     {
+      "name": "/wan-syntheses",
+      "description": "WAN synthesis endpoints"
+    },
+    {
       "name": "/diagnostics",
       "description": "Diagnostics utility endpoints"
     },
@@ -2385,6 +2389,65 @@
         },
         "x-amazon-apigateway-integration": {
           "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
+    "/wan-syntheses": {
+      "get": {
+        "summary": "List WAN Syntheses",
+        "description": "Lists the WAN syntheses, each by the id the API assigned it and its label; a synthesis is one run, one set of inputs and the WAN computed from them.",
+        "operationId": "listWanSyntheses",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The syntheses, in id order; [] when there are none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "label"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "The run the synthesis records, as its inputs name it",
+                        "example": "minuteman"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
