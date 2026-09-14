@@ -15,6 +15,7 @@ BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 POPS = 'pops'
 PLACE = ('municipality', 'state', 'country')
+NAMED = ('municipality', 'country')
 COORDINATES = ('latitude', 'longitude')
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
 
@@ -247,7 +248,8 @@ def _next_pop_id(carrier_id: str) -> Optional[int]:
 
 
 def _placed(body: Dict[str, Any]) -> bool:
-    return all(isinstance(body[field], str) and body[field] for field in PLACE)
+    worded = all(isinstance(body[field], str) for field in PLACE)
+    return worded and all(body[field] for field in NAMED)
 
 
 def _located(body: Dict[str, Any]) -> bool:

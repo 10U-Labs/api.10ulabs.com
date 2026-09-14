@@ -98,6 +98,17 @@ def test_a_pop_is_added_with_no_other_field(openapi: Dict[str, Any]) -> None:
     assert _pop_body(openapi)["additionalProperties"] is False
 
 
+@pytest.mark.parametrize("field", ["municipality", "country"])
+def test_a_pop_is_added_with_a_municipality_and_a_country_that_are_named(
+    openapi: Dict[str, Any], field: str
+) -> None:
+    assert _pop_body(openapi)["properties"][field]["minLength"] == 1
+
+
+def test_a_pop_may_be_added_with_no_state(openapi: Dict[str, Any]) -> None:
+    assert "minLength" not in _pop_body(openapi)["properties"]["state"]
+
+
 def test_an_added_pop_answers_with_its_id(openapi: Dict[str, Any]) -> None:
     created = openapi["paths"]["/carriers/{carrier}/pops"]["post"]["responses"]["201"]
     assert created["content"]["application/json"]["schema"]["required"] == POP_FIELDS

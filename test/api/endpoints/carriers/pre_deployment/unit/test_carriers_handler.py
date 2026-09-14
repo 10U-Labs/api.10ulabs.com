@@ -564,6 +564,8 @@ def test_a_store_that_refuses_the_pops_names_the_error(
 
 BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
          "latitude": 43.615, "longitude": -116.2023}
+AMSTERDAM = {"municipality": "Amsterdam", "state": "", "country": "Netherlands",
+             "latitude": 52.3731, "longitude": 4.8925}
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
 
 
@@ -576,6 +578,20 @@ def test_a_pop_is_added_with_201(
 ) -> None:
     store.items.extend(carriers)
     assert _answer(carriers_handler, _post_pop(BOISE))["statusCode"] == 201
+
+
+def test_a_pop_outside_a_country_with_states_is_added_with_201(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _post_pop(AMSTERDAM))["statusCode"] == 201
+
+
+def test_a_pop_outside_a_country_with_states_answers_with_no_state(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _post_pop(AMSTERDAM))["state"] == ""
 
 
 def test_the_added_pop_answers_with_the_id_the_carrier_holds_next(
@@ -682,7 +698,8 @@ def test_adding_a_pop_to_an_id_that_is_not_a_number_answers_404(
     {**BOISE, "latitude": "43.615"},
     {**BOISE, "longitude": True},
     {**BOISE, "municipality": ""},
-    {**BOISE, "country": 1},
+    {**BOISE, "state": None},
+    {**BOISE, "country": ""},
     dict(list(BOISE.items())[:4]),
     [BOISE],
 ])
