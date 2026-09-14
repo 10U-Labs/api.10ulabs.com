@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Tuple
 import pytest
 
 MEMBERS = ["pops", "fiber-segments"]
-MISSING_MEMBERS = list(zip(MEMBERS, ["No such pop", "No such fiber segment"]))
+MISSING = dict(zip(MEMBERS, ["No such pop", "No such fiber segment"]))
 BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
          "latitude": 43.615, "longitude": -116.2023}
 DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
@@ -152,14 +152,14 @@ def test_a_member_of_a_carrier_that_is_not_there_names_the_carrier_through_the_d
     assert body["error"] == "No such carrier"
 
 
-@pytest.mark.parametrize(("members", "missing"), MISSING_MEMBERS)
+@pytest.mark.parametrize("members", MEMBERS)
 def test_no_listed_carrier_has_a_member_zero_through_the_deployed_api(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
-    members: str, missing: str,
+    members: str,
 ) -> None:
     _, listed = get_json(f"{stage_url}/carriers", bearer)
     answered = [get_json(f"{stage_url}/carriers/{one['id']}/{members}/0", bearer) for one in listed]
-    assert answered == [(404, {"error": missing})] * len(listed)
+    assert answered == [(404, {"error": MISSING[members]})] * len(listed)
 
 
 def _firsts(
@@ -206,29 +206,37 @@ def test_a_refused_correction_leaves_the_first_member_of_every_listed_carrier_as
     )
 
 
-def test_the_workflows_key_removes_no_pop_of_a_carrier_that_is_not_there_through_the_deployed_api(
-    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+@pytest.mark.parametrize("members", MEMBERS)
+def test_the_workflows_key_removes_no_member_of_a_missing_carrier_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str,
 ) -> None:
-    status, _ = delete_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    status, _ = delete_json(f"{stage_url}/carriers/0/{members}/0", bearer)
     assert status == 404
 
 
+@pytest.mark.parametrize("members", MEMBERS)
 def test_a_removal_from_a_carrier_that_is_not_there_names_the_carrier_through_the_deployed_api(
-    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
+    members: str,
 ) -> None:
-    _, body = delete_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    _, body = delete_json(f"{stage_url}/carriers/0/{members}/0", bearer)
     assert body["error"] == "No such carrier"
 
 
-def test_no_listed_carrier_loses_a_pop_zero_through_the_deployed_api(
+@pytest.mark.parametrize("members", MEMBERS)
+def test_no_listed_carrier_loses_a_member_zero_through_the_deployed_api(
     stage_url: str,
     get_json: Callable[..., Tuple[int, Any]],
     delete_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
+    members: str,
 ) -> None:
     _, listed = get_json(f"{stage_url}/carriers", bearer)
-    removed = [delete_json(f"{stage_url}/carriers/{one['id']}/pops/0", bearer) for one in listed]
-    assert removed == [(404, {"error": "No such pop"})] * len(listed)
+    removed = [
+        delete_json(f"{stage_url}/carriers/{one['id']}/{members}/0", bearer) for one in listed
+    ]
+    assert removed == [(404, {"error": MISSING[members]})] * len(listed)
 
 
 def test_the_fiber_segments_of_a_carrier_that_is_not_there_answer_404_through_the_deployed_api(

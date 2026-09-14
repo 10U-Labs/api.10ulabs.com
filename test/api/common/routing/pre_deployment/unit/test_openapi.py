@@ -64,13 +64,15 @@ CARRIERS_OPERATIONS = [
     (FIBER_SEGMENTS, "post"),
     (FIBER_SEGMENT, "get"),
     (FIBER_SEGMENT, "put"),
+    (FIBER_SEGMENT, "delete"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 POP_SERVINGS = ["get", "put"]
 POP_METHODS = POP_SERVINGS + ["delete"]
 FIBER_SEGMENTS_METHODS = ["get", "post"]
-FIBER_SEGMENT_METHODS = ["get", "put"]
+FIBER_SEGMENT_SERVINGS = ["get", "put"]
+FIBER_SEGMENT_METHODS = FIBER_SEGMENT_SERVINGS + ["delete"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ] + [(FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS]
@@ -102,7 +104,7 @@ ADDITIONS = [
     ("/carriers/{carrier}/pops", "post", POP_FIELDS), (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS)
 ]
 CREATIONS = [("/carriers", "post")] + [(path, method) for path, method, _ in ADDITIONS]
-DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete")]
+DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete"), (FIBER_SEGMENT, "delete")]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
@@ -149,7 +151,7 @@ def _fiber_segment_schemas(openapi: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [
         _listed_fiber_segment(openapi),
         added["content"]["application/json"]["schema"],
-    ] + [_served_fiber_segment(openapi, method) for method in FIBER_SEGMENT_METHODS] + [
+    ] + [_served_fiber_segment(openapi, method) for method in FIBER_SEGMENT_SERVINGS] + [
         _request_body(openapi, path, method) for path, method in SPANNED_BODIES
     ]
 
@@ -160,7 +162,7 @@ def test_a_fiber_segment_is_a_span_between_two_municipalities_with_an_id(
     assert _listed_fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
 
 
-@pytest.mark.parametrize("method", FIBER_SEGMENT_METHODS)
+@pytest.mark.parametrize("method", FIBER_SEGMENT_SERVINGS)
 def test_a_fiber_segment_is_served_as_a_span_between_two_municipalities_with_an_id(
     openapi: Dict[str, Any], method: str
 ) -> None:
@@ -172,7 +174,7 @@ def test_a_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -
     assert submarine == ["boolean"] * 6
 
 
-def test_a_fiber_segment_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+def test_a_fiber_segment_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][FIBER_SEGMENT]) == FIBER_SEGMENT_METHODS
 
 

@@ -475,15 +475,22 @@ def _update_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
     return _update_under(event, FIBER_SEGMENT_KIND, 'Failed to update the fiber segment')
 
 
-def _remove_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
-    key = {'PK': {'S': f'{COLLECTION}/{carrier_id}'}, 'SK': {'S': f'{POPS}/{pop_id}'}}
+def _remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
+    key = {'PK': {'S': f'{COLLECTION}/{carrier_id}'}, 'SK': {'S': f'{prefix}/{member_id}'}}
     return _attributes('delete_item', key, ReturnValues='ALL_OLD')
 
 
+def _delete_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    removed = partial(_remove_under, prefix=kind.prefix)
+    return _on_member(event, kind, removed, failure, lambda _gone: _no_content())
+
+
 def _delete_pop(event: Dict[str, Any]) -> Dict[str, Any]:
-    return _on_member(
-        event, POP_KIND, _remove_pop, 'Failed to delete the pop', lambda _gone: _no_content()
-    )
+    return _delete_under(event, POP_KIND, 'Failed to delete the pop')
+
+
+def _delete_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _delete_under(event, FIBER_SEGMENT_KIND, 'Failed to delete the fiber segment')
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
@@ -502,4 +509,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/fiber-segments', 'POST'): _add_fiber_segment,
         ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'GET'): _read_fiber_segment,
         ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'PUT'): _update_fiber_segment,
+        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'DELETE'): _delete_fiber_segment,
     })
