@@ -12,28 +12,28 @@ EVENTS = {
 def test_events_are_recorded_through_the_deployed_api(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    status, _ = post_json(f"{stage_url}/v1/sessions/post-deployment-tests/events", EVENTS)
+    status, _ = post_json(f"{stage_url}/sessions/post-deployment-tests/events", EVENTS)
     assert status == 200
 
 
 def test_the_deployed_api_counts_the_events(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    _, body = post_json(f"{stage_url}/v1/sessions/post-deployment-tests/events", EVENTS)
+    _, body = post_json(f"{stage_url}/sessions/post-deployment-tests/events", EVENTS)
     assert body["events_saved"] == 1
 
 
 def test_the_deployed_api_refuses_events_without_a_device(
     stage_url: str, post_json: Callable[..., Tuple[int, Dict[str, Any]]]
 ) -> None:
-    status, _ = post_json(f"{stage_url}/v1/sessions/post-deployment-tests/events", {"events": []})
+    status, _ = post_json(f"{stage_url}/sessions/post-deployment-tests/events", {"events": []})
     assert status == 400
 
 
 def test_the_preflight_allows_any_origin_through_the_deployed_api(
     stage_url: str, preflight: Callable[[str], Dict[str, str]]
 ) -> None:
-    headers = preflight(f"{stage_url}/v1/sessions/post-deployment-tests/events")
+    headers = preflight(f"{stage_url}/sessions/post-deployment-tests/events")
     assert headers["access-control-allow-origin"] == "*"
 
 

@@ -33,7 +33,7 @@
       "description": "Rack configuration endpoints"
     },
     {
-      "name": "/v1/sessions",
+      "name": "/sessions",
       "description": "Session analytics endpoints"
     }
   ],
@@ -728,13 +728,13 @@
         }
       }
     },
-    "/v1/sessions/{session_id}/events": {
+    "/sessions/{session_id}/events": {
       "post": {
         "summary": "Save Session Analytics Events",
         "description": "Saves analytics events for a session",
         "operationId": "createSessionEvents",
         "tags": [
-          "/v1/sessions"
+          "/sessions"
         ],
         "parameters": [
           {
@@ -866,7 +866,7 @@
         "description": "Handles CORS preflight requests",
         "operationId": "createSessionEventsOptions",
         "tags": [
-          "/v1/sessions"
+          "/sessions"
         ],
         "parameters": [
           {

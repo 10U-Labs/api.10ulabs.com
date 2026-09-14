@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-EVENTS = "/v1/sessions/{session_id}/events"
+EVENTS = "/sessions/{session_id}/events"
 
 
 def _post(body: Any, session_id: str = "session-1") -> Dict[str, Any]:

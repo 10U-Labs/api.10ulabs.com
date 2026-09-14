@@ -107,6 +107,6 @@ def _record(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
-    response = dispatch(event, {('/v1/sessions/{session_id}/events', 'POST'): _record})
+    response = dispatch(event, {('/sessions/{session_id}/events', 'POST'): _record})
     response['headers'].update(CORS_HEADERS)
     return response
