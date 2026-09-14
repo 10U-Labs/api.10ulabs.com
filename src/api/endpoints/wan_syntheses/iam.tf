@@ -39,8 +39,8 @@ resource "aws_iam_role_policy" "store" {
   })
 }
 
-resource "aws_iam_role" "creator" {
-  name = local.creator_role
+resource "aws_iam_role" "writer" {
+  name = local.writer_role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -51,35 +51,35 @@ resource "aws_iam_role" "creator" {
   })
 }
 
-resource "aws_iam_role_policy" "creator_logs" {
+resource "aws_iam_role_policy" "writer_logs" {
   name = "Logs"
-  role = aws_iam_role.creator.id
+  role = aws_iam_role.writer.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
       Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-      Resource = ["${aws_cloudwatch_log_group.creator.arn}:*"]
+      Resource = ["${aws_cloudwatch_log_group.writer.arn}:*"]
     }]
   })
 }
 
-resource "aws_iam_role_policy" "creator_store" {
+resource "aws_iam_role_policy" "writer_store" {
   name = "Store"
-  role = aws_iam_role.creator.id
+  role = aws_iam_role.writer.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["dynamodb:UpdateItem", "dynamodb:PutItem"]
+      Action   = ["dynamodb:Query", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem"]
       Resource = [data.terraform_remote_state.storage.outputs.table_arn]
     }]
   })
 }
 
-resource "aws_iam_role_policy" "creator_synthesizer" {
+resource "aws_iam_role_policy" "writer_synthesizer" {
   name = "Synthesizer"
-  role = aws_iam_role.creator.id
+  role = aws_iam_role.writer.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

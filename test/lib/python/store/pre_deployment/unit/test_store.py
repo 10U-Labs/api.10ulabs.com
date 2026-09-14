@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import store
 from store import (
     advance, assign, conditional, conditioned, delete, member, members, next_id, partition, plain,
-    put, sort_id, typed,
+    put, remove, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -359,3 +359,64 @@ def test_an_assignment_requires_the_item_to_exist(dynamodb: SimpleNamespace) -> 
 def test_an_assignment_asks_for_the_whole_item(dynamodb: SimpleNamespace) -> None:
     assign("the-table", "wan-syntheses", "1", STATUS)
     assert _update(dynamodb)["ReturnValues"] == "ALL_NEW"
+
+
+UNDER_LUMEN = [
+    {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/2"}},
+    {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}},
+]
+
+
+@pytest.fixture(name="furnished")
+def furnished_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
+    def query(**request: Any) -> Dict[str, Any]:
+        dynamodb.queries.append(request)
+        return {"Items": list(UNDER_LUMEN), "Count": len(UNDER_LUMEN)}
+    dynamodb.query = query
+    return dynamodb
+
+
+@pytest.mark.usefixtures("furnished")
+def test_a_removal_of_a_member_that_is_there_answers_true() -> None:
+    assert remove("the-table", "carriers", "1") is True
+
+
+@pytest.mark.usefixtures("furnished")
+def test_a_removal_of_a_member_that_is_not_there_answers_false() -> None:
+    assert remove("the-table", "carriers", "3") is False
+
+
+def test_a_removal_reads_everything_under_the_member(furnished: SimpleNamespace) -> None:
+    remove("the-table", "carriers", "1")
+    assert _query(furnished)["ExpressionAttributeValues"] == {":pk": {"S": "carriers/1"}}
+
+
+def test_a_removal_deletes_everything_under_the_member_then_the_member(
+    furnished: SimpleNamespace
+) -> None:
+    remove("the-table", "carriers", "1")
+    assert [request["Key"] for request in furnished.deletes] == [
+        *UNDER_LUMEN, {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
+    ]
+
+
+def test_a_removal_goes_to_the_table_it_names(furnished: SimpleNamespace) -> None:
+    remove("the-table", "carriers", "1")
+    assert {request["TableName"] for request in furnished.deletes} == {"the-table"}
+
+
+def test_a_removal_requires_the_member_alone_to_exist(furnished: SimpleNamespace) -> None:
+    remove("the-table", "carriers", "1")
+    assert [request.get("ConditionExpression") for request in furnished.deletes] == [
+        None, None, "attribute_exists(PK)",
+    ]
+
+
+def test_a_removal_the_store_refuses_for_another_reason_is_raised(
+    furnished: SimpleNamespace
+) -> None:
+    def refuse(**_request: Any) -> Dict[str, Any]:
+        raise ClientError({"Error": {"Code": "InternalServerError"}}, "DeleteItem")
+    furnished.delete_item = refuse
+    with pytest.raises(ClientError):
+        remove("the-table", "carriers", "1")

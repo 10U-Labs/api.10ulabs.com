@@ -133,7 +133,8 @@ WAN_POP_FIELDS = [
 READINGS = (
     [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
 )
-SYNTHESES_OPERATIONS = READINGS + [(SYNTHESES, "post")]
+WRITINGS = [(SYNTHESES, "post"), (SYNTHESIS, "delete")]
+SYNTHESES_OPERATIONS = READINGS + WRITINGS
 RUN_FIELDS = [
     "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
     "convergence_promotion", "knobs", "settings", "sites",
@@ -168,7 +169,7 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
     (path, method, ["synthesis", "wan-pop"]) for path, method in UNDER_A_WAN_POP
 ] + [(path, method, ["synthesis", "site"]) for path, method in UNDER_A_SITE] + [
     (path, method, ["synthesis", "region"]) for path, method in UNDER_A_RUN_REGION
-]
+] + [(SYNTHESIS, "delete", ["synthesis"])]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 LISTED = [
@@ -228,6 +229,7 @@ DELETIONS = [
     (POP, "delete"),
     (FIBER_SEGMENT, "delete"),
     (REGION, "delete"),
+    (SYNTHESIS, "delete"),
 ]
 
 
@@ -398,17 +400,28 @@ def test_the_syntheses_are_served_by_the_syntheses_handler(
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
 
 
-def test_a_synthesis_is_created_by_the_creator(openapi: Dict[str, Any]) -> None:
-    assert openapi["paths"][SYNTHESES]["post"][INTEGRATION]["uri"] == (
-        "${WanSynthesesPostHandlerArn}"
-    )
+@pytest.mark.parametrize(("path", "method"), WRITINGS)
+def test_the_syntheses_are_written_by_the_writer(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesWriterHandlerArn}"
+
+
+def test_a_synthesis_answers_get_and_delete(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SYNTHESIS]) == ["get", "delete"]
+
+
+def test_a_synthesis_still_running_is_documented_as_409(openapi: Dict[str, Any]) -> None:
+    assert "409" in openapi["paths"][SYNTHESIS]["delete"]["responses"]
 
 
 def test_the_syntheses_answer_get_and_post(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][SYNTHESES]) == ["get", "post"]
 
 
-@pytest.mark.parametrize("path", [path for path, _ in READINGS if path != SYNTHESES])
+@pytest.mark.parametrize(
+    "path", [path for path, _ in READINGS if path not in (SYNTHESES, SYNTHESIS)]
+)
 def test_a_path_under_the_syntheses_answers_get_alone(openapi: Dict[str, Any], path: str) -> None:
     assert list(openapi["paths"][path]) == ["get"]
 
@@ -550,7 +563,7 @@ def test_an_id_in_the_path_is_a_positive_integer(
 @pytest.mark.parametrize(
     ("path", "method"),
     UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS
-    + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION,
+    + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION + [(SYNTHESIS, "delete")],
 )
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str

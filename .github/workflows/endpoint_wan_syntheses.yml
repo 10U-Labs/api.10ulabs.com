@@ -129,7 +129,7 @@ jobs:
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
           trees: >-
-            src/api/endpoints/wan_syntheses/lambda src/api/endpoints/wan_syntheses/post
+            src/api/endpoints/wan_syntheses/lambda src/api/endpoints/wan_syntheses/writer
             src/api/endpoints/wan_syntheses/synthesizer lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
@@ -210,6 +210,7 @@ jobs:
           import json
           import os
           import sys
+          from urllib.error import HTTPError
           from urllib.request import Request, urlopen
           import yaml
           path = sys.argv[1]
@@ -233,7 +234,8 @@ jobs:
               data = None if body is None else json.dumps(body).encode()
               request = Request(os.environ["API_URL"] + resource, data, headers, method=method)
               with urlopen(request, timeout=30) as answer:
-                  return json.loads(answer.read())
+                  raw = answer.read()
+                  return json.loads(raw) if raw else None
           body = {
               "label": config["label"],
               "wan_pop_count": backbone["wan_pop_count"],
@@ -263,8 +265,18 @@ jobs:
               "prohibited_circuits": prohibited.get("circuits", []),
               "degree_exempt_wan_pops": backbone.get("degree_exempt", []),
           }
+          earlier = [run["id"] for run in call("GET", "/wan-syntheses") if run["label"] == body["label"]]
           created = call("POST", "/wan-syntheses", body)
           print(f"Created {created['label']} from {path} as synthesis {created['id']}.")
+          for run_id in earlier:
+              try:
+                  call("DELETE", f"/wan-syntheses/{run_id}")
+              except HTTPError as refusal:
+                  if refusal.code != 409:
+                      raise
+                  print(f"Synthesis {run_id} of {created['label']} is still running and stays.")
+                  continue
+              print(f"Deleted synthesis {run_id}, the earlier run of {created['label']}.")
           EOF
             done
   e2e-tests:

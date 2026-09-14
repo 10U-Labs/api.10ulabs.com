@@ -2929,7 +2929,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesPostHandlerArn}",
+          "uri": "${WanSynthesesWriterHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3105,6 +3105,87 @@
         },
         "x-amazon-apigateway-integration": {
           "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      },
+      "delete": {
+        "summary": "Delete WAN Synthesis",
+        "description": "Deletes one WAN synthesis that has ended and everything under it, its inputs and its WAN; its id is never given again. A run still creating or synthesizing is refused, since its synthesizer would publish under a run that is gone.",
+        "operationId": "deleteWanSynthesis",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The synthesis and everything under it are gone"
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The synthesis is still creating or synthesizing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be written"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesWriterHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }

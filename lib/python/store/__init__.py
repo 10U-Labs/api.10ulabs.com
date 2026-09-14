@@ -115,6 +115,23 @@ def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, 
     return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')
 
 
+def remove(table: str, collection: str, member_id: str) -> bool:
+    store = aws_client('dynamodb')
+    for item in partition(table, f'{collection}/{member_id}'):
+        store.delete_item(TableName=table, Key={'PK': item['PK'], 'SK': item['SK']})
+    try:
+        store.delete_item(
+            TableName=table,
+            Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
+            ConditionExpression='attribute_exists(PK)',
+        )
+    except ClientError as error:
+        if conditional(error):
+            return False
+        raise
+    return True
+
+
 def plain(value: Dict[str, Any]) -> Any:
     kind, held = next(iter(value.items()))
     if kind == 'N':

@@ -6,11 +6,11 @@ from typing import Any, Callable, Dict, NamedTuple, Optional
 from botocore.exceptions import ClientError
 
 from lambda_http import (
-    aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
-    no_content, parse_fields, parse_valid, path_id,
+    created, dispatch, error_response, has_numbers, has_strings, json_response, no_content,
+    parse_fields, parse_valid, path_id,
 )
 from store import (
-    advance, conditional, conditioned, delete, member, members, next_id, partition, put,
+    advance, conditional, conditioned, delete, member, members, next_id, partition, put, remove,
     sort_id,
 )
 
@@ -107,24 +107,6 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, _carrier(item))
 
 
-def _remove(collection: str, member_id: str) -> bool:
-    table = os.environ['STORE_TABLE']
-    store = aws_client('dynamodb')
-    for item in partition(table, f'{collection}/{member_id}'):
-        store.delete_item(TableName=table, Key={'PK': item['PK'], 'SK': item['SK']})
-    try:
-        store.delete_item(
-            TableName=table,
-            Key={'PK': {'S': collection}, 'SK': {'S': member_id}},
-            ConditionExpression='attribute_exists(PK)',
-        )
-    except ClientError as error:
-        if conditional(error):
-            return False
-        raise
-    return True
-
-
 def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
     return {
         'id': sort_id(item),
@@ -173,7 +155,7 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
-        removed = _remove(COLLECTION, carrier_id)
+        removed = remove(os.environ['STORE_TABLE'], COLLECTION, carrier_id)
     except ClientError as error:
         logger.error('Error deleting carrier %s: %s', carrier_id, error)
         return error_response(500, 'Failed to delete the carrier')

@@ -6,14 +6,17 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 from botocore.exceptions import ClientError
 
 from lambda_http import (
-    aws_client, created, dispatch, error_response, has_numbers, has_strings, parse_fields,
+    aws_client, created, dispatch, error_response, has_numbers, has_strings, no_content,
+    parse_fields, path_id,
 )
-from store import next_id, put, typed
+from store import member, next_id, put, remove, typed
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 COLLECTION = 'wan-syntheses'
+MISSING = 'No such wan synthesis'
+RUNNING = ('creating', 'synthesizing')
 SCALARS = (
     'label', 'wan_pop_count', 'backbone_number_of_diverse_circuits', 'homing_degree',
     'convergence_promotion', 'knobs', 'settings',
@@ -158,5 +161,26 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     return created(f'/{COLLECTION}/{synthesis_id}', _record(synthesis_id, body))
 
 
+def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
+    synthesis_id = path_id(event, 'synthesis')
+    if synthesis_id is None:
+        return error_response(404, MISSING)
+    table = os.environ['STORE_TABLE']
+    try:
+        record = member(table, COLLECTION, synthesis_id)
+        if record is not None and record['status']['S'] in RUNNING:
+            return error_response(409, 'The synthesis is still running')
+        removed = record is not None and remove(table, COLLECTION, synthesis_id)
+    except ClientError as error:
+        logger.error('Error deleting wan synthesis %s: %s', synthesis_id, error)
+        return error_response(500, 'Failed to delete the wan synthesis')
+    if not removed:
+        return error_response(404, MISSING)
+    return no_content()
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
-    return dispatch(event, {(f'/{COLLECTION}', 'POST'): _create})
+    return dispatch(event, {
+        (f'/{COLLECTION}', 'POST'): _create,
+        (f'/{COLLECTION}/{{synthesis}}', 'DELETE'): _delete,
+    })

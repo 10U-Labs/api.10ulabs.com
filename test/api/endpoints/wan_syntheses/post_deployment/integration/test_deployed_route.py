@@ -159,3 +159,24 @@ def test_a_body_without_the_run_s_inputs_names_every_field_through_the_deployed_
 ) -> None:
     _, body = post_json(f"{stage_url}{SYNTHESES}", {"label": "minuteman"}, bearer)
     assert body["error"].startswith("The body must be exactly the run's label, wan_pop_count")
+
+
+def test_a_deletion_refuses_a_call_without_a_token_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]]
+) -> None:
+    status, _ = delete_json(f"{stage_url}{SYNTHESES}/0")
+    assert status == 401
+
+
+def test_the_workflows_key_deletes_no_synthesis_that_is_not_there_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = delete_json(f"{stage_url}{SYNTHESES}/0", bearer)
+    assert status == 404
+
+
+def test_a_deletion_of_a_synthesis_that_is_not_there_names_it_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = delete_json(f"{stage_url}{SYNTHESES}/0", bearer)
+    assert body["error"] == "No such wan synthesis"
