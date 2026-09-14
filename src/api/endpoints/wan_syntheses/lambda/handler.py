@@ -66,6 +66,14 @@ REGIONS = Part(
 )
 
 
+def _listed(part: Part) -> str:
+    return f'/{COLLECTION}/{{synthesis}}/{part.prefix}'
+
+
+def _one(part: Part) -> str:
+    return f'{_listed(part)}/{{{part.parameter}}}'
+
+
 def _held(record: Optional[Dict[str, Any]], part: Part) -> bool:
     return record is not None and (part.given or record['status']['S'] == 'success')
 
@@ -163,13 +171,13 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}/{{synthesis}}', 'GET'): _read,
-        (f'/{COLLECTION}/{{synthesis}}/wan-pops', 'GET'): _list_wan_pops,
-        (f'/{COLLECTION}/{{synthesis}}/wan-pops/{{wan-pop}}', 'GET'): _read_wan_pop,
-        (f'/{COLLECTION}/{{synthesis}}/backbone-circuits', 'GET'): _list_backbone_circuits,
-        (f'/{COLLECTION}/{{synthesis}}/homing-circuits', 'GET'): _list_homing_circuits,
-        (f'/{COLLECTION}/{{synthesis}}/fiber-segments', 'GET'): _list_fiber_segments,
-        (f'/{COLLECTION}/{{synthesis}}/sites', 'GET'): _list_sites,
-        (f'/{COLLECTION}/{{synthesis}}/sites/{{site}}', 'GET'): _read_site,
-        (f'/{COLLECTION}/{{synthesis}}/{REGIONS.prefix}', 'GET'): _list_regions,
-        (f'/{COLLECTION}/{{synthesis}}/{REGIONS.prefix}/{{region}}', 'GET'): _read_region,
+        (_listed(WAN_POPS), 'GET'): _list_wan_pops,
+        (_one(WAN_POPS), 'GET'): _read_wan_pop,
+        (_listed(BACKBONE_CIRCUITS), 'GET'): _list_backbone_circuits,
+        (_listed(HOMING_CIRCUITS), 'GET'): _list_homing_circuits,
+        (_listed(FIBER_SEGMENTS), 'GET'): _list_fiber_segments,
+        (_listed(SITES), 'GET'): _list_sites,
+        (_one(SITES), 'GET'): _read_site,
+        (_listed(REGIONS), 'GET'): _list_regions,
+        (_one(REGIONS), 'GET'): _read_region,
     })
