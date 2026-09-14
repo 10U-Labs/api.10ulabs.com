@@ -24,6 +24,12 @@ def json_response(status_code: int, body: Any) -> Dict[str, Any]:
     }
 
 
+def created(location: str, body: Any) -> Dict[str, Any]:
+    response = json_response(201, body)
+    response['headers']['Location'] = location
+    return response
+
+
 def parse_body(event: Dict[str, Any]) -> Any:
     body = event.get('body') or ''
     if event.get('isBase64Encoded'):

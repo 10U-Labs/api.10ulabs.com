@@ -6,7 +6,9 @@ from typing import Any, Dict
 import pytest
 
 import lambda_http
-from lambda_http import aws_client, dispatch, json_response, parse_body, parse_fields, parse_object
+from lambda_http import (
+    aws_client, created, dispatch, json_response, parse_body, parse_fields, parse_object
+)
 
 
 def _echo(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -23,6 +25,22 @@ def test_json_response_is_json() -> None:
 
 def test_json_response_serialises_the_body() -> None:
     assert json.loads(json_response(200, {'a': [1, 2]})['body']) == {'a': [1, 2]}
+
+
+def test_created_answers_201() -> None:
+    assert created('/a/1', {})['statusCode'] == 201
+
+
+def test_created_locates_what_it_answers() -> None:
+    assert created('/a/1', {})['headers']['Location'] == '/a/1'
+
+
+def test_created_is_json() -> None:
+    assert created('/a/1', {})['headers']['Content-Type'] == 'application/json'
+
+
+def test_created_serialises_the_body() -> None:
+    assert json.loads(created('/a/1', {'id': 1})['body']) == {'id': 1}
 
 
 def test_parse_body_reads_json() -> None:

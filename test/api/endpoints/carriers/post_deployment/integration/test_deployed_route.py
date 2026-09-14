@@ -8,7 +8,7 @@ BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
          "latitude": 43.615, "longitude": -116.2023}
 DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
            "z_municipality": "Salt Lake City", "z_state": "UT", "submarine": False}
-CORRECTIONS = list(zip(MEMBERS, [BOISE, DEN_SLC]))
+CORRECTION = dict(zip(MEMBERS, [BOISE, DEN_SLC]))
 
 
 def test_the_carriers_are_listed_through_the_deployed_api(
@@ -182,26 +182,25 @@ def test_the_first_member_of_every_listed_carrier_is_served_at_its_own_url_throu
     assert [get_json(url, bearer) for url, _ in firsts] == [(200, one) for _, one in firsts]
 
 
-@pytest.mark.parametrize(("members", "correction"), CORRECTIONS)
+@pytest.mark.parametrize("members", MEMBERS)
 def test_the_workflows_key_is_refused_a_member_correction_through_the_deployed_api(
     stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
-    members: str, correction: Dict[str, Any],
+    members: str,
 ) -> None:
-    status, _ = put_json(f"{stage_url}/carriers/0/{members}/0", correction, bearer)
+    status, _ = put_json(f"{stage_url}/carriers/0/{members}/0", CORRECTION[members], bearer)
     assert status == 403
 
 
-@pytest.mark.parametrize(("members", "correction"), CORRECTIONS)
+@pytest.mark.parametrize("members", MEMBERS)
 def test_a_refused_correction_leaves_the_first_member_of_every_listed_carrier_as_it_was(
     stage_url: str,
     get_json: Callable[..., Tuple[int, Any]],
     put_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
     members: str,
-    correction: Dict[str, Any],
 ) -> None:
     firsts = _firsts(stage_url, get_json, bearer, members)
-    refused = [put_json(url, correction, bearer)[0] for url, _ in firsts]
+    refused = [put_json(url, CORRECTION[members], bearer)[0] for url, _ in firsts]
     assert (refused, [get_json(url, bearer)[1] for url, _ in firsts]) == (
         [403] * len(firsts), [one for _, one in firsts]
     )

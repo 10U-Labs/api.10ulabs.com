@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, dispatch, json_response, parse_fields
+from lambda_http import aws_client, created, dispatch, json_response, parse_fields
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -275,9 +275,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         logger.error('Error creating the carrier: %s', error)
         return json_response(500, {'error': 'Failed to create the carrier'})
-    response = json_response(201, {'id': carrier_id, 'name': name})
-    response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}'
-    return response
+    return created(f'/{COLLECTION}/{carrier_id}', {'id': carrier_id, 'name': name})
 
 
 def _next_under(carrier_id: str, counter: str) -> Optional[int]:
@@ -398,9 +396,7 @@ def _add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
         return json_response(500, {'error': kind.failure})
     if item is None:
         return json_response(404, {'error': MISSING})
-    response = json_response(201, kind.row(item))
-    response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}'
-    return response
+    return created(f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}', kind.row(item))
 
 
 def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
