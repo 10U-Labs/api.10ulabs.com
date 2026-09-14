@@ -3285,6 +3285,129 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/sites": {
+      "get": {
+        "summary": "List Sites",
+        "description": "Lists the sites one synthesis was given, the tenant's named places with a coordinate, each by the id given at creation; the sites are an input, so they are there whatever the run's status.",
+        "operationId": "listSites",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run's sites, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name",
+                      "municipality",
+                      "state",
+                      "country",
+                      "latitude",
+                      "longitude",
+                      "exempt_from_distance_constraint"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the site was given at creation, in the order the body listed the sites",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The site's name, as the run gave it",
+                        "example": "F.E. Warren AFB"
+                      },
+                      "municipality": {
+                        "type": "string",
+                        "example": "Cheyenne"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "The state or province; empty outside a country that has them",
+                        "example": "WY"
+                      },
+                      "country": {
+                        "type": "string",
+                        "example": "United States"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "example": 41.1517
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": -104.8678
+                      },
+                      "exempt_from_distance_constraint": {
+                        "type": "boolean",
+                        "description": "Whether the site may home farther than the run allows others to",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

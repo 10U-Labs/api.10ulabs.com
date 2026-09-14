@@ -80,12 +80,18 @@ WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
 BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis}/backbone-circuits"
 HOMING_CIRCUITS = "/wan-syntheses/{synthesis}/homing-circuits"
 RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
+SITES = "/wan-syntheses/{synthesis}/sites"
 UNDER_A_SYNTHESIS = [
     (SYNTHESIS, "get"),
     (WAN_POPS, "get"),
     (BACKBONE_CIRCUITS, "get"),
     (HOMING_CIRCUITS, "get"),
     (RIDDEN_FIBER, "get"),
+    (SITES, "get"),
+]
+SITE_FIELDS = [
+    "id", "name", "municipality", "state", "country", "latitude", "longitude",
+    "exempt_from_distance_constraint",
 ]
 RIDDEN_FIBER_FIELDS = [
     "id", "carrier", "a_municipality", "a_state", "a_latitude", "a_longitude",
@@ -422,6 +428,20 @@ def test_a_ridden_fiber_segment_is_a_carrier_s_span_with_both_ends_placed(
 
 def test_a_ridden_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
     assert _listed_ridden_fiber(openapi)["properties"]["submarine"]["type"] == "boolean"
+
+
+def test_the_sites_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SITES]) == ["get"]
+
+
+def test_a_site_is_a_named_and_placed_input_with_an_id(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][SITES]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == SITE_FIELDS
+
+
+def test_the_sites_are_there_whatever_the_run_s_status(openapi: Dict[str, Any]) -> None:
+    missing = openapi["paths"][SITES]["get"]["responses"]["404"]["description"]
+    assert missing == "No synthesis has that id"
 
 
 def test_a_wan_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:

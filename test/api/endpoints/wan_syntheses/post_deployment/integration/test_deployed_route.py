@@ -3,7 +3,9 @@ from typing import Any, Callable, Dict, List, Tuple
 import pytest
 
 SYNTHESES = "/wan-syntheses"
-PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
+WAN_PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
+INPUTS = ["sites"]
+PARTS = WAN_PARTS + INPUTS
 
 
 def test_the_syntheses_are_listed_through_the_deployed_api(
@@ -75,7 +77,7 @@ def _succeeded(
     return [record["id"] for record in records if record["status"] == "success"]
 
 
-@pytest.mark.parametrize("part", PARTS)
+@pytest.mark.parametrize("part", WAN_PARTS)
 def test_every_succeeded_synthesis_answers_a_list_for_each_part_through_the_deployed_api(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str], part: str
 ) -> None:
@@ -107,3 +109,12 @@ def test_the_first_wan_pop_of_every_succeeded_synthesis_is_served_at_its_own_url
         for pop in get_json(f"{stage_url}{SYNTHESES}/{one}/wan-pops", bearer)[1][:1]
     ]
     assert [get_json(url, bearer) for url, _ in firsts] == [(200, pop) for _, pop in firsts]
+
+
+@pytest.mark.parametrize("part", INPUTS)
+def test_every_listed_synthesis_answers_a_list_for_each_input_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str], part: str
+) -> None:
+    _, listed = get_json(f"{stage_url}{SYNTHESES}", bearer)
+    answered = [get_json(f"{stage_url}{SYNTHESES}/{one['id']}/{part}", bearer) for one in listed]
+    assert [(status, type(rows)) for status, rows in answered] == [(200, list)] * len(listed)

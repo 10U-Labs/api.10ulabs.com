@@ -54,7 +54,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "WAN syntheses endpoint: list the syntheses in the store, serve one by its id, list a WAN's PoPs or serve one by its id, and list a WAN's backbone and homing circuits and the fiber it rides."
+  description      = "WAN syntheses endpoint: list the syntheses in the store, serve one by its id, list a WAN's PoPs or serve one by its id, list a WAN's backbone and homing circuits and the fiber it rides, and list a run's sites."
 
   environment {
     variables = {

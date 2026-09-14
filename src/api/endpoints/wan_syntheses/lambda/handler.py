@@ -52,22 +52,24 @@ class Part(NamedTuple):
     prefix: str
     parameter: str
     missing: str
+    given: bool = False
 
 
 WAN_POPS = Part('wan-pops', 'wan-pop', 'No such wan pop')
 BACKBONE_CIRCUITS = Part('backbone-circuits', 'backbone-circuit', 'No such backbone circuit')
 HOMING_CIRCUITS = Part('homing-circuits', 'homing-circuit', 'No such homing circuit')
 FIBER_SEGMENTS = Part('fiber-segments', 'fiber-segment', 'No such fiber segment')
+SITES = Part('sites', 'site', 'No such site', given=True)
 
 
-def _has_wan(record: Optional[Dict[str, Any]]) -> bool:
-    return record is not None and record['status']['S'] == 'success'
+def _held(record: Optional[Dict[str, Any]], part: Part) -> bool:
+    return record is not None and (part.given or record['status']['S'] == 'success')
 
 
-def _wan_refusal(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _refusal(record: Optional[Dict[str, Any]], part: Part) -> Optional[Dict[str, Any]]:
     if record is None:
         return error_response(404, MISSING)
-    return None if _has_wan(record) else error_response(404, NO_WAN)
+    return None if _held(record, part) else error_response(404, NO_WAN)
 
 
 def _list_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any]:
@@ -78,11 +80,11 @@ def _list_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, An
     try:
         record = member(table, COLLECTION, synthesis_id)
         under = f'{COLLECTION}/{synthesis_id}'
-        items = partition(table, under, f'{part.prefix}/') if _has_wan(record) else []
+        items = partition(table, under, f'{part.prefix}/') if _held(record, part) else []
     except ClientError as error:
         logger.error('Error reading the %s of synthesis %s: %s', part.prefix, synthesis_id, error)
         return error_response(500, failure)
-    refused = _wan_refusal(record)
+    refused = _refusal(record, part)
     if refused is not None:
         return refused
     return json_response(200, sorted(map(_record, items), key=lambda one: one['id']))
@@ -99,13 +101,13 @@ def _read_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, An
     try:
         record = member(table, COLLECTION, synthesis_id)
         under = f'{COLLECTION}/{synthesis_id}'
-        item = member(table, under, f'{part.prefix}/{part_id}') if _has_wan(record) else None
+        item = member(table, under, f'{part.prefix}/{part_id}') if _held(record, part) else None
     except ClientError as error:
         logger.error(
             'Error reading %s/%s of synthesis %s: %s', part.prefix, part_id, synthesis_id, error
         )
         return error_response(500, failure)
-    refused = _wan_refusal(record)
+    refused = _refusal(record, part)
     if refused is not None:
         return refused
     if item is None:
@@ -133,6 +135,10 @@ def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, FIBER_SEGMENTS, 'Failed to read the fiber segments')
 
 
+def _list_sites(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, SITES, 'Failed to read the sites')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -142,4 +148,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}/{{synthesis}}/backbone-circuits', 'GET'): _list_backbone_circuits,
         (f'/{COLLECTION}/{{synthesis}}/homing-circuits', 'GET'): _list_homing_circuits,
         (f'/{COLLECTION}/{{synthesis}}/fiber-segments', 'GET'): _list_fiber_segments,
+        (f'/{COLLECTION}/{{synthesis}}/sites', 'GET'): _list_sites,
     })
