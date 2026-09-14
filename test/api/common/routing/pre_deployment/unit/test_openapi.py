@@ -84,6 +84,7 @@ SITES = "/wan-syntheses/{synthesis}/sites"
 SITE = "/wan-syntheses/{synthesis}/sites/{site}"
 RUN_REGIONS = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions"
 RUN_REGION = f"{RUN_REGIONS}/{{region}}"
+OFF_NET = "/wan-syntheses/{synthesis}/off-net"
 UNDER_A_SITE = [(SITE, "get")]
 UNDER_A_RUN_REGION = [(RUN_REGION, "get")]
 UNDER_A_SYNTHESIS = [
@@ -94,8 +95,9 @@ UNDER_A_SYNTHESIS = [
     (RIDDEN_FIBER, "get"),
     (SITES, "get"),
     (RUN_REGIONS, "get"),
+    (OFF_NET, "get"),
 ]
-GIVEN = [SITES, RUN_REGIONS, RUN_REGION]
+GIVEN = [SITES, RUN_REGIONS, RUN_REGION, OFF_NET]
 SITE_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude",
     "exempt_from_distance_constraint",
@@ -477,6 +479,15 @@ def test_a_synthesis_s_region_is_served_by_id_as_the_catalog_serves_it(
 ) -> None:
     served = openapi["paths"][RUN_REGION]["get"]["responses"]["200"]
     assert served["content"]["application/json"]["schema"]["required"] == REGION_FIELDS
+
+
+def test_the_off_net_pops_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][OFF_NET]) == ["get"]
+
+
+def test_an_off_net_pop_is_a_placed_and_unnamed_input_with_an_id(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][OFF_NET]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
 @pytest.mark.parametrize("path", GIVEN)

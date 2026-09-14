@@ -94,4 +94,13 @@ def syntheses() -> List[Dict[str, Any]]:
          "name": {"S": "Provider D"}, "municipality": {"S": "Phoenix"}, "state": {"S": "AZ"},
          "country": {"S": "United States"}, "latitude": {"N": "33.4484"},
          "longitude": {"N": "-112.074"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "off-net/2"}, "municipality": {"S": "Reno"},
+         "state": {"S": "NV"}, "country": {"S": "United States"},
+         "latitude": {"N": "39.5296"}, "longitude": {"N": "-119.8138"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "off-net/1"}, "municipality": {"S": "Dulles"},
+         "state": {"S": "VA"}, "country": {"S": "United States"},
+         "latitude": {"N": "38.9519"}, "longitude": {"N": "-77.448"}},
+        {"PK": {"S": "wan-syntheses/2"}, "SK": {"S": "off-net/1"}, "municipality": {"S": "Toledo"},
+         "state": {"S": "OH"}, "country": {"S": "United States"},
+         "latitude": {"N": "41.6528"}, "longitude": {"N": "-83.5379"}},
     ]

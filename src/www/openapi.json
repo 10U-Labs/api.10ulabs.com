@@ -3781,6 +3781,117 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/off-net": {
+      "get": {
+        "summary": "List Given Off-Net PoPs",
+        "description": "Lists the off-net PoPs one synthesis was given, the candidate PoPs in cities no carrier serves, each as the body carried it under the id given at creation; the off-net PoPs are an input, so they are there whatever the run's status.",
+        "operationId": "listGivenOffNetPops",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run's off-net PoPs, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "municipality",
+                      "state",
+                      "country",
+                      "latitude",
+                      "longitude"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the off-net PoP was given at creation, in the order the body listed them",
+                        "example": 1
+                      },
+                      "municipality": {
+                        "type": "string",
+                        "example": "Dulles"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "The state or province; empty outside a country that has them",
+                        "example": "VA"
+                      },
+                      "country": {
+                        "type": "string",
+                        "example": "United States"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "example": 38.9519
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": -77.448
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

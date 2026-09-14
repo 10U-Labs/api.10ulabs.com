@@ -4,9 +4,10 @@ import pytest
 
 SYNTHESES = "/wan-syntheses"
 WAN_PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
-INPUTS = ["sites", "hyperscale-cloud-service-provider-regions"]
+SERVED_INPUTS = ["sites", "hyperscale-cloud-service-provider-regions"]
+INPUTS = SERVED_INPUTS + ["off-net"]
 PARTS = WAN_PARTS + INPUTS
-MEMBERS = ["wan-pops"] + INPUTS
+MEMBERS = ["wan-pops"] + SERVED_INPUTS
 
 
 def test_the_syntheses_are_listed_through_the_deployed_api(
@@ -123,7 +124,7 @@ def test_every_listed_synthesis_answers_a_list_for_each_input_through_the_deploy
     assert [(status, type(rows)) for status, rows in answered] == [(200, list)] * len(listed)
 
 
-@pytest.mark.parametrize("part", INPUTS)
+@pytest.mark.parametrize("part", SERVED_INPUTS)
 def test_the_first_input_of_every_listed_synthesis_is_served_at_its_own_url(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str], part: str
 ) -> None:
