@@ -126,8 +126,8 @@ def served_fixture(answer: Handler) -> Served:
     return served
 
 
-@pytest.fixture
-def carriers() -> List[Dict[str, Any]]:
+@pytest.fixture(name="carriers")
+def carriers_fixture() -> List[Dict[str, Any]]:
     return [
         {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}},
         {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "zayo"},

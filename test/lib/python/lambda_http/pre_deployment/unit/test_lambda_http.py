@@ -90,3 +90,9 @@ def test_aws_client_keeps_the_client_it_made(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(lambda_http, "boto3", SimpleNamespace(client=lambda service: object()))
     monkeypatch.setattr(lambda_http, "_clients", {})
     assert aws_client("sqs") is aws_client("sqs")
+
+
+def test_aws_client_makes_a_client_per_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lambda_http, "boto3", SimpleNamespace(client=lambda service: object()))
+    monkeypatch.setattr(lambda_http, "_clients", {})
+    assert aws_client("sqs") is not aws_client("s3")
