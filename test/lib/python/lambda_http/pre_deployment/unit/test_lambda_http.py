@@ -69,6 +69,11 @@ def test_dispatch_answers_404_for_an_event_naming_no_resource() -> None:
     assert dispatch({}, {('/a', 'POST'): _echo})['statusCode'] == 404
 
 
+def test_dispatch_names_the_error_of_a_route_it_does_not_hold() -> None:
+    event = {'resource': '/b', 'httpMethod': 'POST'}
+    assert json.loads(dispatch(event, {('/a', 'POST'): _echo})['body']) == {'error': 'Not found'}
+
+
 def test_aws_client_asks_boto3_for_the_service(monkeypatch: pytest.MonkeyPatch) -> None:
     boto3 = SimpleNamespace(client=lambda service: f"a {service} client")
     monkeypatch.setattr(lambda_http, "boto3", boto3)

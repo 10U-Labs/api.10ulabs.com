@@ -1,8 +1,13 @@
+import json
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional
 
 import pytest
 from botocore.exceptions import ClientError
+
+Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
+Served = Callable[[Dict[str, Any]], Any]
+Stored = Callable[[str], Dict[str, Any]]
 
 
 @pytest.fixture(name="store")
@@ -105,6 +110,27 @@ def carriers_handler(
     monkeypatch.setenv("STORE_TABLE", "store")
     monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": store}[service])
     return handler
+
+
+@pytest.fixture(name="answer")
+def answer_fixture(carriers_handler: ModuleType) -> Answer:
+    def answer(event: Dict[str, Any]) -> Dict[str, Any]:
+        return dict(carriers_handler.lambda_handler(event, None))
+    return answer
+
+
+@pytest.fixture(name="served")
+def served_fixture(answer: Answer) -> Served:
+    def served(event: Dict[str, Any]) -> Any:
+        return json.loads(answer(event)["body"])
+    return served
+
+
+@pytest.fixture(name="stored")
+def stored_fixture(store: SimpleNamespace) -> Stored:
+    def stored(carrier: str) -> Dict[str, Any]:
+        return next(item for item in store.items if item["SK"] == {"S": carrier})
+    return stored
 
 
 @pytest.fixture

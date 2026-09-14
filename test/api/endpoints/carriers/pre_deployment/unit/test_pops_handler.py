@@ -1,9 +1,12 @@
-from types import ModuleType, SimpleNamespace
-from typing import Any, Dict, List
+import json
+from types import SimpleNamespace
+from typing import Any, Callable, Dict, List
 
 import pytest
-from harness import answer, get, post, served, stored
 
+Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
+Served = Callable[[Dict[str, Any]], Any]
+Stored = Callable[[str], Dict[str, Any]]
 POPS = "/carriers/{carrier}/pops"
 CHICAGO = {"id": 3, "municipality": "Chicago", "state": "IL", "country": "US",
            "latitude": 41.8781, "longitude": -87.6298}
@@ -12,36 +15,36 @@ DENVER = {"id": 1, "municipality": "Denver", "state": "CO", "country": "US",
 
 
 def _get_pops(carrier: str = "1") -> Dict[str, Any]:
-    return {**get(POPS), "pathParameters": {"carrier": carrier}}
+    return {"resource": POPS, "httpMethod": "GET", "pathParameters": {"carrier": carrier}}
 
 
 def test_the_pops_of_a_stored_carrier_answer_200(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _get_pops())["statusCode"] == 200
+    assert answer(_get_pops())["statusCode"] == 200
 
 
 def test_the_pops_answer_as_rows_in_id_order(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _get_pops()) == [DENVER, CHICAGO]
+    assert served(_get_pops()) == [DENVER, CHICAGO]
 
 
 def test_a_carrier_without_pops_answers_none(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _get_pops("2")) == []
+    assert served(_get_pops("2")) == []
 
 
 @pytest.fixture(name="pops_query")
 def pops_query_fixture(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     store.items.extend(carriers)
-    answer(carriers_handler, _get_pops())
+    answer(_get_pops())
     return dict(store.queries[-1])
 
 
@@ -57,33 +60,29 @@ def test_the_pops_are_read_from_the_table_the_environment_names(
     assert pops_query["TableName"] == "store"
 
 
-def test_the_pops_of_an_unknown_carrier_answer_404(carriers_handler: ModuleType) -> None:
-    assert answer(carriers_handler, _get_pops("3"))["statusCode"] == 404
+def test_the_pops_of_an_unknown_carrier_answer_404(answer: Answer) -> None:
+    assert answer(_get_pops("3"))["statusCode"] == 404
 
 
-def test_the_pops_of_an_unknown_carrier_name_the_error(carriers_handler: ModuleType) -> None:
-    assert served(carriers_handler, _get_pops("3"))["error"] == "No such carrier"
+def test_the_pops_of_an_unknown_carrier_name_the_error(served: Served) -> None:
+    assert served(_get_pops("3"))["error"] == "No such carrier"
 
 
 @pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
-def test_the_pops_of_an_id_that_is_not_a_number_answer_404(
-    carriers_handler: ModuleType, carrier: str
-) -> None:
-    assert answer(carriers_handler, _get_pops(carrier))["statusCode"] == 404
+def test_the_pops_of_an_id_that_is_not_a_number_answer_404(answer: Answer, carrier: str) -> None:
+    assert answer(_get_pops(carrier))["statusCode"] == 404
 
 
-def test_a_store_that_refuses_the_pops_answers_500(
-    carriers_handler: ModuleType, store: SimpleNamespace
-) -> None:
+def test_a_store_that_refuses_the_pops_answers_500(answer: Answer, store: SimpleNamespace) -> None:
     store.failing = True
-    assert answer(carriers_handler, _get_pops())["statusCode"] == 500
+    assert answer(_get_pops())["statusCode"] == 500
 
 
 def test_a_store_that_refuses_the_pops_names_the_error(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    served: Served, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert served(carriers_handler, _get_pops())["error"] == "Failed to read the pops"
+    assert served(_get_pops())["error"] == "Failed to read the pops"
 
 
 BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
@@ -94,66 +93,67 @@ POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latit
 
 
 def _post_pop(body: Any, carrier: str = "1") -> Dict[str, Any]:
-    return {**post(body, POPS), "pathParameters": {"carrier": carrier}}
+    event = {"resource": POPS, "httpMethod": "POST", "body": json.dumps(body)}
+    return {**event, "pathParameters": {"carrier": carrier}}
 
 
 def test_a_pop_is_added_with_201(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _post_pop(BOISE))["statusCode"] == 201
+    assert answer(_post_pop(BOISE))["statusCode"] == 201
 
 
 def test_a_pop_outside_a_country_with_states_is_added_with_201(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _post_pop(AMSTERDAM))["statusCode"] == 201
+    assert answer(_post_pop(AMSTERDAM))["statusCode"] == 201
 
 
 def test_a_pop_outside_a_country_with_states_answers_with_no_state(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _post_pop(AMSTERDAM))["state"] == ""
+    assert served(_post_pop(AMSTERDAM))["state"] == ""
 
 
 def test_the_added_pop_answers_with_the_id_the_carrier_holds_next(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _post_pop(BOISE)) == {"id": 4, **BOISE}
+    assert served(_post_pop(BOISE)) == {"id": 4, **BOISE}
 
 
 def test_the_added_pop_is_located_under_the_carrier_s_pops(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    headers = answer(carriers_handler, _post_pop(BOISE))["headers"]
+    headers = answer(_post_pop(BOISE))["headers"]
     assert headers["Location"] == "/carriers/1/pops/4"
 
 
 def test_the_carrier_s_next_pop_moves_past_the_id_it_gave(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, stored: Stored, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _post_pop(BOISE))
-    assert stored(store, "1")["next_pop"] == {"N": "5"}
+    answer(_post_pop(BOISE))
+    assert stored("1")["next_pop"] == {"N": "5"}
 
 
 def test_a_pop_id_is_never_reused(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
     pops = (BOISE, {**BOISE, "municipality": "Reno"})
-    assert [served(carriers_handler, _post_pop(pop, "2"))["id"] for pop in pops] == [1, 2]
+    assert [served(_post_pop(pop, "2"))["id"] for pop in pops] == [1, 2]
 
 
 def test_the_pop_is_written_under_the_carrier_by_its_id(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _post_pop(BOISE))
+    answer(_post_pop(BOISE))
     assert store.items[-1] == {
         "PK": {"S": "carriers/1"}, "SK": {"S": "pops/4"}, "municipality": {"S": "Boise"},
         "state": {"S": "ID"}, "country": {"S": "US"},
@@ -162,19 +162,19 @@ def test_the_pop_is_written_under_the_carrier_by_its_id(
 
 
 def test_the_added_pop_is_then_listed_last(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _post_pop(BOISE))
-    assert served(carriers_handler, _get_pops())[-1] == {"id": 4, **BOISE}
+    answer(_post_pop(BOISE))
+    assert served(_get_pops())[-1] == {"id": 4, **BOISE}
 
 
 @pytest.fixture(name="pop_request")
 def pop_request_fixture(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     store.items.extend(carriers)
-    answer(carriers_handler, _post_pop(BOISE))
+    answer(_post_pop(BOISE))
     return dict(store.updates[0])
 
 
@@ -194,26 +194,26 @@ def test_taking_a_pop_id_requires_the_carrier_to_exist_in_the_store(
     assert pop_request["ConditionExpression"] == "attribute_exists(PK)"
 
 
-def test_adding_a_pop_to_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
-    assert answer(carriers_handler, _post_pop(BOISE, "3"))["statusCode"] == 404
+def test_adding_a_pop_to_an_unknown_carrier_answers_404(answer: Answer) -> None:
+    assert answer(_post_pop(BOISE, "3"))["statusCode"] == 404
 
 
-def test_adding_a_pop_to_an_unknown_carrier_names_the_error(carriers_handler: ModuleType) -> None:
-    assert served(carriers_handler, _post_pop(BOISE, "3"))["error"] == "No such carrier"
+def test_adding_a_pop_to_an_unknown_carrier_names_the_error(served: Served) -> None:
+    assert served(_post_pop(BOISE, "3"))["error"] == "No such carrier"
 
 
 def test_adding_a_pop_to_an_unknown_carrier_writes_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    answer: Answer, store: SimpleNamespace
 ) -> None:
-    answer(carriers_handler, _post_pop(BOISE, "3"))
+    answer(_post_pop(BOISE, "3"))
     assert store.items == []
 
 
 @pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
 def test_adding_a_pop_to_an_id_that_is_not_a_number_answers_404(
-    carriers_handler: ModuleType, carrier: str
+    answer: Answer, carrier: str
 ) -> None:
-    assert answer(carriers_handler, _post_pop(BOISE, carrier))["statusCode"] == 404
+    assert answer(_post_pop(BOISE, carrier))["statusCode"] == 404
 
 
 MISPLACED = [
@@ -231,70 +231,69 @@ MISPLACED = [
 
 @pytest.mark.parametrize("body", MISPLACED)
 def test_a_pop_that_is_not_exactly_a_located_municipality_answers_400(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]], body: Any
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]], body: Any
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _post_pop(body))["statusCode"] == 400
+    assert answer(_post_pop(body))["statusCode"] == 400
 
 
-def test_a_pop_that_is_not_json_answers_400(carriers_handler: ModuleType) -> None:
+def test_a_pop_that_is_not_json_answers_400(answer: Answer) -> None:
     event = {**_post_pop({}), "body": "{"}
-    assert answer(carriers_handler, event)["statusCode"] == 400
+    assert answer(event)["statusCode"] == 400
 
 
-def test_a_refused_pop_names_what_is_expected(carriers_handler: ModuleType) -> None:
-    assert served(carriers_handler, _post_pop({}))["error"] == POP_BODY
+def test_a_refused_pop_names_what_is_expected(served: Served) -> None:
+    assert served(_post_pop({}))["error"] == POP_BODY
 
 
 def test_a_refused_pop_changes_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _post_pop({}))
+    answer(_post_pop({}))
     assert (store.updates, len(store.items)) == ([], 6)
 
 
-def test_a_store_that_refuses_the_pop_answers_500(
-    carriers_handler: ModuleType, store: SimpleNamespace
-) -> None:
+def test_a_store_that_refuses_the_pop_answers_500(answer: Answer, store: SimpleNamespace) -> None:
     store.failing = True
-    assert answer(carriers_handler, _post_pop(BOISE))["statusCode"] == 500
+    assert answer(_post_pop(BOISE))["statusCode"] == 500
 
 
 def test_a_store_that_refuses_the_pop_names_the_error(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    served: Served, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert served(carriers_handler, _post_pop(BOISE))["error"] == "Failed to add the pop"
+    assert served(_post_pop(BOISE))["error"] == "Failed to add the pop"
 
 
 POP = "/carriers/{carrier}/pops/{pop}"
 
 
 def _get_pop(carrier: str = "1", pop: str = "3") -> Dict[str, Any]:
-    return {**get(POP), "pathParameters": {"carrier": carrier, "pop": pop}}
+    event = {"resource": POP, "httpMethod": "GET"}
+    return {**event, "pathParameters": {"carrier": carrier, "pop": pop}}
 
 
 def test_a_stored_pop_answers_200(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _get_pop())["statusCode"] == 200
+    assert answer(_get_pop())["statusCode"] == 200
 
 
 def test_a_stored_pop_answers_by_its_id_and_where_it_is(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _get_pop()) == CHICAGO
+    assert served(_get_pop()) == CHICAGO
 
 
 @pytest.fixture(name="pop_gets")
 def pop_gets_fixture(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     store.items.extend(carriers)
-    answer(carriers_handler, _get_pop())
+    answer(_get_pop())
     return [dict(one) for one in store.gets]
 
 
@@ -311,129 +310,126 @@ def test_a_pop_is_read_from_the_table_the_environment_names(
     assert [one["TableName"] for one in pop_gets] == ["store", "store"]
 
 
-def test_a_pop_of_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
-    assert answer(carriers_handler, _get_pop("3"))["statusCode"] == 404
+def test_a_pop_of_an_unknown_carrier_answers_404(answer: Answer) -> None:
+    assert answer(_get_pop("3"))["statusCode"] == 404
 
 
-def test_a_pop_of_an_unknown_carrier_names_the_carrier(carriers_handler: ModuleType) -> None:
-    assert served(carriers_handler, _get_pop("3"))["error"] == "No such carrier"
+def test_a_pop_of_an_unknown_carrier_names_the_carrier(served: Served) -> None:
+    assert served(_get_pop("3"))["error"] == "No such carrier"
 
 
 def test_a_pop_of_an_unknown_carrier_is_not_looked_for(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    answer: Answer, store: SimpleNamespace
 ) -> None:
-    answer(carriers_handler, _get_pop("3"))
+    answer(_get_pop("3"))
     assert len(store.gets) == 1
 
 
 @pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
-def test_a_pop_of_an_id_that_is_not_a_number_answers_404(
-    carriers_handler: ModuleType, carrier: str
-) -> None:
-    assert answer(carriers_handler, _get_pop(carrier))["statusCode"] == 404
+def test_a_pop_of_an_id_that_is_not_a_number_answers_404(answer: Answer, carrier: str) -> None:
+    assert answer(_get_pop(carrier))["statusCode"] == 404
 
 
 def test_an_unknown_pop_answers_404(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _get_pop("1", "2"))["statusCode"] == 404
+    assert answer(_get_pop("1", "2"))["statusCode"] == 404
 
 
 def test_an_unknown_pop_names_the_pop(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _get_pop("1", "2"))["error"] == "No such pop"
+    assert served(_get_pop("1", "2"))["error"] == "No such pop"
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
 def test_a_pop_id_that_is_not_a_number_answers_404(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]],
-    pop: str,
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]], pop: str
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _get_pop("1", pop))["statusCode"] == 404
+    assert answer(_get_pop("1", pop))["statusCode"] == 404
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
 def test_a_pop_id_that_is_not_a_number_asks_the_store_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace, pop: str
+    answer: Answer, store: SimpleNamespace, pop: str
 ) -> None:
-    answer(carriers_handler, _get_pop("1", pop))
+    answer(_get_pop("1", pop))
     assert store.gets == []
 
 
 def test_a_store_that_refuses_the_pop_read_answers_500(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    answer: Answer, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert answer(carriers_handler, _get_pop())["statusCode"] == 500
+    assert answer(_get_pop())["statusCode"] == 500
 
 
 def test_a_store_that_refuses_the_pop_read_names_the_error(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    served: Served, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert served(carriers_handler, _get_pop())["error"] == "Failed to read the pop"
+    assert served(_get_pop())["error"] == "Failed to read the pop"
 
 
 def _put_pop(body: Any, carrier: str = "1", pop: str = "3") -> Dict[str, Any]:
-    event = {**post(body, POP), "httpMethod": "PUT"}
+    event = {"resource": POP, "httpMethod": "PUT", "body": json.dumps(body)}
     return {**event, "pathParameters": {"carrier": carrier, "pop": pop}}
 
 
 def test_a_stored_pop_is_corrected_with_200(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _put_pop(BOISE))["statusCode"] == 200
+    assert answer(_put_pop(BOISE))["statusCode"] == 200
 
 
 def test_a_corrected_pop_answers_by_its_id_and_new_place(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _put_pop(BOISE)) == {"id": 3, **BOISE}
+    assert served(_put_pop(BOISE)) == {"id": 3, **BOISE}
 
 
 def test_a_pop_corrected_to_outside_a_country_with_states_answers_with_no_state(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _put_pop(AMSTERDAM))["state"] == ""
+    assert served(_put_pop(AMSTERDAM))["state"] == ""
 
 
 def test_a_corrected_pop_is_then_served_at_its_own_url(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE))
-    assert served(carriers_handler, _get_pop()) == {"id": 3, **BOISE}
+    answer(_put_pop(BOISE))
+    assert served(_get_pop()) == {"id": 3, **BOISE}
 
 
 def test_a_correction_leaves_the_carrier_s_other_pops_as_they_were(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE))
-    assert served(carriers_handler, _get_pops()) == [DENVER, {"id": 3, **BOISE}]
+    answer(_put_pop(BOISE))
+    assert served(_get_pops()) == [DENVER, {"id": 3, **BOISE}]
 
 
 def test_a_correction_leaves_the_carrier_s_next_pop_where_it_was(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, stored: Stored, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE))
-    assert stored(store, "1")["next_pop"] == {"N": "4"}
+    answer(_put_pop(BOISE))
+    assert stored("1")["next_pop"] == {"N": "4"}
 
 
 @pytest.fixture(name="correction")
 def correction_fixture(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE))
+    answer(_put_pop(BOISE))
     return dict(store.puts[0])
 
 
@@ -458,110 +454,107 @@ def test_a_correction_requires_the_pop_to_exist_in_the_store(correction: Dict[st
 
 
 def test_a_correction_reads_the_carrier_first(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE))
+    answer(_put_pop(BOISE))
     assert [one["Key"] for one in store.gets] == [{"PK": {"S": "carriers"}, "SK": {"S": "1"}}]
 
 
-def test_correcting_a_pop_of_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
-    assert answer(carriers_handler, _put_pop(BOISE, "3"))["statusCode"] == 404
+def test_correcting_a_pop_of_an_unknown_carrier_answers_404(answer: Answer) -> None:
+    assert answer(_put_pop(BOISE, "3"))["statusCode"] == 404
 
 
-def test_correcting_a_pop_of_an_unknown_carrier_names_the_carrier(
-    carriers_handler: ModuleType
-) -> None:
-    assert served(carriers_handler, _put_pop(BOISE, "3"))["error"] == "No such carrier"
+def test_correcting_a_pop_of_an_unknown_carrier_names_the_carrier(served: Served) -> None:
+    assert served(_put_pop(BOISE, "3"))["error"] == "No such carrier"
 
 
 def test_correcting_a_pop_of_an_unknown_carrier_writes_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    answer: Answer, store: SimpleNamespace
 ) -> None:
-    answer(carriers_handler, _put_pop(BOISE, "3"))
+    answer(_put_pop(BOISE, "3"))
     assert store.puts == []
 
 
 @pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
 def test_correcting_a_pop_of_an_id_that_is_not_a_number_answers_404(
-    carriers_handler: ModuleType, carrier: str
+    answer: Answer, carrier: str
 ) -> None:
-    assert answer(carriers_handler, _put_pop(BOISE, carrier))["statusCode"] == 404
+    assert answer(_put_pop(BOISE, carrier))["statusCode"] == 404
 
 
 def test_correcting_an_unknown_pop_answers_404(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _put_pop(BOISE, "1", "2"))["statusCode"] == 404
+    assert answer(_put_pop(BOISE, "1", "2"))["statusCode"] == 404
 
 
 def test_correcting_an_unknown_pop_names_the_pop(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert served(carriers_handler, _put_pop(BOISE, "1", "2"))["error"] == "No such pop"
+    assert served(_put_pop(BOISE, "1", "2"))["error"] == "No such pop"
 
 
 def test_correcting_an_unknown_pop_adds_none(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop(BOISE, "1", "2"))
+    answer(_put_pop(BOISE, "1", "2"))
     assert len(store.items) == 6
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
 def test_correcting_a_pop_id_that_is_not_a_number_answers_404(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]],
-    pop: str,
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]], pop: str
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _put_pop(BOISE, "1", pop))["statusCode"] == 404
+    assert answer(_put_pop(BOISE, "1", pop))["statusCode"] == 404
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
 def test_correcting_a_pop_id_that_is_not_a_number_asks_the_store_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace, pop: str
+    answer: Answer, store: SimpleNamespace, pop: str
 ) -> None:
-    answer(carriers_handler, _put_pop(BOISE, "1", pop))
+    answer(_put_pop(BOISE, "1", pop))
     assert (store.gets, store.puts) == ([], [])
 
 
 @pytest.mark.parametrize("body", MISPLACED)
 def test_a_correction_that_is_not_exactly_a_located_municipality_answers_400(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]], body: Any
+    answer: Answer, store: SimpleNamespace, carriers: List[Dict[str, Any]], body: Any
 ) -> None:
     store.items.extend(carriers)
-    assert answer(carriers_handler, _put_pop(body))["statusCode"] == 400
+    assert answer(_put_pop(body))["statusCode"] == 400
 
 
-def test_a_correction_that_is_not_json_answers_400(carriers_handler: ModuleType) -> None:
+def test_a_correction_that_is_not_json_answers_400(answer: Answer) -> None:
     event = {**_put_pop({}), "body": "{"}
-    assert answer(carriers_handler, event)["statusCode"] == 400
+    assert answer(event)["statusCode"] == 400
 
 
-def test_a_refused_correction_names_what_is_expected(carriers_handler: ModuleType) -> None:
-    assert served(carriers_handler, _put_pop({}))["error"] == POP_BODY
+def test_a_refused_correction_names_what_is_expected(served: Served) -> None:
+    assert served(_put_pop({}))["error"] == POP_BODY
 
 
 def test_a_refused_correction_changes_nothing(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    answer: Answer, served: Served, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    answer(carriers_handler, _put_pop({}))
-    assert (store.puts, served(carriers_handler, _get_pop())) == ([], CHICAGO)
+    answer(_put_pop({}))
+    assert (store.puts, served(_get_pop())) == ([], CHICAGO)
 
 
 def test_a_store_that_refuses_the_correction_answers_500(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    answer: Answer, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert answer(carriers_handler, _put_pop(BOISE))["statusCode"] == 500
+    assert answer(_put_pop(BOISE))["statusCode"] == 500
 
 
 def test_a_store_that_refuses_the_correction_names_the_error(
-    carriers_handler: ModuleType, store: SimpleNamespace
+    served: Served, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert served(carriers_handler, _put_pop(BOISE))["error"] == "Failed to update the pop"
+    assert served(_put_pop(BOISE))["error"] == "Failed to update the pop"
