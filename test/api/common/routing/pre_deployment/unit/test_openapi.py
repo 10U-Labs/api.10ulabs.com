@@ -87,6 +87,7 @@ RUN_REGION = f"{RUN_REGIONS}/{{region}}"
 OFF_NET = "/wan-syntheses/{synthesis}/off-net"
 FORCED_WAN_POPS = "/wan-syntheses/{synthesis}/forced-wan-pops"
 FORCED_CIRCUITS = "/wan-syntheses/{synthesis}/forced-circuits"
+FORCED_HOMES = "/wan-syntheses/{synthesis}/forced-homes"
 NAMED_INPUT_FIELDS = ["id", "name"]
 ENDS_INPUT_FIELDS = ["id", "source", "target"]
 UNDER_A_SITE = [(SITE, "get")]
@@ -102,8 +103,9 @@ UNDER_A_SYNTHESIS = [
     (OFF_NET, "get"),
     (FORCED_WAN_POPS, "get"),
     (FORCED_CIRCUITS, "get"),
+    (FORCED_HOMES, "get"),
 ]
-GIVEN = [SITES, RUN_REGIONS, RUN_REGION, OFF_NET, FORCED_WAN_POPS, FORCED_CIRCUITS]
+GIVEN = [SITES, RUN_REGIONS, RUN_REGION, OFF_NET, FORCED_WAN_POPS, FORCED_CIRCUITS, FORCED_HOMES]
 SITE_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude",
     "exempt_from_distance_constraint",
@@ -162,6 +164,7 @@ LISTED = [
     (OFF_NET, POP_FIELDS),
     (FORCED_WAN_POPS, NAMED_INPUT_FIELDS),
     (FORCED_CIRCUITS, ENDS_INPUT_FIELDS),
+    (FORCED_HOMES, ENDS_INPUT_FIELDS),
 ]
 SERVED = [
     (SYNTHESIS, SYNTHESIS_FIELDS),

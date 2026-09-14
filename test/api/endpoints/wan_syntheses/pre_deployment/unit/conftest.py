@@ -115,4 +115,10 @@ def syntheses() -> List[Dict[str, Any]]:
          "source": {"S": "Ashburn, VA"}, "target": {"S": "Cheyenne, WY"}},
         {"PK": {"S": "wan-syntheses/2"}, "SK": {"S": "forced-circuits/1"},
          "source": {"S": "Dayton, OH"}, "target": {"S": "Columbus, OH"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "forced-homes/2"},
+         "source": {"S": "Hill AFB"}, "target": {"S": "Salt Lake City, UT"}},
+        {"PK": {"S": "wan-syntheses/1"}, "SK": {"S": "forced-homes/1"},
+         "source": {"S": "F.E. Warren AFB"}, "target": {"S": "Cheyenne, WY"}},
+        {"PK": {"S": "wan-syntheses/2"}, "SK": {"S": "forced-homes/1"},
+         "source": {"S": "Wright-Patterson AFB"}, "target": {"S": "Dayton, OH"}},
     ]

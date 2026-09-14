@@ -5,7 +5,7 @@ import pytest
 SYNTHESES = "/wan-syntheses"
 WAN_PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
 SERVED_INPUTS = ["sites", "hyperscale-cloud-service-provider-regions"]
-INPUTS = SERVED_INPUTS + ["off-net", "forced-wan-pops", "forced-circuits"]
+INPUTS = SERVED_INPUTS + ["off-net", "forced-wan-pops", "forced-circuits", "forced-homes"]
 PARTS = WAN_PARTS + INPUTS
 MEMBERS = ["wan-pops"] + SERVED_INPUTS
 
