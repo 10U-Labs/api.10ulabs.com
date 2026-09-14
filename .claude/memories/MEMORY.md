@@ -40,6 +40,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [a-wait-runs-in-the-background](a-wait-runs-in-the-background.md) — a wait for CI is a background shell or a Monitor, never a foreground sleep or `gh run watch`, so the reminders keep firing
 - [a-fix-forward-fires-every-stack-the-red-commit-changed](a-fix-forward-fires-every-stack-the-red-commit-changed.md) — a fix forward touches a path that fires every workflow whose stack the red commit changed, or their skipped reconciliations never run
 - [a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix](a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix.md) — a red run whose twin on the same commit is green through reconciliation is not a red gate, and a job that tripped on a transient registry or download error is re-run on the same commit — in full, foundations first, when a foundation went red, since the dependents' wait jobs keep `apply=false`; group runs by workflow when a push fired twice
+- [a-failed-lambda-update-leaves-the-state-ahead-of-the-function](a-failed-lambda-update-leaves-the-state-ahead-of-the-function.md) — a reconciliation refused on a Lambda's configuration keeps the planned `source_code_hash` without uploading the code, so the fix forward must change the zip and the log must show the hash moving; a description is 256 characters at most
 
 ### Workflows
 
