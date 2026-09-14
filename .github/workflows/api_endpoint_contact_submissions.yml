@@ -435,7 +435,7 @@ on:
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/contact_submissions/**
-      - src/www/api/**
+      - src/www/**
       - test/api/conftest.py
       - test/api/endpoints/contact_submissions/**
       - test/conftest.py

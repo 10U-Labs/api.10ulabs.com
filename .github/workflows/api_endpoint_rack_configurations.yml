@@ -433,7 +433,7 @@ on:
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/rack_configurations/**
-      - src/www/api/**
+      - src/www/**
       - test/api/conftest.py
       - test/api/endpoints/rack_configurations/**
       - test/conftest.py

@@ -15,7 +15,7 @@ locals {
     key => "${local.apigw_prefix}/${local.lambda_arn}:${name}/invocations"
   }
 
-  openapi_spec = templatefile("${path.module}/../../../www/api/openapi.json", {
+  openapi_spec = templatefile("${path.module}/../../../www/openapi.json", {
     AuthorizerHandlerArn         = local.integration.authorizer
     CarriersHandlerArn           = local.integration.carriers
     CatchAllHandlerArn           = local.integration.catchall

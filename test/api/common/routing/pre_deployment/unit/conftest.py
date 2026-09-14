@@ -19,7 +19,7 @@ def routing_dir(repo_root: Path) -> Path:
 
 @pytest.fixture(scope="module")
 def openapi(repo_root: Path) -> Dict[str, Any]:
-    path = repo_root / "src" / "www" / "api" / "openapi.json"
+    path = repo_root / "src" / "www" / "openapi.json"
     return dict(json.loads(path.read_text(encoding="utf-8")))
 
 

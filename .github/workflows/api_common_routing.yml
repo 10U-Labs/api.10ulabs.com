@@ -417,7 +417,7 @@ on:
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/common/routing/**
-      - src/www/api/**
+      - src/www/**
       - test/api/common/routing/**
       - test/api/conftest.py
       - test/conftest.py
