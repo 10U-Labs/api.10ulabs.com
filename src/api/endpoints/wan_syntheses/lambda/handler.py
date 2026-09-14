@@ -66,6 +66,7 @@ REGIONS = Part(
 )
 OFF_NET = Part('off-net', 'off-net-pop', 'No such off-net pop', given=True)
 FORCED_WAN_POPS = Part('forced-wan-pops', 'forced-wan-pop', 'No such forced wan pop', given=True)
+FORCED_CIRCUITS = Part('forced-circuits', 'forced-circuit', 'No such forced circuit', given=True)
 
 
 def _listed(part: Part) -> str:
@@ -177,6 +178,10 @@ def _list_forced_wan_pops(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, FORCED_WAN_POPS, 'Failed to read the forced wan pops')
 
 
+def _list_forced_circuits(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, FORCED_CIRCUITS, 'Failed to read the forced circuits')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -192,4 +197,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (_one(REGIONS), 'GET'): _read_region,
         (_listed(OFF_NET), 'GET'): _list_off_net,
         (_listed(FORCED_WAN_POPS), 'GET'): _list_forced_wan_pops,
+        (_listed(FORCED_CIRCUITS), 'GET'): _list_forced_circuits,
     })
