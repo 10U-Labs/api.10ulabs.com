@@ -502,7 +502,7 @@ def test_correcting_an_unknown_pop_adds_none(
 ) -> None:
     store.items.extend(carriers)
     answer(_put_pop(BOISE, "1", "2"))
-    assert len(store.items) == 6
+    assert len(store.items) == 7
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])
@@ -598,7 +598,7 @@ def test_a_removal_leaves_the_carrier_s_next_pop_where_it_was(lumen: Dict[str, A
 @pytest.mark.usefixtures("removed")
 def test_a_removal_leaves_the_rest_of_the_carrier_as_it_was(store: SimpleNamespace) -> None:
     under = [item["SK"]["S"] for item in store.items if item["PK"] == {"S": "carriers/1"}]
-    assert under == ["pops/1", "fiber_segments/1"]
+    assert under == ["pops/1", "fiber-segments/3", "fiber-segments/1"]
 
 
 @pytest.mark.usefixtures("removed")
@@ -664,7 +664,7 @@ def test_removing_an_unknown_pop_removes_nothing(
 ) -> None:
     store.items.extend(carriers)
     answer(_delete_pop("1", "2"))
-    assert len(store.items) == 6
+    assert len(store.items) == 7
 
 
 @pytest.mark.parametrize("pop", ["#", "", "3/", "-1"])

@@ -211,3 +211,25 @@ def test_no_listed_carrier_loses_a_pop_zero_through_the_deployed_api(
     _, listed = get_json(f"{stage_url}/carriers", bearer)
     removed = [delete_json(f"{stage_url}/carriers/{one['id']}/pops/0", bearer) for one in listed]
     assert removed == [(404, {"error": "No such pop"})] * len(listed)
+
+
+def test_the_fiber_segments_of_a_carrier_that_is_not_there_answer_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(f"{stage_url}/carriers/0/fiber-segments", bearer)
+    assert status == 404
+
+
+def test_the_fiber_segments_of_a_carrier_that_is_not_there_name_the_error_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(f"{stage_url}/carriers/0/fiber-segments", bearer)
+    assert body["error"] == "No such carrier"
+
+
+def test_every_listed_carrier_answers_a_list_of_fiber_segments_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}/carriers", bearer)
+    spans = [get_json(f"{stage_url}/carriers/{one['id']}/fiber-segments", bearer) for one in listed]
+    assert [(status, type(fiber)) for status, fiber in spans] == [(200, list)] * len(listed)

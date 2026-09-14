@@ -416,7 +416,8 @@ def test_the_carrier_is_deleted_after_everything_under_it(store: SimpleNamespace
     assert [request["Key"] for request in store.deletes] == [
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}},
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}},
-        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber_segments/1"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/3"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/1"}},
         {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
     ]
 

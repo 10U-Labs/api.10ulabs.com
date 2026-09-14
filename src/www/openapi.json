@@ -1123,6 +1123,118 @@
         }
       }
     },
+    "/carriers/{carrier}/fiber-segments": {
+      "get": {
+        "summary": "List Fiber Segments",
+        "description": "Lists the fiber segments of one carrier, each by the id the API assigned it and the two municipalities it spans.",
+        "operationId": "listFiberSegments",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "carrier",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The carrier's fiber segments, in id order; [] when it has none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "a_municipality",
+                      "a_state",
+                      "z_municipality",
+                      "z_state",
+                      "submarine"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "a_municipality": {
+                        "type": "string",
+                        "example": "Denver"
+                      },
+                      "a_state": {
+                        "type": "string",
+                        "description": "The state or province of the A end; empty outside a country that has them",
+                        "example": "CO"
+                      },
+                      "z_municipality": {
+                        "type": "string",
+                        "example": "Chicago"
+                      },
+                      "z_state": {
+                        "type": "string",
+                        "description": "The state or province of the Z end; empty outside a country that has them",
+                        "example": "IL"
+                      },
+                      "submarine": {
+                        "type": "boolean",
+                        "description": "Whether the segment runs under the sea",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No carrier has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

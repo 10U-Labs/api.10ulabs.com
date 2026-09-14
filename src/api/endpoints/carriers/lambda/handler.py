@@ -16,6 +16,8 @@ BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 MISSING_POP = 'No such pop'
 POPS = 'pops'
+FIBER_SEGMENTS = 'fiber-segments'
+ENDS = ('a_municipality', 'a_state', 'z_municipality', 'z_state')
 PLACE = ('municipality', 'state', 'country')
 NAMED = ('municipality', 'country')
 COORDINATES = ('latitude', 'longitude')
@@ -160,9 +162,13 @@ def _remove(collection: str, member_id: str) -> bool:
     return True
 
 
+def _id_under(item: Dict[str, Any]) -> int:
+    return int(item['SK']['S'].partition('/')[2])
+
+
 def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        'id': int(item['SK']['S'].partition('/')[2]),
+        'id': _id_under(item),
         'municipality': item['municipality']['S'],
         'state': item['state']['S'],
         'country': item['country']['S'],
@@ -171,19 +177,35 @@ def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
+def _fiber_segment(item: Dict[str, Any]) -> Dict[str, Any]:
+    ends = {field: item[field]['S'] for field in ENDS}
+    return {'id': _id_under(item), **ends, 'submarine': item['submarine']['BOOL']}
+
+
+Row = Callable[[Dict[str, Any]], Dict[str, Any]]
+
+
+def _list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return json_response(404, {'error': MISSING})
     try:
         carrier = _member(COLLECTION, carrier_id)
-        pops = _partition(f'{COLLECTION}/{carrier_id}', f'{POPS}/') if carrier else []
+        items = _partition(f'{COLLECTION}/{carrier_id}', f'{prefix}/') if carrier else []
     except ClientError as error:
-        logger.error('Error reading the pops of carrier %s: %s', carrier_id, error)
-        return json_response(500, {'error': 'Failed to read the pops'})
+        logger.error('Error reading the %s of carrier %s: %s', prefix, carrier_id, error)
+        return json_response(500, {'error': failure})
     if carrier is None:
         return json_response(404, {'error': MISSING})
-    return json_response(200, sorted(map(_pop, pops), key=lambda pop: pop['id']))
+    return json_response(200, sorted(map(row, items), key=lambda one: one['id']))
+
+
+def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, POPS, _pop, 'Failed to read the pops')
+
+
+def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, FIBER_SEGMENTS, _fiber_segment, 'Failed to read the fiber segments')
 
 
 def _no_content() -> Dict[str, Any]:
@@ -391,4 +413,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/pops/{pop}', 'GET'): _read_pop,
         ('/carriers/{carrier}/pops/{pop}', 'PUT'): _update_pop,
         ('/carriers/{carrier}/pops/{pop}', 'DELETE'): _delete_pop,
+        ('/carriers/{carrier}/fiber-segments', 'GET'): _list_fiber_segments,
     })

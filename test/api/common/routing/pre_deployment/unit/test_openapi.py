@@ -47,6 +47,7 @@ def test_the_routing_stack_supplies_every_template_variable(
 
 
 POP = "/carriers/{carrier}/pops/{pop}"
+FIBER_SEGMENTS = "/carriers/{carrier}/fiber-segments"
 CARRIERS_OPERATIONS = [
     ("/carriers", "get"),
     ("/carriers", "post"),
@@ -58,6 +59,7 @@ CARRIERS_OPERATIONS = [
     (POP, "get"),
     (POP, "put"),
     (POP, "delete"),
+    (FIBER_SEGMENTS, "get"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
@@ -65,12 +67,15 @@ POP_SERVINGS = ["get", "put"]
 POP_METHODS = POP_SERVINGS + ["delete"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
-]
+] + [(FIBER_SEGMENTS, "get")]
 UNDER_A_POP = [(POP, method) for method in POP_METHODS]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
+FIBER_SEGMENT_FIELDS = [
+    "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
+]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
 CREATIONS = [("/carriers", "post"), ("/carriers/{carrier}/pops", "post")]
@@ -92,6 +97,26 @@ def test_the_pops_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> N
 def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"]["/carriers/{carrier}/pops"]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
+
+
+def test_the_fiber_segments_of_a_carrier_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][FIBER_SEGMENTS]) == ["get"]
+
+
+def _fiber_segment(openapi: Dict[str, Any]) -> Dict[str, Any]:
+    listed = openapi["paths"][FIBER_SEGMENTS]["get"]["responses"]["200"]
+    schema: Dict[str, Any] = listed["content"]["application/json"]["schema"]["items"]
+    return schema
+
+
+def test_a_fiber_segment_is_a_span_between_two_municipalities_with_an_id(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _fiber_segment(openapi)["required"] == FIBER_SEGMENT_FIELDS
+
+
+def test_a_fiber_segment_says_whether_it_is_submarine(openapi: Dict[str, Any]) -> None:
+    assert _fiber_segment(openapi)["properties"]["submarine"]["type"] == "boolean"
 
 
 def test_a_pop_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
