@@ -7,9 +7,9 @@ from botocore.exceptions import ClientError
 
 from lambda_http import (
     aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
-    parse_fields, parse_valid, path_id,
+    no_content, parse_fields, parse_valid, path_id,
 )
-from store import advance, conditional, member, members, next_id, partition, put
+from store import advance, conditional, delete, member, members, next_id, partition, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -185,10 +185,6 @@ def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, FIBER_SEGMENTS, _fiber_segment, 'Failed to read the fiber segments')
 
 
-def _no_content() -> Dict[str, Any]:
-    return {'statusCode': 204, 'headers': {}, 'body': ''}
-
-
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
@@ -200,7 +196,7 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(500, 'Failed to delete the carrier')
     if not removed:
         return error_response(404, MISSING)
-    return _no_content()
+    return no_content()
 
 
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -393,13 +389,13 @@ def _update_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
-    key = {'PK': {'S': f'{COLLECTION}/{carrier_id}'}, 'SK': {'S': f'{prefix}/{member_id}'}}
-    return _attributes('delete_item', key, ReturnValues='ALL_OLD')
+    table = os.environ['STORE_TABLE']
+    return delete(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
 
 
 def _delete_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
     removed = partial(_remove_under, prefix=kind.prefix)
-    return _on_member(event, kind, removed, failure, lambda _gone: _no_content())
+    return _on_member(event, kind, removed, failure, lambda _gone: no_content())
 
 
 def _delete_pop(event: Dict[str, Any]) -> Dict[str, Any]:

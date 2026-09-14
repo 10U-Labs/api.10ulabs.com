@@ -83,3 +83,17 @@ def test_a_refused_correction_leaves_every_listed_region_as_it_was_through_the_d
     _, listed = get_json(f"{stage_url}{REGIONS}", bearer)
     refused = [put_json(f"{stage_url}{REGIONS}/{one['id']}", PHOENIX, bearer)[0] for one in listed]
     assert (refused, get_json(f"{stage_url}{REGIONS}", bearer)[1]) == ([403] * len(listed), listed)
+
+
+def test_the_workflows_key_deletes_no_region_that_is_not_there_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = delete_json(f"{stage_url}{REGIONS}/0", bearer)
+    assert status == 404
+
+
+def test_a_deletion_of_a_region_that_is_not_there_names_the_error_through_the_deployed_api(
+    stage_url: str, delete_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = delete_json(f"{stage_url}{REGIONS}/0", bearer)
+    assert body["error"] == "No such hyperscale cloud service provider region"

@@ -5,10 +5,10 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from lambda_http import (
-    created, dispatch, error_response, has_numbers, has_strings, json_response, parse_valid,
-    path_id,
+    created, dispatch, error_response, has_numbers, has_strings, json_response, no_content,
+    parse_valid, path_id,
 )
-from store import conditional, member, members, next_id, put
+from store import conditional, delete, member, members, next_id, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -103,10 +103,25 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, _region(item))
 
 
+def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
+    region_id = path_id(event, 'region')
+    if region_id is None:
+        return error_response(404, MISSING)
+    try:
+        removed = delete(os.environ['STORE_TABLE'], COLLECTION, region_id)
+    except ClientError as error:
+        logger.error('Error deleting region %s: %s', region_id, error)
+        return error_response(500, 'Failed to delete the hyperscale cloud service provider region')
+    if removed is None:
+        return error_response(404, MISSING)
+    return no_content()
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}', 'POST'): _create,
         (f'/{COLLECTION}/{{region}}', 'GET'): _read,
         (f'/{COLLECTION}/{{region}}', 'PUT'): _update,
+        (f'/{COLLECTION}/{{region}}', 'DELETE'): _delete,
     })

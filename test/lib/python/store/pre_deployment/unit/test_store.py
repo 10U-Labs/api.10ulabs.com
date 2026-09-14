@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 import store
-from store import advance, conditional, member, members, next_id, partition, put
+from store import advance, conditional, delete, member, members, next_id, partition, put
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
 LUMEN = {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "lumen"}}
@@ -15,7 +15,7 @@ ZAYO = {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "zayo"}}
 @pytest.fixture(name="dynamodb")
 def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     dynamodb = SimpleNamespace(
-        queries=[], gets=[], updates=[], puts=[], items=[COUNTER, ZAYO, LUMEN]
+        queries=[], gets=[], updates=[], puts=[], deletes=[], items=[COUNTER, ZAYO, LUMEN]
     )
 
     def query(**request: Any) -> Dict[str, Any]:
@@ -36,10 +36,18 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         dynamodb.puts.append(request)
         return {}
 
+    def delete_item(**request: Any) -> Dict[str, Any]:
+        dynamodb.deletes.append(request)
+        held = [item for item in dynamodb.items if item["SK"] == request["Key"]["SK"]]
+        if not held:
+            raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "DeleteItem")
+        return {"Attributes": held[0]}
+
     dynamodb.query = query
     dynamodb.get_item = get_item
     dynamodb.update_item = update_item
     dynamodb.put_item = put_item
+    dynamodb.delete_item = delete_item
     monkeypatch.setattr(store, "aws_client", lambda service: {"dynamodb": dynamodb}[service])
     return dynamodb
 
@@ -203,3 +211,43 @@ def test_a_conditional_check_that_failed_is_conditional() -> None:
 
 def test_any_other_refusal_is_not_conditional() -> None:
     assert not conditional(ClientError({"Error": {"Code": "InternalServerError"}}, "PutItem"))
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_deletion_answers_the_item_that_was_there() -> None:
+    assert delete("the-table", "carriers", "2") == ZAYO
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_deletion_of_an_item_that_is_not_there_answers_none() -> None:
+    assert delete("the-table", "carriers", "3") is None
+
+
+def test_a_deletion_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:
+    delete("the-table", "carriers", "2")
+    assert dynamodb.deletes[0]["TableName"] == "the-table"
+
+
+def test_a_deletion_is_of_the_item_s_key(dynamodb: SimpleNamespace) -> None:
+    delete("the-table", "carriers", "2")
+    assert dynamodb.deletes[0]["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "2"}}
+
+
+def test_a_deletion_requires_the_item_to_exist(dynamodb: SimpleNamespace) -> None:
+    delete("the-table", "carriers", "2")
+    assert dynamodb.deletes[0]["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_a_deletion_asks_for_the_old_values(dynamodb: SimpleNamespace) -> None:
+    delete("the-table", "carriers", "2")
+    assert dynamodb.deletes[0]["ReturnValues"] == "ALL_OLD"
+
+
+def test_a_deletion_the_store_refuses_for_another_reason_is_raised(
+    dynamodb: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(**_request: Any) -> Dict[str, Any]:
+        raise ClientError({"Error": {"Code": "InternalServerError"}}, "DeleteItem")
+    monkeypatch.setattr(dynamodb, "delete_item", refuse)
+    with pytest.raises(ClientError):
+        delete("the-table", "carriers", "2")

@@ -69,7 +69,8 @@ CARRIERS_OPERATIONS = [
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
 REGION = "/hyperscale-cloud-service-provider-regions/{region}"
-REGION_METHODS = ["get", "put"]
+REGION_SERVINGS = ["get", "put"]
+REGION_METHODS = REGION_SERVINGS + ["delete"]
 UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
 REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
@@ -120,7 +121,12 @@ ADDITIONS = [
     (REGIONS, "post", REGION_FIELDS),
 ]
 CREATIONS = [("/carriers", "post")] + [(path, method) for path, method, _ in ADDITIONS]
-DELETIONS = [("/carriers/{carrier}", "delete"), (POP, "delete"), (FIBER_SEGMENT, "delete")]
+DELETIONS = [
+    ("/carriers/{carrier}", "delete"),
+    (POP, "delete"),
+    (FIBER_SEGMENT, "delete"),
+    (REGION, "delete"),
+]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
@@ -283,11 +289,11 @@ def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[s
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
 
 
-def test_a_region_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+def test_a_region_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][REGION]) == REGION_METHODS
 
 
-@pytest.mark.parametrize("method", REGION_METHODS)
+@pytest.mark.parametrize("method", REGION_SERVINGS)
 def test_a_region_is_served_as_a_named_and_located_municipality_with_an_id(
     openapi: Dict[str, Any], method: str
 ) -> None:

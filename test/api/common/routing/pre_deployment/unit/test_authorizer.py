@@ -66,6 +66,11 @@ def test_the_api_key_creates_a_region(authorizer: ModuleType) -> None:
     assert _granted(authorizer, key, "POST", "hyperscale-cloud-service-provider-regions")
 
 
+def test_the_api_key_deletes_a_region(authorizer: ModuleType) -> None:
+    key = "Bearer the-workflows-key"
+    assert _granted(authorizer, key, "DELETE", "hyperscale-cloud-service-provider-regions/3")
+
+
 @pytest.mark.parametrize("method, path", [
     ("PUT", "carriers/3/pops/4"),
     ("PUT", "carriers/3/fiber-segments/4"),

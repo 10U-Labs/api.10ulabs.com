@@ -24,6 +24,10 @@ def json_response(status_code: int, body: Any) -> Dict[str, Any]:
     }
 
 
+def no_content() -> Dict[str, Any]:
+    return {'statusCode': 204, 'headers': {}, 'body': ''}
+
+
 def error_response(status_code: int, message: str) -> Dict[str, Any]:
     return json_response(status_code, {'error': message})
 

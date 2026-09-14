@@ -425,3 +425,106 @@ def test_a_store_that_refuses_the_region_correction_names_the_error(
     store.failing = True
     error = served(_put(PHOENIX))["error"]
     assert error == "Failed to update the hyperscale cloud service provider region"
+
+
+def _delete(region: str = "2") -> Dict[str, Any]:
+    return {**_get_one(region), "httpMethod": "DELETE"}
+
+
+@pytest.fixture(name="region_removed")
+def region_removed_fixture(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    store.items.extend(regions)
+    return answer(_delete())
+
+
+def test_a_stored_region_is_removed_with_204(region_removed: Dict[str, Any]) -> None:
+    assert region_removed["statusCode"] == 204
+
+
+def test_a_region_removal_answers_no_content(region_removed: Dict[str, Any]) -> None:
+    assert region_removed["body"] == ""
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_removed_region_is_no_longer_listed(served: Served) -> None:
+    assert served(_get()) == [COLUMBUS]
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_removed_region_is_no_longer_served(answer: Handler) -> None:
+    assert answer(_get_one("2"))["statusCode"] == 404
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_region_removal_leaves_the_regions_counter_where_it_was(store: SimpleNamespace) -> None:
+    assert _counter(store)["next"] == {"N": "3"}
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_region_removal_goes_to_the_table_the_environment_names(store: SimpleNamespace) -> None:
+    assert [one["TableName"] for one in store.deletes] == ["store"]
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_region_removal_deletes_the_region_by_its_key(store: SimpleNamespace) -> None:
+    assert [one["Key"] for one in store.deletes] == [
+        {"PK": {"S": "hyperscale-cloud-service-provider-regions"}, "SK": {"S": "2"}},
+    ]
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_region_removal_requires_the_region_to_exist_in_the_store(
+    store: SimpleNamespace
+) -> None:
+    assert store.deletes[0]["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_removing_an_unknown_region_answers_404(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    assert answer(_delete("3"))["statusCode"] == 404
+
+
+def test_removing_an_unknown_region_names_the_region(served: Served) -> None:
+    assert served(_delete("3"))["error"] == MISSING
+
+
+def test_removing_an_unknown_region_removes_nothing(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(regions)
+    answer(_delete("3"))
+    assert len(store.items) == len(regions)
+
+
+@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+def test_removing_a_region_id_that_is_not_a_number_answers_404(
+    answer: Handler, region: str
+) -> None:
+    assert answer(_delete(region))["statusCode"] == 404
+
+
+@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+def test_removing_a_region_id_that_is_not_a_number_asks_the_store_nothing(
+    answer: Handler, store: SimpleNamespace, region: str
+) -> None:
+    answer(_delete(region))
+    assert store.deletes == []
+
+
+def test_a_store_that_refuses_the_region_removal_answers_500(
+    answer: Handler, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert answer(_delete())["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_region_removal_names_the_error(
+    served: Served, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    error = served(_delete())["error"]
+    assert error == "Failed to delete the hyperscale cloud service provider region"
