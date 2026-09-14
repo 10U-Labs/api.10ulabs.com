@@ -139,6 +139,10 @@ def _list_sites(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, SITES, 'Failed to read the sites')
 
 
+def _read_site(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _read_under(event, SITES, 'Failed to read the site')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -149,4 +153,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}/{{synthesis}}/homing-circuits', 'GET'): _list_homing_circuits,
         (f'/{COLLECTION}/{{synthesis}}/fiber-segments', 'GET'): _list_fiber_segments,
         (f'/{COLLECTION}/{{synthesis}}/sites', 'GET'): _list_sites,
+        (f'/{COLLECTION}/{{synthesis}}/sites/{{site}}', 'GET'): _read_site,
     })

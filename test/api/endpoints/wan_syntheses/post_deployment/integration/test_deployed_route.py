@@ -118,3 +118,29 @@ def test_every_listed_synthesis_answers_a_list_for_each_input_through_the_deploy
     _, listed = get_json(f"{stage_url}{SYNTHESES}", bearer)
     answered = [get_json(f"{stage_url}{SYNTHESES}/{one['id']}/{part}", bearer) for one in listed]
     assert [(status, type(rows)) for status, rows in answered] == [(200, list)] * len(listed)
+
+
+def test_a_site_of_a_synthesis_that_is_not_there_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(f"{stage_url}{SYNTHESES}/0/sites/0", bearer)
+    assert status == 404
+
+
+def test_a_site_of_a_synthesis_that_is_not_there_names_the_synthesis_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(f"{stage_url}{SYNTHESES}/0/sites/0", bearer)
+    assert body["error"] == "No such wan synthesis"
+
+
+def test_the_first_site_of_every_listed_synthesis_is_served_at_its_own_url(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}{SYNTHESES}", bearer)
+    firsts = [
+        (f"{stage_url}{SYNTHESES}/{one['id']}/sites/{site['id']}", site)
+        for one in listed
+        for site in get_json(f"{stage_url}{SYNTHESES}/{one['id']}/sites", bearer)[1][:1]
+    ]
+    assert [get_json(url, bearer) for url, _ in firsts] == [(200, site) for _, site in firsts]
