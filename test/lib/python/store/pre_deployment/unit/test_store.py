@@ -416,8 +416,10 @@ def test_a_removal_requires_the_member_alone_to_exist(furnished: SimpleNamespace
 def test_a_removal_the_store_refuses_for_another_reason_is_raised(
     furnished: SimpleNamespace
 ) -> None:
-    def refuse(**_request: Any) -> Dict[str, Any]:
-        raise ClientError({"Error": {"Code": "InternalServerError"}}, "DeleteItem")
+    def refuse(**request: Any) -> Dict[str, Any]:
+        if "ConditionExpression" in request:
+            raise ClientError({"Error": {"Code": "InternalServerError"}}, "DeleteItem")
+        return {}
     furnished.delete_item = refuse
     with pytest.raises(ClientError):
         remove("the-table", "carriers", "1")
