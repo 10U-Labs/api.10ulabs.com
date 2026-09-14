@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List
 
 import pytest
 import yaml
@@ -17,12 +17,11 @@ def runs_fixture(repo_root: Path) -> Dict[str, Dict[str, Any]]:
 
 @pytest.fixture(scope="session", name="delivered_syntheses")
 def delivered_syntheses_fixture(
-    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str],
-    runs: Dict[str, Dict[str, Any]]
+    read_json: Callable[[str], Any], runs: Dict[str, Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
-    def read(path: str) -> Any:
-        return get_json(f"{stage_url}{path}", bearer)[1]
-    return [published_synthesis(read, config["label"], config) for config in runs.values()]
+    return [
+        published_synthesis(read_json, config["label"], config) for config in runs.values()
+    ]
 
 
 @pytest.fixture(scope="session")

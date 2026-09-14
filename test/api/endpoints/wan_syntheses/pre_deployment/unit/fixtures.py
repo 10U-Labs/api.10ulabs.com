@@ -260,9 +260,10 @@ def synthesis_over_segments(
     segments: dict[tuple[str, str], float],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
+    **limits: int,
 ) -> SynthesisArtifacts:
     return synthesis_over_fiber(
-        site_ids, fiber_segments_from(segments), number_of_diverse_circuits, transit_ids
+        site_ids, fiber_segments_from(segments), number_of_diverse_circuits, transit_ids, **limits
     )
 
 
@@ -282,9 +283,10 @@ def synthesis_over_fiber(
     fiber: dict[tuple[str, str], FiberSegment],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
+    **limits: int,
 ) -> SynthesisArtifacts:
     cities = site_ids + transit_ids
-    fewest = len(site_ids)
+    fewest = limits.get("min_wan_pop_count", len(site_ids))
     return run_synthesis(
         [
             carrier_pop(city, 38.0, -115.0 + 2.0 * index)
@@ -298,7 +300,7 @@ def synthesis_over_fiber(
             promote_high_degree_convergences=False,
             tuning=Tuning(
                 backbone_number_of_diverse_circuits=number_of_diverse_circuits,
-                homing_degree=homing_degree,
+                homing_degree=limits.get("homing_degree", 2),
             ),
         ),
     )
@@ -416,15 +418,16 @@ def synthesis_inputs_from_fiber(
     site_ids: list[str],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     eligible: set[str],
-    tenant_sites: list[Site] | None = None,
+    *homed: list[Site],
     coords: dict[str, tuple[float, float]] | None = None,
 ) -> SynthesisInputs:
+    tenant_sites, provider_regions = (list(homed) + [[], []])[:2]
     places = coords or {}
     pops = [carrier_pop(site_id, *places.get(site_id, (0.0, 0.0))) for site_id in site_ids]
     adjacency = build_adjacency(fiber_segments)
     paths = all_pairs_shortest(pops, adjacency)
     return SynthesisInputs(
-        homing_sites=HomingSites(tenant_sites if tenant_sites is not None else [], []),
+        homing_sites=HomingSites(tenant_sites, provider_regions),
         carrier_pops=pops,
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=eligible,

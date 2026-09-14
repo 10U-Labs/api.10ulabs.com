@@ -96,6 +96,15 @@ def get_json() -> Callable[..., Tuple[int, Any]]:
 
 
 @pytest.fixture(scope="session")
+def read_json(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> Callable[[str], Any]:
+    def read(path: str) -> Any:
+        return get_json(f"{stage_url}{path}", bearer)[1]
+    return read
+
+
+@pytest.fixture(scope="session")
 def delete_json() -> Callable[..., Tuple[int, Any]]:
     return _bodiless("DELETE")
 
