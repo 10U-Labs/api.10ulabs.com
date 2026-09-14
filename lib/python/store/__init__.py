@@ -101,6 +101,6 @@ def plain(value: Dict[str, Any]) -> Any:
     return None if kind == 'NULL' else held
 
 
-def member_id(item: Dict[str, Any]) -> int:
+def sort_id(item: Dict[str, Any]) -> int:
     sort_key: str = item['SK']['S']
     return int(sort_key.rpartition('/')[2])

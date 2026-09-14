@@ -10,8 +10,8 @@ from lambda_http import (
     no_content, parse_fields, parse_valid, path_id,
 )
 from store import (
-    advance, conditional, conditioned, delete, member, member_id, members, next_id, partition,
-    put,
+    advance, conditional, conditioned, delete, member, members, next_id, partition, put,
+    sort_id,
 )
 
 logger = logging.getLogger()
@@ -38,7 +38,7 @@ FIBER_SEGMENT_BODY = (
 
 
 def _carrier(item: Dict[str, Any]) -> Dict[str, Any]:
-    return {'id': member_id(item), 'name': item['name']['S']}
+    return {'id': sort_id(item), 'name': item['name']['S']}
 
 
 def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
@@ -127,7 +127,7 @@ def _remove(collection: str, member_id: str) -> bool:
 
 def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        'id': member_id(item),
+        'id': sort_id(item),
         'municipality': item['municipality']['S'],
         'state': item['state']['S'],
         'country': item['country']['S'],
@@ -138,7 +138,7 @@ def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
 
 def _fiber_segment(item: Dict[str, Any]) -> Dict[str, Any]:
     ends = {field: item[field]['S'] for field in ENDS}
-    return {'id': member_id(item), **ends, SUBMARINE: item[SUBMARINE]['BOOL']}
+    return {'id': sort_id(item), **ends, SUBMARINE: item[SUBMARINE]['BOOL']}
 
 
 Row = Callable[[Dict[str, Any]], Dict[str, Any]]

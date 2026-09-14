@@ -8,7 +8,7 @@ from lambda_http import (
     created, dispatch, error_response, has_numbers, has_strings, json_response, no_content,
     parse_valid, path_id,
 )
-from store import conditional, delete, member, member_id, members, next_id, put
+from store import conditional, delete, member, members, next_id, put, sort_id
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,7 +26,7 @@ REGION_BODY = (
 
 def _region(item: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        'id': member_id(item),
+        'id': sort_id(item),
         **{field: item[field]['S'] for field in WORDED},
         **{field: float(item[field]['N']) for field in COORDINATES},
     }

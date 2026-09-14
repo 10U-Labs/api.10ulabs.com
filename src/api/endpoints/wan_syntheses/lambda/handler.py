@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from lambda_http import dispatch, error_response, json_response, path_id
-from store import member, member_id, members, partition, plain
+from store import member, members, partition, plain, sort_id
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,7 +17,7 @@ NO_WAN = 'The synthesis has no wan'
 
 
 def _synthesis(item: Dict[str, Any]) -> Dict[str, Any]:
-    return {'id': member_id(item), 'label': item['label']['S']}
+    return {'id': sort_id(item), 'label': item['label']['S']}
 
 
 def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
@@ -31,7 +31,7 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
 
 def _record(item: Dict[str, Any]) -> Dict[str, Any]:
     held = {field: plain(value) for field, value in item.items() if field not in KEY}
-    return {'id': member_id(item), **held}
+    return {'id': sort_id(item), **held}
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:

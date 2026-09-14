@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    advance, conditional, conditioned, delete, member, member_id, members, next_id, partition,
-    plain, put,
+    advance, conditional, conditioned, delete, member, members, next_id, partition, plain, put,
+    sort_id,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -288,9 +288,9 @@ def test_plain_keeps_an_integral_number_an_int() -> None:
     assert isinstance(plain({"N": "3"}), int)
 
 
-def test_the_member_id_of_a_top_level_item_is_its_sort_key() -> None:
-    assert member_id({"PK": {"S": "carriers"}, "SK": {"S": "3"}}) == 3
+def test_the_sort_id_of_a_top_level_item_is_its_sort_key() -> None:
+    assert sort_id({"PK": {"S": "carriers"}, "SK": {"S": "3"}}) == 3
 
 
-def test_the_member_id_of_an_item_under_a_member_follows_its_prefix() -> None:
-    assert member_id({"PK": {"S": "carriers/1"}, "SK": {"S": "pops/7"}}) == 7
+def test_the_sort_id_of_an_item_under_a_member_follows_its_prefix() -> None:
+    assert sort_id({"PK": {"S": "carriers/1"}, "SK": {"S": "pops/7"}}) == 7
