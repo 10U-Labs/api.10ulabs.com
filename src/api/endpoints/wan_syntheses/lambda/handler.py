@@ -68,6 +68,9 @@ OFF_NET = Part('off-net', 'off-net-pop', 'No such off-net pop', given=True)
 FORCED_WAN_POPS = Part('forced-wan-pops', 'forced-wan-pop', 'No such forced wan pop', given=True)
 FORCED_CIRCUITS = Part('forced-circuits', 'forced-circuit', 'No such forced circuit', given=True)
 FORCED_HOMES = Part('forced-homes', 'forced-home', 'No such forced home', given=True)
+PROHIBITED_WAN_POPS = Part(
+    'prohibited-wan-pops', 'prohibited-wan-pop', 'No such prohibited wan pop', given=True
+)
 
 
 def _listed(part: Part) -> str:
@@ -187,6 +190,10 @@ def _list_forced_homes(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, FORCED_HOMES, 'Failed to read the forced homes')
 
 
+def _list_prohibited_wan_pops(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(event, PROHIBITED_WAN_POPS, 'Failed to read the prohibited wan pops')
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -204,4 +211,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (_listed(FORCED_WAN_POPS), 'GET'): _list_forced_wan_pops,
         (_listed(FORCED_CIRCUITS), 'GET'): _list_forced_circuits,
         (_listed(FORCED_HOMES), 'GET'): _list_forced_homes,
+        (_listed(PROHIBITED_WAN_POPS), 'GET'): _list_prohibited_wan_pops,
     })
