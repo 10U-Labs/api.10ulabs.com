@@ -53,8 +53,8 @@ def api_key_fixture(ssm_client: Any) -> str:
     return str(parameter["Parameter"]["Value"])
 
 
-@pytest.fixture(scope="session")
-def bearer(api_key: str) -> Dict[str, str]:
+@pytest.fixture(scope="session", name="bearer")
+def bearer_fixture(api_key: str) -> Dict[str, str]:
     return {"Authorization": f"Bearer {api_key}"}
 
 
@@ -66,8 +66,8 @@ def api_id_fixture(apigateway_client: Any) -> str:
     raise LookupError(f"REST API '{API_NAME}' not found")
 
 
-@pytest.fixture(scope="session")
-def stage_url(api_id: str) -> str:
+@pytest.fixture(scope="session", name="stage_url")
+def stage_url_fixture(api_id: str) -> str:
     return f"https://{api_id}.execute-api.{REGION}.amazonaws.com/{STAGE}"
 
 
@@ -90,8 +90,8 @@ def _bodiless(method: str) -> Callable[..., Tuple[int, Any]]:
     return send
 
 
-@pytest.fixture(scope="session")
-def get_json() -> Callable[..., Tuple[int, Any]]:
+@pytest.fixture(scope="session", name="get_json")
+def get_json_fixture() -> Callable[..., Tuple[int, Any]]:
     return _bodiless("GET")
 
 
