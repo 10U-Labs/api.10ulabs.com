@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 
 def test_the_carriers_are_listed_through_the_deployed_api(
@@ -150,15 +150,39 @@ def test_no_listed_carrier_has_a_pop_zero_through_the_deployed_api(
     assert answered == [(404, {"error": "No such pop"})] * len(listed)
 
 
-def test_the_first_pop_of_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
+def _first_pops(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
-) -> None:
+) -> List[Tuple[str, Dict[str, Any]]]:
     _, listed = get_json(f"{stage_url}/carriers", bearer)
-    firsts = [
-        (one["id"], pop)
+    return [
+        (f"{stage_url}/carriers/{one['id']}/pops/{pop['id']}", pop)
         for one in listed
         for pop in get_json(f"{stage_url}/carriers/{one['id']}/pops", bearer)[1][:1]
     ]
-    served = [get_json(f"{stage_url}/carriers/{carrier}/pops/{pop['id']}", bearer)
-              for carrier, pop in firsts]
-    assert served == [(200, pop) for _, pop in firsts]
+
+
+def test_the_first_pop_of_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    firsts = _first_pops(stage_url, get_json, bearer)
+    assert [get_json(url, bearer) for url, _ in firsts] == [(200, pop) for _, pop in firsts]
+
+
+def test_the_workflows_key_is_refused_a_pop_correction_through_the_deployed_api(
+    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = put_json(f"{stage_url}/carriers/0/pops/0", BOISE, bearer)
+    assert status == 403
+
+
+def test_a_refused_correction_leaves_the_first_pop_of_every_listed_carrier_as_it_was(
+    stage_url: str,
+    get_json: Callable[..., Tuple[int, Any]],
+    put_json: Callable[..., Tuple[int, Any]],
+    bearer: Dict[str, str],
+) -> None:
+    firsts = _first_pops(stage_url, get_json, bearer)
+    refused = [put_json(url, BOISE, bearer)[0] for url, _ in firsts]
+    assert (refused, [get_json(url, bearer)[1] for url, _ in firsts]) == (
+        [403] * len(firsts), [pop for _, pop in firsts]
+    )

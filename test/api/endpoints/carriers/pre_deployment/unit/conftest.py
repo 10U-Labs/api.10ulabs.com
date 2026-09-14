@@ -7,7 +7,9 @@ from botocore.exceptions import ClientError
 
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
-    store = SimpleNamespace(items=[], failing=False, queries=[], gets=[], updates=[], deletes=[])
+    store = SimpleNamespace(
+        items=[], failing=False, queries=[], gets=[], updates=[], deletes=[], puts=[]
+    )
 
     def refuse(operation: str) -> None:
         if store.failing:
@@ -27,8 +29,8 @@ def store_fixture() -> SimpleNamespace:
             store.items.append(item)
         return item
 
-    def required(request: Dict[str, Any], operation: str) -> Dict[str, Any]:
-        item = held(request["Key"])
+    def required(key: Dict[str, Any], operation: str) -> Dict[str, Any]:
+        item = held(key)
         if item is None:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, operation)
         return item
@@ -63,7 +65,7 @@ def store_fixture() -> SimpleNamespace:
         store.updates.append(request)
         refuse("UpdateItem")
         conditional = "ConditionExpression" in request
-        item = required(request, "UpdateItem") if conditional else counter(request["Key"])
+        item = required(request["Key"], "UpdateItem") if conditional else counter(request["Key"])
         renaming = ":name" in request["ExpressionAttributeValues"]
         return rename(request, item) if renaming else advance(request, item)
 
@@ -71,14 +73,18 @@ def store_fixture() -> SimpleNamespace:
         store.deletes.append(request)
         refuse("DeleteItem")
         conditional = "ConditionExpression" in request
-        item = required(request, "DeleteItem") if conditional else held(request["Key"])
+        item = required(request["Key"], "DeleteItem") if conditional else held(request["Key"])
         if item is not None:
             store.items.remove(item)
         return {}
 
     def put_item(**request: Any) -> Dict[str, Any]:
+        store.puts.append(request)
         refuse("PutItem")
-        store.items.append(request["Item"])
+        item = request["Item"]
+        if "ConditionExpression" in request:
+            store.items.remove(required({"PK": item["PK"], "SK": item["SK"]}, "PutItem"))
+        store.items.append(item)
         return {}
 
     store.query = query

@@ -56,18 +56,21 @@ CARRIERS_OPERATIONS = [
     ("/carriers/{carrier}/pops", "get"),
     ("/carriers/{carrier}/pops", "post"),
     (POP, "get"),
+    (POP, "put"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
+POP_METHODS = ["get", "put"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
 ]
-UNDER_A_POP = [(POP, "get")]
+UNDER_A_POP = [(POP, method) for method in POP_METHODS]
 IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
+PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
 CREATIONS = [("/carriers", "post"), ("/carriers/{carrier}/pops", "post")]
 
 
@@ -88,40 +91,58 @@ def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> 
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
-def test_a_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][POP]) == ["get"]
+def test_a_pop_answers_get_and_put(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][POP]) == POP_METHODS
 
 
-def test_a_pop_is_served_as_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
-    served = openapi["paths"][POP]["get"]["responses"]["200"]
+@pytest.mark.parametrize("method", POP_METHODS)
+def test_a_pop_is_served_as_a_located_municipality_with_an_id(
+    openapi: Dict[str, Any], method: str
+) -> None:
+    served = openapi["paths"][POP][method]["responses"]["200"]
     assert served["content"]["application/json"]["schema"]["required"] == POP_FIELDS
 
 
-def _pop_body(openapi: Dict[str, Any]) -> Dict[str, Any]:
-    body = openapi["paths"]["/carriers/{carrier}/pops"]["post"]["requestBody"]
+def _pop_body(openapi: Dict[str, Any], path: str, method: str) -> Dict[str, Any]:
+    body = openapi["paths"][path][method]["requestBody"]
     schema: Dict[str, Any] = body["content"]["application/json"]["schema"]
     return schema
 
 
-def test_a_pop_is_added_as_a_located_municipality_without_an_id(
-    openapi: Dict[str, Any]
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
+def test_a_pop_is_placed_as_a_located_municipality_without_an_id(
+    openapi: Dict[str, Any], path: str, method: str
 ) -> None:
-    assert _pop_body(openapi)["required"] == POP_FIELDS[1:]
+    assert _pop_body(openapi, path, method)["required"] == POP_FIELDS[1:]
 
 
-def test_a_pop_is_added_with_no_other_field(openapi: Dict[str, Any]) -> None:
-    assert _pop_body(openapi)["additionalProperties"] is False
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
+def test_a_pop_is_placed_with_no_other_field(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert _pop_body(openapi, path, method)["additionalProperties"] is False
 
 
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
 @pytest.mark.parametrize("field", ["municipality", "country"])
-def test_a_pop_is_added_with_a_municipality_and_a_country_that_are_named(
-    openapi: Dict[str, Any], field: str
+def test_a_pop_is_placed_with_a_municipality_and_a_country_that_are_named(
+    openapi: Dict[str, Any], path: str, method: str, field: str
 ) -> None:
-    assert _pop_body(openapi)["properties"][field]["minLength"] == 1
+    assert _pop_body(openapi, path, method)["properties"][field]["minLength"] == 1
 
 
-def test_a_pop_may_be_added_with_no_state(openapi: Dict[str, Any]) -> None:
-    assert "minLength" not in _pop_body(openapi)["properties"]["state"]
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
+def test_a_pop_may_be_placed_with_no_state(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert "minLength" not in _pop_body(openapi, path, method)["properties"]["state"]
+
+
+@pytest.mark.parametrize(("path", "method"), PLACED_BODIES)
+def test_a_misplaced_pop_is_documented_as_400(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert "400" in openapi["paths"][path][method]["responses"]
 
 
 def test_an_added_pop_answers_with_its_id(openapi: Dict[str, Any]) -> None:

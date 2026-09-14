@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 
@@ -178,7 +179,10 @@ def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
     return json_response(200, sorted(map(_pop, pops), key=lambda pop: pop['id']))
 
 
-def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+OnPop = Callable[[str, str], Optional[Dict[str, Any]]]
+
+
+def _on_pop(event: Dict[str, Any], act: OnPop, failure: str) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return json_response(404, {'error': MISSING})
@@ -187,15 +191,23 @@ def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
         return json_response(404, {'error': MISSING_POP})
     try:
         carrier = _member(COLLECTION, carrier_id)
-        pop = _member(f'{COLLECTION}/{carrier_id}', f'{POPS}/{pop_id}') if carrier else None
+        pop = act(carrier_id, pop_id) if carrier else None
     except ClientError as error:
-        logger.error('Error reading pop %s of carrier %s: %s', pop_id, carrier_id, error)
-        return json_response(500, {'error': 'Failed to read the pop'})
+        logger.error('Error with pop %s of carrier %s: %s', pop_id, carrier_id, error)
+        return json_response(500, {'error': failure})
     if carrier is None:
         return json_response(404, {'error': MISSING})
     if pop is None:
         return json_response(404, {'error': MISSING_POP})
     return json_response(200, _pop(pop))
+
+
+def _stored_pop(carrier_id: str, pop_id: str) -> Optional[Dict[str, Any]]:
+    return _member(f'{COLLECTION}/{carrier_id}', f'{POPS}/{pop_id}')
+
+
+def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _on_pop(event, _stored_pop, 'Failed to read the pop')
 
 
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -291,14 +303,16 @@ def _pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return body if _placed(body) and _located(body) else None
 
 
-def _put_pop(carrier_id: str, pop_id: int, body: Dict[str, Any]) -> Dict[str, Any]:
+def _put_pop(
+    carrier_id: str, pop_id: str, body: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
     item = {
         'PK': {'S': f'{COLLECTION}/{carrier_id}'},
         'SK': {'S': f'{POPS}/{pop_id}'},
         **{field: {'S': body[field]} for field in PLACE},
         **{field: {'N': str(body[field])} for field in COORDINATES},
     }
-    aws_client('dynamodb').put_item(TableName=os.environ['STORE_TABLE'], Item=item)
+    aws_client('dynamodb').put_item(TableName=os.environ['STORE_TABLE'], Item=item, **request)
     return item
 
 
@@ -311,7 +325,7 @@ def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
         return json_response(404, {'error': MISSING})
     try:
         pop_id = _next_pop_id(carrier_id)
-        item = _put_pop(carrier_id, pop_id, body) if pop_id is not None else None
+        item = _put_pop(carrier_id, str(pop_id), body) if pop_id is not None else None
     except ClientError as error:
         logger.error('Error adding a pop to carrier %s: %s', carrier_id, error)
         return json_response(500, {'error': 'Failed to add the pop'})
@@ -320,6 +334,22 @@ def _add_pop(event: Dict[str, Any]) -> Dict[str, Any]:
     response = json_response(201, _pop(item))
     response['headers']['Location'] = f'/{COLLECTION}/{carrier_id}/{POPS}/{pop_id}'
     return response
+
+
+def _replace_pop(carrier_id: str, pop_id: str, body: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    try:
+        return _put_pop(carrier_id, pop_id, body, ConditionExpression='attribute_exists(PK)')
+    except ClientError as error:
+        if _conditional(error):
+            return None
+        raise
+
+
+def _update_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    body = _pop_body(event)
+    if body is None:
+        return json_response(400, {'error': POP_BODY})
+    return _on_pop(event, partial(_replace_pop, body=body), 'Failed to update the pop')
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
@@ -332,4 +362,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}/pops', 'GET'): _list_pops,
         ('/carriers/{carrier}/pops', 'POST'): _add_pop,
         ('/carriers/{carrier}/pops/{pop}', 'GET'): _read_pop,
+        ('/carriers/{carrier}/pops/{pop}', 'PUT'): _update_pop,
     })
