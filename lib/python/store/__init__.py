@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional
 
+from botocore.exceptions import ClientError
+
 from lambda_http import aws_client
 
 COUNTER = '#'
@@ -58,3 +60,8 @@ def put(
     item = {'PK': {'S': partition_key}, 'SK': {'S': sort_key}, **attributes}
     aws_client('dynamodb').put_item(TableName=table, Item=item, **request)
     return item
+
+
+def conditional(error: ClientError) -> bool:
+    code: str = error.response['Error']['Code']
+    return code == 'ConditionalCheckFailedException'

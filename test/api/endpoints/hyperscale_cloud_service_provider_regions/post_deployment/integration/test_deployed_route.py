@@ -61,3 +61,25 @@ def test_every_listed_region_is_served_at_its_own_url_through_the_deployed_api(
     _, listed = get_json(f"{stage_url}{REGIONS}", bearer)
     served = [get_json(f"{stage_url}{REGIONS}/{region['id']}", bearer) for region in listed]
     assert served == [(200, region) for region in listed]
+
+
+PHOENIX = {"name": "us-west-2", "municipality": "Phoenix", "state": "AZ", "country": "US",
+           "latitude": 33.4484, "longitude": -112.074}
+
+
+def test_the_workflows_key_is_refused_a_region_correction_through_the_deployed_api(
+    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = put_json(f"{stage_url}{REGIONS}/0", PHOENIX, bearer)
+    assert status == 403
+
+
+def test_a_refused_correction_leaves_every_listed_region_as_it_was_through_the_deployed_api(
+    stage_url: str,
+    get_json: Callable[..., Tuple[int, Any]],
+    put_json: Callable[..., Tuple[int, Any]],
+    bearer: Dict[str, str],
+) -> None:
+    _, listed = get_json(f"{stage_url}{REGIONS}", bearer)
+    refused = [put_json(f"{stage_url}{REGIONS}/{one['id']}", PHOENIX, bearer)[0] for one in listed]
+    assert (refused, get_json(f"{stage_url}{REGIONS}", bearer)[1]) == ([403] * len(listed), listed)

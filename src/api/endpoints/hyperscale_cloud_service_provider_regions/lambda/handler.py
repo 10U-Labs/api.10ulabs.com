@@ -8,7 +8,7 @@ from lambda_http import (
     created, dispatch, error_response, has_numbers, has_strings, json_response, parse_valid,
     path_id,
 )
-from store import member, members, next_id, put
+from store import conditional, member, members, next_id, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -62,6 +62,13 @@ def _region_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     )
 
 
+def _attributes(body: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        **{field: {'S': body[field]} for field in WORDED},
+        **{field: {'N': str(body[field])} for field in COORDINATES},
+    }
+
+
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     body = _region_body(event)
     if body is None:
@@ -69,14 +76,31 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     table = os.environ['STORE_TABLE']
     try:
         region_id = next_id(table, COLLECTION)
-        item = put(table, COLLECTION, str(region_id), {
-            **{field: {'S': body[field]} for field in WORDED},
-            **{field: {'N': str(body[field])} for field in COORDINATES},
-        })
+        item = put(table, COLLECTION, str(region_id), _attributes(body))
     except ClientError as error:
         logger.error('Error creating the hyperscale cloud service provider region: %s', error)
         return error_response(500, 'Failed to create the hyperscale cloud service provider region')
     return created(f'/{COLLECTION}/{region_id}', _region(item))
+
+
+def _update(event: Dict[str, Any]) -> Dict[str, Any]:
+    body = _region_body(event)
+    if body is None:
+        return error_response(400, REGION_BODY)
+    region_id = path_id(event, 'region')
+    if region_id is None:
+        return error_response(404, MISSING)
+    try:
+        item = put(
+            os.environ['STORE_TABLE'], COLLECTION, region_id, _attributes(body),
+            ConditionExpression='attribute_exists(PK)',
+        )
+    except ClientError as error:
+        if conditional(error):
+            return error_response(404, MISSING)
+        logger.error('Error updating region %s: %s', region_id, error)
+        return error_response(500, 'Failed to update the hyperscale cloud service provider region')
+    return json_response(200, _region(item))
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
@@ -84,4 +108,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}', 'POST'): _create,
         (f'/{COLLECTION}/{{region}}', 'GET'): _read,
+        (f'/{COLLECTION}/{{region}}', 'PUT'): _update,
     })

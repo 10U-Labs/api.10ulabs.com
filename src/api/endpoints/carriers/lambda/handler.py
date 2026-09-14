@@ -9,7 +9,7 @@ from lambda_http import (
     aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
     parse_fields, parse_valid, path_id,
 )
-from store import advance, member, members, next_id, partition, put
+from store import advance, conditional, member, members, next_id, partition, put
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -59,11 +59,6 @@ def _name(event: Dict[str, Any]) -> Optional[str]:
     return name if isinstance(name, str) and name else None
 
 
-def _conditional(error: ClientError) -> bool:
-    code: str = error.response['Error']['Code']
-    return code == 'ConditionalCheckFailedException'
-
-
 def _attributes(write: str, key: Dict[str, Any], **request: Any) -> Optional[Dict[str, Any]]:
     try:
         answer = getattr(aws_client('dynamodb'), write)(
@@ -73,7 +68,7 @@ def _attributes(write: str, key: Dict[str, Any], **request: Any) -> Optional[Dic
             **request,
         )
     except ClientError as error:
-        if _conditional(error):
+        if conditional(error):
             return None
         raise
     item: Dict[str, Any] = answer['Attributes']
@@ -137,7 +132,7 @@ def _remove(collection: str, member_id: str) -> bool:
             ConditionExpression='attribute_exists(PK)',
         )
     except ClientError as error:
-        if _conditional(error):
+        if conditional(error):
             return False
         raise
     return True
@@ -232,7 +227,7 @@ def _next_under(carrier_id: str, counter: str) -> Optional[int]:
             UpdateExpression='SET #next = #next + :one',
         )
     except ClientError as error:
-        if _conditional(error):
+        if conditional(error):
             return None
         raise
 
@@ -377,7 +372,7 @@ def _replace_under(
     try:
         return kind.put(carrier_id, member_id, body, ConditionExpression='attribute_exists(PK)')
     except ClientError as error:
-        if _conditional(error):
+        if conditional(error):
             return None
         raise
 

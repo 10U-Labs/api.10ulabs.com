@@ -70,6 +70,7 @@ def test_the_api_key_creates_a_region(authorizer: ModuleType) -> None:
     ("PUT", "carriers/3/pops/4"),
     ("PUT", "carriers/3/fiber-segments/4"),
     ("PUT", "carriers/3"),
+    ("PUT", "hyperscale-cloud-service-provider-regions/3"),
     ("DELETE", "carriers"),
 ])
 def test_the_api_key_writes_nothing_else_yet(

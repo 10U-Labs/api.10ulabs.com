@@ -2,9 +2,10 @@ from types import SimpleNamespace
 from typing import Any, Dict, List
 
 import pytest
+from botocore.exceptions import ClientError
 
 import store
-from store import advance, member, members, next_id, partition, put
+from store import advance, conditional, member, members, next_id, partition, put
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
 LUMEN = {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "lumen"}}
@@ -193,3 +194,12 @@ def test_a_put_writes_the_item_to_the_table_it_names(dynamodb: SimpleNamespace) 
 def test_a_put_passes_the_rest_of_the_request_through(dynamodb: SimpleNamespace) -> None:
     put("the-table", "carriers/1", "pops/2", {}, ConditionExpression="attribute_exists(PK)")
     assert dynamodb.puts[0]["ConditionExpression"] == "attribute_exists(PK)"
+
+
+def test_a_conditional_check_that_failed_is_conditional() -> None:
+    error = ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "PutItem")
+    assert conditional(error)
+
+
+def test_any_other_refusal_is_not_conditional() -> None:
+    assert not conditional(ClientError({"Error": {"Code": "InternalServerError"}}, "PutItem"))

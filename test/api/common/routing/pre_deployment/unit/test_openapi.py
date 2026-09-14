@@ -69,7 +69,7 @@ CARRIERS_OPERATIONS = [
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
 REGION = "/hyperscale-cloud-service-provider-regions/{region}"
-REGION_METHODS = ["get"]
+REGION_METHODS = ["get", "put"]
 UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
 REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
@@ -98,7 +98,7 @@ FIBER_SEGMENT_FIELDS = [
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
 PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
 SPANNED_BODIES = [(FIBER_SEGMENTS, "post"), (FIBER_SEGMENT, "put")]
-LOCATED_BODIES = [(REGIONS, "post")]
+LOCATED_BODIES = [(REGIONS, "post"), (REGION, "put")]
 MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
     (path, method, FIBER_SEGMENT_FIELDS) for path, method in SPANNED_BODIES
 ] + [(path, method, REGION_FIELDS) for path, method in LOCATED_BODIES]
@@ -283,7 +283,7 @@ def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[s
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
 
 
-def test_a_region_answers_get_alone(openapi: Dict[str, Any]) -> None:
+def test_a_region_answers_get_and_put(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][REGION]) == REGION_METHODS
 
 
