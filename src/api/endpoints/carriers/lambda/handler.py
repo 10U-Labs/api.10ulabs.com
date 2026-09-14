@@ -1,17 +1,17 @@
 import logging
 import os
 from functools import partial
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
 from lambda_http import aws_client, created, dispatch, json_response, parse_fields
+from store import COUNTER, members, partition
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 COLLECTION = 'carriers'
-COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 MISSING_POP = 'No such pop'
@@ -31,36 +31,17 @@ FIBER_SEGMENT_BODY = (
 )
 
 
-def _partition(partition: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
-    condition = 'PK = :pk'
-    values = {':pk': {'S': partition}}
-    if prefix is not None:
-        condition += ' AND begins_with(SK, :prefix)'
-        values[':prefix'] = {'S': prefix}
-    answer = aws_client('dynamodb').query(
-        TableName=os.environ['STORE_TABLE'],
-        KeyConditionExpression=condition,
-        ExpressionAttributeValues=values,
-    )
-    items: List[Dict[str, Any]] = answer['Items']
-    return items
-
-
-def _members(collection: str) -> List[Dict[str, Any]]:
-    return [item for item in _partition(collection) if item['SK']['S'] != COUNTER]
-
-
 def _carrier(item: Dict[str, Any]) -> Dict[str, Any]:
     return {'id': int(item['SK']['S']), 'name': item['name']['S']}
 
 
 def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        members = _members(COLLECTION)
+        carriers = members(os.environ['STORE_TABLE'], COLLECTION)
     except ClientError as error:
         logger.error('Error reading the carriers: %s', error)
         return json_response(500, {'error': 'Failed to read the carriers'})
-    return json_response(200, sorted(map(_carrier, members), key=lambda carrier: carrier['id']))
+    return json_response(200, sorted(map(_carrier, carriers), key=lambda carrier: carrier['id']))
 
 
 def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
@@ -154,7 +135,7 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
 def _remove(collection: str, member_id: str) -> bool:
     table = os.environ['STORE_TABLE']
     store = aws_client('dynamodb')
-    for item in _partition(f'{collection}/{member_id}'):
+    for item in partition(table, f'{collection}/{member_id}'):
         store.delete_item(TableName=table, Key={'PK': item['PK'], 'SK': item['SK']})
     try:
         store.delete_item(
@@ -198,7 +179,8 @@ def _list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> D
         return json_response(404, {'error': MISSING})
     try:
         carrier = _member(COLLECTION, carrier_id)
-        items = _partition(f'{COLLECTION}/{carrier_id}', f'{prefix}/') if carrier else []
+        under = f'{COLLECTION}/{carrier_id}'
+        items = partition(os.environ['STORE_TABLE'], under, f'{prefix}/') if carrier else []
     except ClientError as error:
         logger.error('Error reading the %s of carrier %s: %s', prefix, carrier_id, error)
         return json_response(500, {'error': failure})

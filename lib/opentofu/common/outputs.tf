@@ -36,13 +36,14 @@ output "deploy_role_name" {
 output "lambda_handler_names" {
   description = "Deterministic Lambda function names, one per handler and the authorizer in front of the protected routes, which the routing stack composes into integration URIs."
   value = {
-    authorizer          = "api-10ulabs-com-authorizer"
-    carriers            = "api-10ulabs-com-carriers"
-    catchall            = "api-10ulabs-com-catchall"
-    contact             = "api-10ulabs-com-contact"
-    diagnostics         = "api-10ulabs-com-diagnostics"
-    health              = "api-10ulabs-com-health"
-    rack_configurations = "api-10ulabs-com-rack-configurations"
-    sessions            = "api-10ulabs-com-sessions"
+    authorizer                                = "api-10ulabs-com-authorizer"
+    carriers                                  = "api-10ulabs-com-carriers"
+    catchall                                  = "api-10ulabs-com-catchall"
+    contact                                   = "api-10ulabs-com-contact"
+    diagnostics                               = "api-10ulabs-com-diagnostics"
+    health                                    = "api-10ulabs-com-health"
+    hyperscale_cloud_service_provider_regions = "api-10ulabs-com-hyperscale-cloud-service-provider-regions"
+    rack_configurations                       = "api-10ulabs-com-rack-configurations"
+    sessions                                  = "api-10ulabs-com-sessions"
   }
 }

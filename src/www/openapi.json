@@ -21,6 +21,10 @@
       "description": "Carrier endpoints"
     },
     {
+      "name": "/hyperscale-cloud-service-provider-regions",
+      "description": "Hyperscale cloud service provider region endpoints"
+    },
+    {
       "name": "/diagnostics",
       "description": "Diagnostics utility endpoints"
     },
@@ -1784,6 +1788,91 @@
         },
         "x-amazon-apigateway-integration": {
           "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
+    "/hyperscale-cloud-service-provider-regions": {
+      "get": {
+        "summary": "List Hyperscale Cloud Service Provider Regions",
+        "description": "Lists the hyperscale cloud service provider regions, each by the id the API assigned it, its name and where it is.",
+        "operationId": "listHyperscaleCloudServiceProviderRegions",
+        "tags": [
+          "/hyperscale-cloud-service-provider-regions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The regions, in id order; [] when there are none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name",
+                      "municipality",
+                      "state",
+                      "country",
+                      "latitude",
+                      "longitude"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The region's name as its provider publishes it",
+                        "example": "us-east-2"
+                      },
+                      "municipality": {
+                        "type": "string",
+                        "example": "Columbus"
+                      },
+                      "state": {
+                        "type": "string",
+                        "description": "The state or province; empty outside a country that has them",
+                        "example": "OH"
+                      },
+                      "country": {
+                        "type": "string",
+                        "example": "US"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "example": 39.9612
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": -82.9988
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }

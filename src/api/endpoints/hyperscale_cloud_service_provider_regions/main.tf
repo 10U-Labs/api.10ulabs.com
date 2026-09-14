@@ -3,7 +3,7 @@ module "common" {
 }
 
 locals {
-  function_name = module.common.lambda_handler_names.carriers
+  function_name = module.common.lambda_handler_names.hyperscale_cloud_service_provider_regions
   role_name     = "${local.function_name}-lambda"
 }
 
@@ -54,7 +54,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Carriers endpoint: list the carriers in the store, create one, serve, rename or delete one by its id, list or add its PoPs or serve, correct or remove one by its id, and list or add its fiber segments or serve, correct or remove one by its id."
+  description      = "Hyperscale cloud service provider regions endpoint: list the regions in the store."
 
   environment {
     variables = {

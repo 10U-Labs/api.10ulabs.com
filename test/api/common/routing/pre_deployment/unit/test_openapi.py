@@ -66,6 +66,9 @@ CARRIERS_OPERATIONS = [
     (FIBER_SEGMENT, "put"),
     (FIBER_SEGMENT, "delete"),
 ]
+REGIONS = "/hyperscale-cloud-service-provider-regions"
+REGIONS_OPERATIONS = [(REGIONS, "get")]
+SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 POP_SERVINGS = ["get", "put"]
@@ -82,6 +85,7 @@ IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] 
     (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
+REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 FIBER_SEGMENT_FIELDS = [
     "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
 ]
@@ -250,8 +254,25 @@ def test_carriers_is_served_by_the_carriers_handler(
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
 
 
-@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
-def test_carriers_is_reached_with_a_bearer_token(
+@pytest.mark.parametrize(("path", "method"), REGIONS_OPERATIONS)
+def test_the_regions_are_served_by_the_regions_handler(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    uri = openapi["paths"][path][method][INTEGRATION]["uri"]
+    assert uri == "${HyperscaleCloudServiceProviderRegionsHandlerArn}"
+
+
+def test_the_regions_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][REGIONS]) == ["get"]
+
+
+def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][REGIONS]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
+
+
+@pytest.mark.parametrize(("path", "method"), SECURED)
+def test_a_secured_operation_is_reached_with_a_bearer_token(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert openapi["paths"][path][method]["security"] == [{"bearer": []}]
@@ -320,10 +341,10 @@ def _secured_operations(openapi: Dict[str, Any]) -> set[Tuple[str, str]]:
 
 
 def test_every_route_the_site_calls_stays_public(openapi: Dict[str, Any]) -> None:
-    assert _secured_operations(openapi) == set(CARRIERS_OPERATIONS)
+    assert _secured_operations(openapi) == set(SECURED)
 
 
-@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
+@pytest.mark.parametrize(("path", "method"), SECURED)
 def test_every_secured_operation_documents_the_authorizer_s_refusals(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:

@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: endpoint_carriers-${{ github.ref }}
+  group: endpoint_hyperscale_cloud_service_provider_regions-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -67,7 +67,7 @@ jobs:
       - name: Assert every OpenTofu resource is reached by something
         uses: 10U-Labs/assert-opentofu-resource-is-used@latest
         with:
-          directories: src/api/endpoints/carriers lib/opentofu/common
+          directories: src/api/endpoints/hyperscale_cloud_service_provider_regions lib/opentofu/common
           search-in: .
           verbose: "true"
   assert-pytest-class-holds-state:
@@ -128,7 +128,7 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: src/api/endpoints/carriers/lambda lib/python
+          trees: src/api/endpoints/hyperscale_cloud_service_provider_regions/lambda lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -213,8 +213,8 @@ jobs:
           tofu_wrapper: false
       - name: Validate the stack
         run: |
-          tofu -chdir=src/api/endpoints/carriers init -backend=false -input=false
-          tofu -chdir=src/api/endpoints/carriers validate
+          tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions init -backend=false -input=false
+          tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions validate
   post-deployment-integration-tests:
     if: github.ref == 'refs/heads/main'
     needs:
@@ -239,7 +239,7 @@ jobs:
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
         run: >-
-          python3 -m pytest test/api/endpoints/carriers/post_deployment/integration/
+          python3 -m pytest test/api/endpoints/hyperscale_cloud_service_provider_regions/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   pylint-source:
@@ -326,90 +326,8 @@ jobs:
           tofu_wrapper: false
       - name: Reconcile the stack to its declared state
         run: |
-          tofu -chdir=src/api/endpoints/carriers init -input=false
-          tofu -chdir=src/api/endpoints/carriers apply -auto-approve -input=false
-  reload-the-changed-carriers:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs:
-      - post-deployment-integration-tests
-    permissions:
-      actions: read
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          aws-region: us-east-2
-          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
-      - env:
-          BEFORE: ${{ github.event.before }}
-          GH_TOKEN: ${{ github.token }}
-        name: Delete and create again, with its PoPs and fiber segments, every carrier whose data changed since the last load
-        run: |
-          RUNS="repos/$GITHUB_REPOSITORY/actions/workflows/endpoint_carriers.yml/runs"
-          SINCE=$(gh api "$RUNS?branch=main&event=push&status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // empty')
-          if [ -z "$SINCE" ]; then
-            SINCE=$BEFORE
-          fi
-          echo "Loading every carrier whose data changed since $SINCE."
-          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
-            --query Parameter.Value --output text)
-          echo "::add-mask::$KEY"
-          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
-          CARRIERS="https://$API.execute-api.us-east-2.amazonaws.com/prod/carriers"
-          LISTED=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" "$CARRIERS")
-          git diff --name-only --no-renames --diff-filter=d "$SINCE" "$GITHUB_SHA" \
-            -- data/pops data/fiber_segments \
-            | sed --quiet --regexp-extended 's|^data/.*/([^/.]+)\.csv$|\1|p' | sort --unique \
-            | while read -r CARRIER; do
-              ID=$(jq --raw-output --arg name "$CARRIER" \
-                'map(select(.name == $name)) | .[0].id // empty' <<< "$LISTED")
-              if [ -n "$ID" ]; then
-                echo "Deleting $CARRIER, carrier $ID, before loading it again."
-                curl --silent --show-error --fail --request DELETE \
-                  --header "Authorization: Bearer $KEY" "$CARRIERS/$ID"
-              fi
-              ID=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" \
-                --header "Content-Type: application/json" \
-                --data "$(jq --compact-output --null-input --arg name "$CARRIER" '{name: $name}')" \
-                "$CARRIERS" | jq --raw-output '.id')
-              echo "Created $CARRIER as carrier $ID."
-              if [ -f "data/pops/$CARRIER.csv" ]; then
-                tail --lines=+2 "data/pops/$CARRIER.csv" | jq --raw-input --compact-output \
-                  'split(",") | {municipality: .[0], state: .[1], country: .[2],
-                                 latitude: (.[3] | tonumber), longitude: (.[4] | tonumber)}' \
-                  | while read -r POP; do
-                    curl --silent --show-error --fail --output /dev/null \
-                      --header "Authorization: Bearer $KEY" \
-                      --header "Content-Type: application/json" \
-                      --data "$POP" "$CARRIERS/$ID/pops"
-                  done
-                echo "Added $(tail --lines=+2 "data/pops/$CARRIER.csv" | wc --lines) PoPs to $CARRIER."
-              fi
-              for KIND in terrestrial submarine; do
-                FIBER="data/fiber_segments/$KIND/$CARRIER.csv"
-                if [ -f "$FIBER" ]; then
-                  tail --lines=+2 "$FIBER" | jq --raw-input --compact-output --arg kind "$KIND" \
-                    'split(",") | {a_municipality: .[0], a_state: .[1],
-                                   z_municipality: .[2], z_state: .[3],
-                                   submarine: ($kind == "submarine")}' \
-                    | while read -r SEGMENT; do
-                      curl --silent --show-error --fail --output /dev/null \
-                        --header "Authorization: Bearer $KEY" \
-                        --header "Content-Type: application/json" \
-                        --data "$SEGMENT" "$CARRIERS/$ID/fiber-segments"
-                    done
-                  echo "Added $(tail --lines=+2 "$FIBER" | wc --lines) $KIND fiber segments to $CARRIER."
-                fi
-              done
-            done
+          tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions init -input=false
+          tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions apply -auto-approve -input=false
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -437,7 +355,7 @@ jobs:
         with:
           tflint_version: latest
       - name: Lint the stack
-        run: tflint --chdir=src/api/endpoints/carriers
+        run: tflint --chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -451,7 +369,7 @@ jobs:
         run: pip install boto3 pytest pyyaml
       - name: Run the unit tests
         run: >-
-          python3 -m pytest test/api/endpoints/carriers/pre_deployment/unit/
+          python3 -m pytest test/api/endpoints/hyperscale_cloud_service_provider_regions/pre_deployment/unit/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   wait-for-common-identity:
@@ -521,24 +439,22 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/endpoint_carriers.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: endpoint_carriers
+name: endpoint_hyperscale_cloud_service_provider_regions
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/endpoint_carriers.yml
-      - data/fiber_segments/**
-      - data/pops/**
+      - .github/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml
       - lib/opentofu/common/**
       - lib/python/**
-      - src/api/endpoints/carriers/**
+      - src/api/endpoints/hyperscale_cloud_service_provider_regions/**
       - src/www/**
       - test/api/conftest.py
-      - test/api/endpoints/carriers/**
+      - test/api/endpoints/hyperscale_cloud_service_provider_regions/**
       - test/api/endpoints/conftest.py
       - test/conftest.py
       - test/lib/python/**

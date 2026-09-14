@@ -16,14 +16,15 @@ locals {
   }
 
   openapi_spec = templatefile("${path.module}/../../../www/openapi.json", {
-    AuthorizerHandlerArn         = local.integration.authorizer
-    CarriersHandlerArn           = local.integration.carriers
-    CatchAllHandlerArn           = local.integration.catchall
-    ContactHandlerArn            = local.integration.contact
-    DiagnosticsHandlerArn        = local.integration.diagnostics
-    HealthHandlerArn             = local.integration.health
-    RackConfigurationsHandlerArn = local.integration.rack_configurations
-    SessionsHandlerArn           = local.integration.sessions
+    AuthorizerHandlerArn                            = local.integration.authorizer
+    CarriersHandlerArn                              = local.integration.carriers
+    CatchAllHandlerArn                              = local.integration.catchall
+    ContactHandlerArn                               = local.integration.contact
+    DiagnosticsHandlerArn                           = local.integration.diagnostics
+    HealthHandlerArn                                = local.integration.health
+    HyperscaleCloudServiceProviderRegionsHandlerArn = local.integration.hyperscale_cloud_service_provider_regions
+    RackConfigurationsHandlerArn                    = local.integration.rack_configurations
+    SessionsHandlerArn                              = local.integration.sessions
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }
