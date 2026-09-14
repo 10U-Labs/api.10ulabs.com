@@ -4268,6 +4268,103 @@
         }
       }
     },
+    "/wan-syntheses/{synthesis}/prohibited-circuits": {
+      "get": {
+        "summary": "List Given Prohibited Circuits",
+        "description": "Lists the prohibited circuits one synthesis was given, the backbone circuits the WAN must not carry between two named carrier PoPs, each as the body carried it under the id given at creation; the prohibited circuits are an input, so they are there whatever the run's status.",
+        "operationId": "listGivenProhibitedCircuits",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "synthesis",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run's prohibited circuits, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "source",
+                      "target"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The id the prohibited circuit was given at creation, in the order the body listed them",
+                        "example": 1
+                      },
+                      "source": {
+                        "type": "string",
+                        "description": "A carrier PoP, named by its municipality and state as the body gave it",
+                        "example": "Ashburn, VA"
+                      },
+                      "target": {
+                        "type": "string",
+                        "description": "A carrier PoP, named by its municipality and state as the body gave it",
+                        "example": "Minot, ND"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No synthesis has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${WanSynthesesHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

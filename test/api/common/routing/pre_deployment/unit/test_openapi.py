@@ -89,6 +89,7 @@ FORCED_WAN_POPS = "/wan-syntheses/{synthesis}/forced-wan-pops"
 FORCED_CIRCUITS = "/wan-syntheses/{synthesis}/forced-circuits"
 FORCED_HOMES = "/wan-syntheses/{synthesis}/forced-homes"
 PROHIBITED_WAN_POPS = "/wan-syntheses/{synthesis}/prohibited-wan-pops"
+PROHIBITED_CIRCUITS = "/wan-syntheses/{synthesis}/prohibited-circuits"
 NAMED_INPUT_FIELDS = ["id", "name"]
 ENDS_INPUT_FIELDS = ["id", "source", "target"]
 UNDER_A_SITE = [(SITE, "get")]
@@ -106,10 +107,11 @@ UNDER_A_SYNTHESIS = [
     (FORCED_CIRCUITS, "get"),
     (FORCED_HOMES, "get"),
     (PROHIBITED_WAN_POPS, "get"),
+    (PROHIBITED_CIRCUITS, "get"),
 ]
 GIVEN = [
     SITES, RUN_REGIONS, RUN_REGION, OFF_NET, FORCED_WAN_POPS, FORCED_CIRCUITS, FORCED_HOMES,
-    PROHIBITED_WAN_POPS,
+    PROHIBITED_WAN_POPS, PROHIBITED_CIRCUITS,
 ]
 SITE_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude",
@@ -171,6 +173,7 @@ LISTED = [
     (FORCED_CIRCUITS, ENDS_INPUT_FIELDS),
     (FORCED_HOMES, ENDS_INPUT_FIELDS),
     (PROHIBITED_WAN_POPS, NAMED_INPUT_FIELDS),
+    (PROHIBITED_CIRCUITS, ENDS_INPUT_FIELDS),
 ]
 SERVED = [
     (SYNTHESIS, SYNTHESIS_FIELDS),
