@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import pytest
 
-RACK_CONFIGURATIONS = "/v1/rack-configurations"
+RACK_CONFIGURATIONS = "/rack-configurations"
 
 
 def _post(body: Any) -> Dict[str, Any]:

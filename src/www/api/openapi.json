@@ -29,7 +29,7 @@
       "description": "Contact form submission endpoints"
     },
     {
-      "name": "/v1/rack-configurations",
+      "name": "/rack-configurations",
       "description": "Rack configuration endpoints"
     },
     {
@@ -375,13 +375,13 @@
         }
       }
     },
-    "/v1/rack-configurations": {
+    "/rack-configurations": {
       "post": {
         "summary": "Save Rack Configuration",
         "description": "Saves a rack configuration and returns a unique 9-character hash",
         "operationId": "createRackConfiguration",
         "tags": [
-          "/v1/rack-configurations"
+          "/rack-configurations"
         ],
         "requestBody": {
           "required": true,
@@ -532,7 +532,7 @@
         "description": "Handles CORS preflight requests",
         "operationId": "createRackConfigurationOptions",
         "tags": [
-          "/v1/rack-configurations"
+          "/rack-configurations"
         ],
         "responses": {
           "200": {
@@ -574,13 +574,13 @@
         }
       }
     },
-    "/v1/rack-configurations/{config_hash}": {
+    "/rack-configurations/{config_hash}": {
       "get": {
         "summary": "Load Rack Configuration",
         "description": "Loads a rack configuration by its unique hash",
         "operationId": "getRackConfiguration",
         "tags": [
-          "/v1/rack-configurations"
+          "/rack-configurations"
         ],
         "parameters": [
           {
@@ -676,7 +676,7 @@
         "description": "Handles CORS preflight requests",
         "operationId": "getRackConfigurationOptions",
         "tags": [
-          "/v1/rack-configurations"
+          "/rack-configurations"
         ],
         "parameters": [
           {

@@ -113,8 +113,8 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     response = dispatch(event, {
-        ('/v1/rack-configurations', 'POST'): _create,
-        ('/v1/rack-configurations/{config_hash}', 'GET'): _read,
+        ('/rack-configurations', 'POST'): _create,
+        ('/rack-configurations/{config_hash}', 'GET'): _read,
     })
     response['headers'].update(CORS_HEADERS)
     return response
