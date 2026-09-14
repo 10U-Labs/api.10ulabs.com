@@ -24,7 +24,7 @@ Create eight jobs with `CronCreate`, exactly as listed below. Use `recurring: tr
 | :06 | `6,16,26,36,46,56 * * * *` | `REMINDER: Ensure every task on the list is indivisible, whether it was written with TaskCreate or rewritten with TaskUpdate.` |
 | :07 | `7,17,27,37,47,57 * * * *` | `REMINDER: Do not do anything but wait while a workflow is running.` |
 | :08 | `8,18,28,38,48,58 * * * *` | `REMINDER: Nothing that happens in any repository but the one this session runs in matters. Another repository's workflows are not read, its runs are not waited for and its red gates are not looked at, not even to confirm a commit pushed there: the push is the end of the session's involvement, and a change that repository needs applied is applied by hand.` |
-| :09 | `9,19,29,39,49,59 * * * *` | `REMINDER: When you come up against a problem, solve it. Do not file a GitHub issue about it and move on — a problem you met is a problem you fix, in the same session, under the same standing rules as the issue you were working on.` |
+| :09 | `9,19,29,39,49,59 * * * *` | `REMINDER: When you come up against a problem in this repo, solve it. Do not file a GitHub issue about it and move on — a problem you met is a problem you fix, in the same session, under the same standing rules as the issue you were working on.` |
 
 Then tell the user that eight reminders are running, and the two limits that come with them: the jobs live in this session only and are gone when it ends, and recurring jobs auto-expire after seven days.
 
