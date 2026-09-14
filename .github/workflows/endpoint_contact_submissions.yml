@@ -277,7 +277,6 @@ jobs:
   reconciliation:
     if: >-
       github.ref == 'refs/heads/main'
-      && needs.wait-for-common-identity.outputs.apply == 'true'
       && needs.wait-for-common-routing.outputs.apply == 'true'
     needs:
       - assert-no-comments
@@ -303,7 +302,6 @@ jobs:
       - test-repo-libraries
       - tflint
       - unit-tests
-      - wait-for-common-identity
       - wait-for-common-routing
       - yamllint
     permissions:
@@ -372,23 +370,6 @@ jobs:
           python3 -m pytest test/api/endpoints/contact_submissions/pre_deployment/unit/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
-  wait-for-common-identity:
-    if: github.ref == 'refs/heads/main'
-    outputs:
-      apply: ${{ steps.wait.outputs.apply }}
-    permissions:
-      actions: read
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - id: wait
-        name: Wait for common_identity on this commit
-        uses: ./.github/actions/wait-for-workflow
-        with:
-          github_token: ${{ github.token }}
-          workflow: common_identity.yml
   wait-for-common-routing:
     if: github.ref == 'refs/heads/main'
     outputs:

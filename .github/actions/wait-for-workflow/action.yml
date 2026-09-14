@@ -14,7 +14,9 @@ outputs:
   apply:
     description: >-
       true when this commit started no run of the workflow, or started
-      one that ended success. false when that run ended any other way
+      one that ended success. false when that run ended any other way,
+      in which case the step fails too, so the dependent goes red with
+      its foundation and a rerun of its failed jobs waits again
     value: ${{ steps.wait.outputs.apply }}
 runs:
   steps:
@@ -47,10 +49,11 @@ runs:
             echo "$WORKFLOW on this commit ended $CONCLUSION."
             if [ "$CONCLUSION" = success ]; then
               echo "apply=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "apply=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
-            exit 0
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "::error::$WORKFLOW on this commit ended $CONCLUSION, so this stack is not applied."
+            exit 1
           fi
           echo "$WORKFLOW on this commit is ${RUN% *}. Waiting."
           sleep "$POLL_SECONDS"

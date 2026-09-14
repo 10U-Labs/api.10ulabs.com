@@ -278,6 +278,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main'
       && needs.wait-for-common-identity.outputs.apply == 'true'
+      && needs.wait-for-common-storage.outputs.apply == 'true'
     needs:
       - assert-no-comments
       - assert-no-inline-directives
@@ -303,6 +304,7 @@ jobs:
       - tflint
       - unit-tests
       - wait-for-common-identity
+      - wait-for-common-storage
       - yamllint
     permissions:
       contents: read
@@ -388,6 +390,23 @@ jobs:
         with:
           github_token: ${{ github.token }}
           workflow: common_identity.yml
+  wait-for-common-storage:
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      apply: ${{ steps.wait.outputs.apply }}
+    permissions:
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - id: wait
+        name: Wait for common_storage on this commit
+        uses: ./.github/actions/wait-for-workflow
+        with:
+          github_token: ${{ github.token }}
+          workflow: common_storage.yml
   yamllint:
     runs-on: ubuntu-latest
     steps:
