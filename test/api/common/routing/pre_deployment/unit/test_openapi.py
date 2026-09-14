@@ -82,6 +82,7 @@ HOMING_CIRCUITS = "/wan-syntheses/{synthesis}/homing-circuits"
 RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
 SITES = "/wan-syntheses/{synthesis}/sites"
 SITE = "/wan-syntheses/{synthesis}/sites/{site}"
+RUN_REGIONS = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions"
 UNDER_A_SITE = [(SITE, "get")]
 UNDER_A_SYNTHESIS = [
     (SYNTHESIS, "get"),
@@ -90,7 +91,9 @@ UNDER_A_SYNTHESIS = [
     (HOMING_CIRCUITS, "get"),
     (RIDDEN_FIBER, "get"),
     (SITES, "get"),
+    (RUN_REGIONS, "get"),
 ]
+GIVEN = [SITES, RUN_REGIONS]
 SITE_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude",
     "exempt_from_distance_constraint",
@@ -450,8 +453,18 @@ def test_a_site_is_served_as_named_and_placed_with_an_id(openapi: Dict[str, Any]
     assert served["content"]["application/json"]["schema"]["required"] == SITE_FIELDS
 
 
-def test_the_sites_are_there_whatever_the_run_s_status(openapi: Dict[str, Any]) -> None:
-    missing = openapi["paths"][SITES]["get"]["responses"]["404"]["description"]
+def test_the_regions_of_a_synthesis_answer_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][RUN_REGIONS]) == ["get"]
+
+
+def test_a_synthesis_s_region_is_served_as_the_catalog_serves_it(openapi: Dict[str, Any]) -> None:
+    listed = openapi["paths"][RUN_REGIONS]["get"]["responses"]["200"]
+    assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
+
+
+@pytest.mark.parametrize("path", GIVEN)
+def test_an_input_is_there_whatever_the_run_s_status(openapi: Dict[str, Any], path: str) -> None:
+    missing = openapi["paths"][path]["get"]["responses"]["404"]["description"]
     assert missing == "No synthesis has that id"
 
 

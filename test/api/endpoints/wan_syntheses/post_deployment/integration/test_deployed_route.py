@@ -4,7 +4,7 @@ import pytest
 
 SYNTHESES = "/wan-syntheses"
 WAN_PARTS = ["wan-pops", "backbone-circuits", "homing-circuits", "fiber-segments"]
-INPUTS = ["sites"]
+INPUTS = ["sites", "hyperscale-cloud-service-provider-regions"]
 PARTS = WAN_PARTS + INPUTS
 
 

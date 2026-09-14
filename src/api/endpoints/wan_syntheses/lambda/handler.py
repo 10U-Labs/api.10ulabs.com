@@ -60,6 +60,10 @@ BACKBONE_CIRCUITS = Part('backbone-circuits', 'backbone-circuit', 'No such backb
 HOMING_CIRCUITS = Part('homing-circuits', 'homing-circuit', 'No such homing circuit')
 FIBER_SEGMENTS = Part('fiber-segments', 'fiber-segment', 'No such fiber segment')
 SITES = Part('sites', 'site', 'No such site', given=True)
+REGIONS = Part(
+    'hyperscale-cloud-service-provider-regions', 'region',
+    'No such hyperscale cloud service provider region', given=True,
+)
 
 
 def _held(record: Optional[Dict[str, Any]], part: Part) -> bool:
@@ -143,6 +147,12 @@ def _read_site(event: Dict[str, Any]) -> Dict[str, Any]:
     return _read_under(event, SITES, 'Failed to read the site')
 
 
+def _list_regions(event: Dict[str, Any]) -> Dict[str, Any]:
+    return _list_under(
+        event, REGIONS, 'Failed to read the hyperscale cloud service provider regions'
+    )
+
+
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
@@ -154,4 +164,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         (f'/{COLLECTION}/{{synthesis}}/fiber-segments', 'GET'): _list_fiber_segments,
         (f'/{COLLECTION}/{{synthesis}}/sites', 'GET'): _list_sites,
         (f'/{COLLECTION}/{{synthesis}}/sites/{{site}}', 'GET'): _read_site,
+        (f'/{COLLECTION}/{{synthesis}}/{REGIONS.prefix}', 'GET'): _list_regions,
     })
