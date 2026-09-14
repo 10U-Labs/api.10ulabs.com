@@ -1,7 +1,7 @@
 ---
 concurrency:
   cancel-in-progress: false
-  group: api_common_routing-${{ github.ref }}
+  group: api_common_storage-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
   MYPYPATH: lib/python
@@ -67,7 +67,7 @@ jobs:
       - name: Assert every OpenTofu resource is reached by something
         uses: 10U-Labs/assert-opentofu-resource-is-used@latest
         with:
-          directories: src/api/common/routing lib/opentofu/common
+          directories: src/api/common/storage lib/opentofu/common
           search-in: .
           verbose: "true"
   assert-pytest-class-holds-state:
@@ -128,7 +128,7 @@ jobs:
           assume-used-matching: lambda_handler
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
-          trees: src/api/common/routing/lambda lib/python
+          trees: lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
@@ -213,8 +213,8 @@ jobs:
           tofu_wrapper: false
       - name: Validate the stack
         run: |
-          tofu -chdir=src/api/common/routing init -backend=false -input=false
-          tofu -chdir=src/api/common/routing validate
+          tofu -chdir=src/api/common/storage init -backend=false -input=false
+          tofu -chdir=src/api/common/storage validate
   post-deployment-integration-tests:
     if: github.ref == 'refs/heads/main'
     needs:
@@ -239,7 +239,7 @@ jobs:
         run: pip install boto3 pytest
       - name: Run the post-deployment integration tests against the deployment
         run: >-
-          python3 -m pytest test/api/common/routing/post_deployment/integration/
+          python3 -m pytest test/api/common/storage/post_deployment/integration/
           --import-mode=importlib --confcutdir=test
           --verbose --pythonwarnings=error
   pylint-source:
@@ -301,7 +301,6 @@ jobs:
       - pylint-tests
       - test-repo-libraries
       - tflint
-      - unit-tests
       - wait-for-api-common-identity
       - yamllint
     permissions:
@@ -320,13 +319,10 @@ jobs:
         uses: opentofu/setup-opentofu@v2
         with:
           tofu_wrapper: false
-      - env:
-          TF_VAR_api_key_rotation: ${{ vars.API_10ULABS_COM_API_KEY_ROTATION }}
-          TF_VAR_authorized_accounts: ${{ vars.API_10ULABS_COM_AUTHORIZED_ACCOUNTS }}
-        name: Reconcile the stack to its declared state
+      - name: Reconcile the stack to its declared state
         run: |
-          tofu -chdir=src/api/common/routing init -input=false
-          tofu -chdir=src/api/common/routing apply -auto-approve -input=false
+          tofu -chdir=src/api/common/storage init -input=false
+          tofu -chdir=src/api/common/storage apply -auto-approve -input=false
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -354,23 +350,7 @@ jobs:
         with:
           tflint_version: latest
       - name: Lint the stack
-        run: tflint --chdir=src/api/common/routing
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - name: Install tools
-        run: pip install boto3 pytest pyyaml
-      - name: Run the unit tests
-        run: >-
-          python3 -m pytest test/api/common/routing/pre_deployment/unit/
-          --import-mode=importlib --confcutdir=test
-          --verbose --pythonwarnings=error
+        run: tflint --chdir=src/api/common/storage
   wait-for-api-common-identity:
     if: github.ref == 'refs/heads/main'
     outputs:
@@ -404,21 +384,20 @@ jobs:
               line-length: disable
               new-line-at-end-of-file: enable
               truthy: {allowed-values: ["true", "false", "on"]}
-          file_or_dir: .github/workflows/api_common_routing.yml .github/actions/wait-for-workflow/action.yml
+          file_or_dir: .github/workflows/api_common_storage.yml .github/actions/wait-for-workflow/action.yml
           strict: "true"
-name: api_common_routing
+name: api_common_storage
 on:
   push:
     branches:
       - main
     paths:
       - .github/actions/wait-for-workflow/action.yml
-      - .github/workflows/api_common_routing.yml
+      - .github/workflows/api_common_storage.yml
       - lib/opentofu/common/**
       - lib/python/**
-      - src/api/common/routing/**
-      - src/www/api/**
-      - test/api/common/routing/**
+      - src/api/common/storage/**
+      - test/api/common/storage/**
       - test/api/conftest.py
       - test/conftest.py
       - test/lib/python/**

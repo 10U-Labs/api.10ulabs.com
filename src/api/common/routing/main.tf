@@ -16,6 +16,8 @@ locals {
   }
 
   openapi_spec = templatefile("${path.module}/../../../www/api/openapi.json", {
+    AuthorizerHandlerArn         = local.integration.authorizer
+    CarriersHandlerArn           = local.integration.carriers
     CatchAllHandlerArn           = local.integration.catchall
     ContactHandlerArn            = local.integration.contact
     DiagnosticsHandlerArn        = local.integration.diagnostics

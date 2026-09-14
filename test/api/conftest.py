@@ -9,6 +9,7 @@ import pytest
 API_NAME = "api.10ulabs.com"
 REGION = "us-east-2"
 STAGE = "prod"
+API_KEY_PARAMETER = "/api.10ulabs.com/api-key"
 
 
 @pytest.fixture(scope="session")
@@ -41,6 +42,22 @@ def scheduler_client() -> Any:
     return boto3.client("scheduler", region_name=REGION)
 
 
+@pytest.fixture(scope="session", name="ssm_client")
+def ssm_client_fixture() -> Any:
+    return boto3.client("ssm", region_name=REGION)
+
+
+@pytest.fixture(scope="session", name="api_key")
+def api_key_fixture(ssm_client: Any) -> str:
+    parameter = ssm_client.get_parameter(Name=API_KEY_PARAMETER, WithDecryption=True)
+    return str(parameter["Parameter"]["Value"])
+
+
+@pytest.fixture(scope="session")
+def bearer(api_key: str) -> Dict[str, str]:
+    return {"Authorization": f"Bearer {api_key}"}
+
+
 @pytest.fixture(scope="session", name="api_id")
 def api_id_fixture(apigateway_client: Any) -> str:
     for api in apigateway_client.get_rest_apis(limit=500)["items"]:
@@ -54,24 +71,24 @@ def stage_url(api_id: str) -> str:
     return f"https://{api_id}.execute-api.{REGION}.amazonaws.com/{STAGE}"
 
 
-def _answer(request: Request) -> Tuple[int, Dict[str, Any]]:
+def _answer(request: Request) -> Tuple[int, Any]:
     try:
         with urlopen(request, timeout=10) as response:
-            return int(response.status), dict(json.load(response))
+            return int(response.status), json.load(response)
     except HTTPError as error:
-        return int(error.code), dict(json.load(error))
+        return int(error.code), json.load(error)
 
 
 @pytest.fixture(scope="session")
-def get_json() -> Callable[[str], Tuple[int, Dict[str, Any]]]:
-    return lambda url: _answer(Request(url))
+def get_json() -> Callable[..., Tuple[int, Any]]:
+    def get(url: str, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
+        return _answer(Request(url, headers=headers or {}))
+    return get
 
 
 @pytest.fixture(scope="session")
-def post_json() -> Callable[..., Tuple[int, Dict[str, Any]]]:
-    def post(
-        url: str, body: Any, headers: Dict[str, str] | None = None
-    ) -> Tuple[int, Dict[str, Any]]:
+def post_json() -> Callable[..., Tuple[int, Any]]:
+    def post(url: str, body: Any, headers: Dict[str, str] | None = None) -> Tuple[int, Any]:
         data = json.dumps(body).encode("utf-8")
         sent = {"Content-Type": "application/json", **(headers or {})}
         return _answer(Request(url, data=data, headers=sent, method="POST"))

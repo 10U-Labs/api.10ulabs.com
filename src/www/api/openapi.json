@@ -17,6 +17,10 @@
   ],
   "tags": [
     {
+      "name": "/carriers",
+      "description": "Carrier endpoints"
+    },
+    {
       "name": "/diagnostics",
       "description": "Diagnostics utility endpoints"
     },
@@ -38,6 +42,61 @@
     }
   ],
   "paths": {
+    "/carriers": {
+      "get": {
+        "summary": "List Carriers",
+        "description": "Lists the carriers, each by the id the API assigned it and its name.",
+        "operationId": "listCarriers",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The carriers, in id order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "lumen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",
@@ -915,6 +974,23 @@
               }
             }
           }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "description": "A Google ID token for an authorized account on the hosted domain, or the API key the workflows hold, as a bearer token.",
+        "x-amazon-apigateway-authtype": "custom",
+        "x-amazon-apigateway-authorizer": {
+          "type": "token",
+          "authorizerUri": "${AuthorizerHandlerArn}",
+          "identityValidationExpression": "^Bearer .+$",
+          "authorizerResultTtlInSeconds": 300
         }
       }
     }

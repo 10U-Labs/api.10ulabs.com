@@ -1,6 +1,6 @@
 data "archive_file" "catchall" {
   type        = "zip"
-  source_file = "${path.module}/lambda/handler.py"
+  source_file = "${path.module}/lambda/catchall/handler.py"
   output_path = "${path.module}/.terraform/lambda_packages/catchall.zip"
 }
 

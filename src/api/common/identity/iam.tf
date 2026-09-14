@@ -10,6 +10,7 @@ locals {
   gateway_role = "arn:aws:iam::${local.account}:role/aws-service-role/ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway"
   rest_apis    = "arn:aws:apigateway:${local.region}::/restapis"
   parameters   = "arn:aws:ssm:${local.region}:${local.account}:parameter/${local.product}/*"
+  api_params   = "arn:aws:ssm:${local.region}:${local.account}:parameter/${module.common.api_name}/*"
   identities   = "arn:aws:ses:${local.region}:${local.account}:identity/*@${module.common.domain_name}"
   tables       = "arn:aws:dynamodb:${local.region}:${local.account}:table/${local.product}-*"
   vaults       = "arn:aws:backup:${local.region}:${local.account}:backup-vault:${local.product}-*"
@@ -196,7 +197,7 @@ data "aws_iam_policy_document" "routing" {
       "ssm:AddTagsToResource",
       "ssm:RemoveTagsFromResource",
     ]
-    resources = [local.parameters]
+    resources = [local.parameters, local.api_params]
   }
 
   statement {
@@ -217,6 +218,9 @@ data "aws_iam_policy_document" "storage" {
       "dynamodb:DescribeContinuousBackups",
       "dynamodb:UpdateContinuousBackups",
       "dynamodb:DescribeTimeToLive",
+      "dynamodb:GetResourcePolicy",
+      "dynamodb:PutResourcePolicy",
+      "dynamodb:DeleteResourcePolicy",
       "dynamodb:ListTagsOfResource",
       "dynamodb:TagResource",
       "dynamodb:UntagResource",

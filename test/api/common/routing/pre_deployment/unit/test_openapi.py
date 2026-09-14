@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 INTEGRATION = "x-amazon-apigateway-integration"
 ANY_METHOD = "x-amazon-apigateway-any-method"
@@ -42,3 +42,47 @@ def test_the_routing_stack_supplies_every_template_variable(
     openapi: Dict[str, Any], routing_dir: Path
 ) -> None:
     assert _template_variables(openapi) == _supplied_variables(routing_dir)
+
+
+def test_carriers_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"]["/carriers"]) == ["get"]
+
+
+def test_carriers_is_served_by_the_carriers_handler(openapi: Dict[str, Any]) -> None:
+    assert openapi["paths"]["/carriers"]["get"][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
+
+
+def test_carriers_is_read_with_a_bearer_token(openapi: Dict[str, Any]) -> None:
+    assert openapi["paths"]["/carriers"]["get"]["security"] == [{"bearer": []}]
+
+
+def test_the_bearer_scheme_is_the_authorizer(openapi: Dict[str, Any]) -> None:
+    scheme = openapi["components"]["securitySchemes"]["bearer"]
+    assert scheme["x-amazon-apigateway-authorizer"]["authorizerUri"] == "${AuthorizerHandlerArn}"
+
+
+def test_the_authorizer_reads_the_token_alone(openapi: Dict[str, Any]) -> None:
+    scheme = openapi["components"]["securitySchemes"]["bearer"]
+    assert scheme["x-amazon-apigateway-authorizer"]["type"] == "token"
+
+
+def test_the_authorizer_is_asked_only_for_a_bearer_token(openapi: Dict[str, Any]) -> None:
+    scheme = openapi["components"]["securitySchemes"]["bearer"]
+    assert scheme["x-amazon-apigateway-authorizer"]["identityValidationExpression"] == "^Bearer .+$"
+
+
+def _secured_operations(openapi: Dict[str, Any]) -> set[Tuple[str, str]]:
+    return {
+        (path, method)
+        for path, operations in openapi["paths"].items()
+        for method, operation in operations.items()
+        if "security" in operation
+    }
+
+
+def test_every_route_the_site_calls_stays_public(openapi: Dict[str, Any]) -> None:
+    assert _secured_operations(openapi) == {("/carriers", "get")}
+
+
+def test_nothing_is_secured_for_the_whole_document(openapi: Dict[str, Any]) -> None:
+    assert "security" not in openapi

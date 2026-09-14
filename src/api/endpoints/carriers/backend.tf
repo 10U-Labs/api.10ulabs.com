@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket       = "10ulabs-terraform-state-us-east-2"
-    key          = "api.10ulabs.com/src/api/common/routing/terraform.tfstate"
+    key          = "api.10ulabs.com/src/api/endpoints/carriers/terraform.tfstate"
     region       = "us-east-2"
     encrypt      = true
     use_lockfile = true
@@ -16,11 +16,7 @@ terraform {
     }
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.94"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.7"
+      version = "~> 5.0"
     }
   }
 }

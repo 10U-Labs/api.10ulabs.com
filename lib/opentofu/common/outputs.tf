@@ -34,8 +34,10 @@ output "deploy_role_name" {
 }
 
 output "lambda_handler_names" {
-  description = "Deterministic Lambda function names, one per handler, which the routing stack composes into integration URIs."
+  description = "Deterministic Lambda function names, one per handler and the authorizer in front of the protected routes, which the routing stack composes into integration URIs."
   value = {
+    authorizer          = "api-10ulabs-com-authorizer"
+    carriers            = "api-10ulabs-com-carriers"
     catchall            = "api-10ulabs-com-catchall"
     contact             = "api-10ulabs-com-contact"
     diagnostics         = "api-10ulabs-com-diagnostics"

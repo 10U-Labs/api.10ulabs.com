@@ -23,3 +23,17 @@ def test_an_undefined_route_names_the_path_it_refused(
 ) -> None:
     _, body = get_json(f"{stage_url}/nothing/here")
     assert body["path"] == "/nothing/here"
+
+
+def test_a_protected_route_refuses_a_call_without_a_token(
+    stage_url: str, get_json: Callable[..., Tuple[int, Dict[str, Any]]]
+) -> None:
+    status, _ = get_json(f"{stage_url}/carriers")
+    assert status == 401
+
+
+def test_a_protected_route_refuses_a_token_the_authorizer_does_not_know(
+    stage_url: str, get_json: Callable[..., Tuple[int, Dict[str, Any]]]
+) -> None:
+    status, _ = get_json(f"{stage_url}/carriers", {"Authorization": "Bearer not-the-key"})
+    assert status == 401
