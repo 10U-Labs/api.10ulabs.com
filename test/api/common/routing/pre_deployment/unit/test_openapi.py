@@ -65,9 +65,12 @@ def test_a_carrier_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers/{carrier}"]) == CARRIER_METHODS
 
 
+def test_a_deleted_carrier_answers_204(openapi: Dict[str, Any]) -> None:
+    assert "204" in openapi["paths"]["/carriers/{carrier}"]["delete"]["responses"]
+
+
 def test_a_deleted_carrier_answers_no_content(openapi: Dict[str, Any]) -> None:
-    responses = openapi["paths"]["/carriers/{carrier}"]["delete"]["responses"]
-    assert "204" in responses and "content" not in responses["204"]
+    assert "content" not in openapi["paths"]["/carriers/{carrier}"]["delete"]["responses"]["204"]
 
 
 @pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)

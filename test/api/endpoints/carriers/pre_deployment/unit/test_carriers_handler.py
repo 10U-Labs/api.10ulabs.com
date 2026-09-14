@@ -403,48 +403,41 @@ def test_a_deletion_answers_no_body(deleted: Dict[str, Any]) -> None:
     assert deleted["body"] == ""
 
 
-def test_a_deleted_carrier_is_no_longer_listed(
-    carriers_handler: ModuleType, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_a_deleted_carrier_is_no_longer_listed(carriers_handler: ModuleType) -> None:
     assert _body(carriers_handler, _get()) == [{"id": 2, "name": "zayo"}]
 
 
-def test_a_deleted_carrier_is_no_longer_served(
-    carriers_handler: ModuleType, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_a_deleted_carrier_is_no_longer_served(carriers_handler: ModuleType) -> None:
     assert _answer(carriers_handler, _get_one("1"))["statusCode"] == 404
 
 
-def test_everything_under_a_deleted_carrier_goes_with_it(
-    store: SimpleNamespace, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_everything_under_a_deleted_carrier_goes_with_it(store: SimpleNamespace) -> None:
     assert [item for item in store.items if item["PK"] == {"S": "carriers/1"}] == []
 
 
-def test_a_deletion_leaves_the_other_carriers_alone(
-    store: SimpleNamespace, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_a_deletion_leaves_the_other_carriers_alone(store: SimpleNamespace) -> None:
     assert [item["SK"]["S"] for item in store.items] == ["#", "2"]
 
 
-def test_a_deletion_goes_to_the_table_the_environment_names(
-    store: SimpleNamespace, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_a_deletion_goes_to_the_table_the_environment_names(store: SimpleNamespace) -> None:
     assert {request["TableName"] for request in store.deletes} == {"store"}
 
 
-def test_the_carrier_is_deleted_after_everything_under_it(
-    store: SimpleNamespace, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_the_carrier_is_deleted_after_everything_under_it(store: SimpleNamespace) -> None:
     assert [request["Key"] for request in store.deletes] == [
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}},
         {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
     ]
 
 
-def test_deleting_the_carrier_requires_it_to_exist_in_the_store(
-    store: SimpleNamespace, deleted: Dict[str, Any]
-) -> None:
+@pytest.mark.usefixtures("deleted")
+def test_deleting_the_carrier_requires_it_to_exist_in_the_store(store: SimpleNamespace) -> None:
     assert store.deletes[-1]["ConditionExpression"] == "attribute_exists(PK)"
 
 
