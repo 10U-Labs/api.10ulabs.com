@@ -41,8 +41,12 @@ def store_fixture() -> SimpleNamespace:
     def query(**request: Any) -> Dict[str, Any]:
         store.queries.append(request)
         refuse("Query")
-        partition = request["ExpressionAttributeValues"][":pk"]["S"]
-        found: List[Dict[str, Any]] = [item for item in store.items if item["PK"]["S"] == partition]
+        values = request["ExpressionAttributeValues"]
+        prefix = values.get(":prefix", {"S": ""})["S"]
+        found: List[Dict[str, Any]] = [
+            item for item in store.items
+            if item["PK"] == values[":pk"] and item["SK"]["S"].startswith(prefix)
+        ]
         return {"Items": found, "Count": len(found)}
 
     def get_item(**request: Any) -> Dict[str, Any]:
@@ -102,5 +106,11 @@ def carriers() -> List[Dict[str, Any]]:
          "next_pop": {"N": "1"}, "next_fiber_segment": {"N": "1"}},
         {"PK": {"S": "carriers"}, "SK": {"S": "1"}, "name": {"S": "lumen"},
          "next_pop": {"N": "4"}, "next_fiber_segment": {"N": "2"}},
-        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}, "name": {"S": "ord1"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}, "municipality": {"S": "Chicago"},
+         "state": {"S": "IL"}, "country": {"S": "US"},
+         "latitude": {"N": "41.8781"}, "longitude": {"N": "-87.6298"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}, "municipality": {"S": "Denver"},
+         "state": {"S": "CO"}, "country": {"S": "US"},
+         "latitude": {"N": "39.7392"}, "longitude": {"N": "-104.9903"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber_segments/1"}, "name": {"S": "den-ord"}},
     ]

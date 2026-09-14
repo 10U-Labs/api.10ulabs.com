@@ -13,13 +13,19 @@ COLLECTION = 'carriers'
 COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
+POPS = 'pops'
 
 
-def _partition(partition: str) -> List[Dict[str, Any]]:
+def _partition(partition: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
+    condition = 'PK = :pk'
+    values = {':pk': {'S': partition}}
+    if prefix is not None:
+        condition += ' AND begins_with(SK, :prefix)'
+        values[':prefix'] = {'S': prefix}
     answer = aws_client('dynamodb').query(
         TableName=os.environ['STORE_TABLE'],
-        KeyConditionExpression='PK = :pk',
-        ExpressionAttributeValues={':pk': {'S': partition}},
+        KeyConditionExpression=condition,
+        ExpressionAttributeValues=values,
     )
     items: List[Dict[str, Any]] = answer['Items']
     return items
@@ -137,6 +143,32 @@ def _remove(collection: str, member_id: str) -> bool:
     return True
 
 
+def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'id': int(item['SK']['S'].partition('/')[2]),
+        'municipality': item['municipality']['S'],
+        'state': item['state']['S'],
+        'country': item['country']['S'],
+        'latitude': float(item['latitude']['N']),
+        'longitude': float(item['longitude']['N']),
+    }
+
+
+def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    try:
+        carrier = _member(COLLECTION, carrier_id)
+        pops = _partition(f'{COLLECTION}/{carrier_id}', f'{POPS}/') if carrier else []
+    except ClientError as error:
+        logger.error('Error reading the pops of carrier %s: %s', carrier_id, error)
+        return json_response(500, {'error': 'Failed to read the pops'})
+    if carrier is None:
+        return json_response(404, {'error': MISSING})
+    return json_response(200, sorted(map(_pop, pops), key=lambda pop: pop['id']))
+
+
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
@@ -198,4 +230,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}', 'GET'): _read,
         ('/carriers/{carrier}', 'PUT'): _update,
         ('/carriers/{carrier}', 'DELETE'): _delete,
+        ('/carriers/{carrier}/pops', 'GET'): _list_pops,
     })

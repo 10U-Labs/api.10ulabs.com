@@ -65,7 +65,7 @@ def test_a_store_that_refuses_the_read_names_the_error(
 
 
 def test_another_resource_answers_404(carriers_handler: ModuleType) -> None:
-    assert _answer(carriers_handler, _get("/carriers/{carrier}/pops"))["statusCode"] == 404
+    assert _answer(carriers_handler, _get("/pops"))["statusCode"] == 404
 
 
 def _get_one(carrier: str) -> Dict[str, Any]:
@@ -432,6 +432,8 @@ def test_a_deletion_goes_to_the_table_the_environment_names(store: SimpleNamespa
 def test_the_carrier_is_deleted_after_everything_under_it(store: SimpleNamespace) -> None:
     assert [request["Key"] for request in store.deletes] == [
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}},
+        {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber_segments/1"}},
         {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
     ]
 
@@ -461,7 +463,7 @@ def test_deleting_an_id_that_is_not_a_number_deletes_nothing(
 ) -> None:
     store.items.extend(carriers)
     _answer(carriers_handler, _delete("#"))
-    assert (store.deletes, len(store.items)) == ([], 4)
+    assert (store.deletes, len(store.items)) == ([], 6)
 
 
 def test_a_store_that_refuses_the_deletion_answers_500(
@@ -476,3 +478,85 @@ def test_a_store_that_refuses_the_deletion_names_the_error(
 ) -> None:
     store.failing = True
     assert _body(carriers_handler, _delete())["error"] == "Failed to delete the carrier"
+
+
+POPS = "/carriers/{carrier}/pops"
+CHICAGO = {"id": 3, "municipality": "Chicago", "state": "IL", "country": "US",
+           "latitude": 41.8781, "longitude": -87.6298}
+DENVER = {"id": 1, "municipality": "Denver", "state": "CO", "country": "US",
+          "latitude": 39.7392, "longitude": -104.9903}
+
+
+def _get_pops(carrier: str = "1") -> Dict[str, Any]:
+    return {**_get(POPS), "pathParameters": {"carrier": carrier}}
+
+
+def test_the_pops_of_a_stored_carrier_answer_200(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _answer(carriers_handler, _get_pops())["statusCode"] == 200
+
+
+def test_the_pops_answer_as_rows_in_id_order(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _get_pops()) == [DENVER, CHICAGO]
+
+
+def test_a_carrier_without_pops_answers_none(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> None:
+    store.items.extend(carriers)
+    assert _body(carriers_handler, _get_pops("2")) == []
+
+
+@pytest.fixture(name="pops_query")
+def pops_query_fixture(
+    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    store.items.extend(carriers)
+    _answer(carriers_handler, _get_pops())
+    return dict(store.queries[-1])
+
+
+def test_the_pops_are_read_from_under_the_carrier(pops_query: Dict[str, Any]) -> None:
+    assert pops_query["ExpressionAttributeValues"] == {
+        ":pk": {"S": "carriers/1"}, ":prefix": {"S": "pops/"},
+    }
+
+
+def test_the_pops_are_read_from_the_table_the_environment_names(
+    pops_query: Dict[str, Any]
+) -> None:
+    assert pops_query["TableName"] == "store"
+
+
+def test_the_pops_of_an_unknown_carrier_answer_404(carriers_handler: ModuleType) -> None:
+    assert _answer(carriers_handler, _get_pops("3"))["statusCode"] == 404
+
+
+def test_the_pops_of_an_unknown_carrier_name_the_error(carriers_handler: ModuleType) -> None:
+    assert _body(carriers_handler, _get_pops("3"))["error"] == "No such carrier"
+
+
+@pytest.mark.parametrize("carrier", ["#", "", "lumen", "-1"])
+def test_the_pops_of_an_id_that_is_not_a_number_answer_404(
+    carriers_handler: ModuleType, carrier: str
+) -> None:
+    assert _answer(carriers_handler, _get_pops(carrier))["statusCode"] == 404
+
+
+def test_a_store_that_refuses_the_pops_answers_500(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _answer(carriers_handler, _get_pops())["statusCode"] == 500
+
+
+def test_a_store_that_refuses_the_pops_names_the_error(
+    carriers_handler: ModuleType, store: SimpleNamespace
+) -> None:
+    store.failing = True
+    assert _body(carriers_handler, _get_pops())["error"] == "Failed to read the pops"
