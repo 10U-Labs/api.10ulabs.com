@@ -13,6 +13,7 @@
   - [Stacks](#stacks)
   - [Priority](#priority)
   - [Paths](#paths)
+  - [Layout](#layout)
 
 ## Overview
 
@@ -60,3 +61,8 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Paths
 
 - [no-v1-in-any-api-or-url](no-v1-in-any-api-or-url.md) — no `v1` in any API nor URL; a route `10ulabs.com` served under `/v1/` is served here without it
+
+### Layout
+
+- [one-gitignore-at-the-root](one-gitignore-at-the-root.md) — exactly one `.gitignore`, at the root; a stack never carries its own
+- [src-www-is-the-one-host](src-www-is-the-one-host.md) — `src/www` is `api.10ulabs.com` itself, so `openapi.json` sits directly there, with no `src/www/api`
