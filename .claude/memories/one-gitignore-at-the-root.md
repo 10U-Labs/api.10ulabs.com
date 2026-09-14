@@ -5,6 +5,8 @@ metadata:
   type: feedback
 ---
 
+# One .gitignore, at the root
+
 There is one `.gitignore` in the whole repository, the one at its root. A pattern a stack or a directory needs is added there, never in a `.gitignore` beside the files it covers.
 
 **Why:** The user's rule, given on 2026-09-13 when nine OpenTofu stacks each carried an identical four-line `.gitignore`: "there should be only one .gitignore in the entire repo; the one at the repo's root." One file says everything that is ignored; nine copies say the same thing and drift.
