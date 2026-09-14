@@ -8,6 +8,8 @@ metadata:
   modified: 2026-09-13T23:48:51.557Z
 ---
 
+# No v1 in any API nor URL
+
 No `v1` in any API nor URL. A route `10ulabs.com` served as `/v1/sessions/{session_id}/events` is served here as `/sessions/{session_id}/events`; the OpenAPI paths, the handler's dispatch keys, the tests, the CloudFront behaviours and the site's calls all say the path without the prefix.
 
 **Why:** The user said so on 2026-09-13, mid-way through #12: "no v1/ -- 'v1' should not be used in any API nor URL". The API is not versioned by path; the `v1` was `10ulabs.com`'s and does not come along in the migration.
