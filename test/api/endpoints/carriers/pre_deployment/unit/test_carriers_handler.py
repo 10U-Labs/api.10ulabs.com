@@ -292,28 +292,27 @@ def test_a_rename_keeps_the_carrier_s_own_counters(
     assert _stored(store, "1")["next_pop"] == {"N": "4"}
 
 
-def test_a_rename_goes_to_the_table_the_environment_names(
+@pytest.fixture(name="rename_request")
+def rename_request_fixture(
     carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
-) -> None:
+) -> Dict[str, Any]:
     store.items.extend(carriers)
     _answer(carriers_handler, _put({"name": "zayo group"}))
-    assert store.updates[0]["TableName"] == "store"
+    return dict(store.updates[0])
 
 
-def test_a_rename_is_of_the_carrier_s_key(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
-) -> None:
-    store.items.extend(carriers)
-    _answer(carriers_handler, _put({"name": "zayo group"}))
-    assert store.updates[0]["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "2"}}
+def test_a_rename_goes_to_the_table_the_environment_names(rename_request: Dict[str, Any]) -> None:
+    assert rename_request["TableName"] == "store"
+
+
+def test_a_rename_is_of_the_carrier_s_key(rename_request: Dict[str, Any]) -> None:
+    assert rename_request["Key"] == {"PK": {"S": "carriers"}, "SK": {"S": "2"}}
 
 
 def test_a_rename_requires_the_carrier_to_exist_in_the_store(
-    carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
+    rename_request: Dict[str, Any]
 ) -> None:
-    store.items.extend(carriers)
-    _answer(carriers_handler, _put({"name": "zayo group"}))
-    assert store.updates[0]["ConditionExpression"] == "attribute_exists(PK)"
+    assert rename_request["ConditionExpression"] == "attribute_exists(PK)"
 
 
 def test_renaming_an_unknown_carrier_answers_404(carriers_handler: ModuleType) -> None:
