@@ -34,6 +34,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [ci-is-the-source-of-truth](ci-is-the-source-of-truth.md) — nothing is verified locally; the change is done when every workflow that fired is green
 - [find-a-run-by-the-full-hash](find-a-run-by-the-full-hash.md) — `gh run list --commit` returns nothing for a short hash, so match `headSha` by prefix locally
+- [a-wait-runs-in-the-background](a-wait-runs-in-the-background.md) — a wait for CI is a background shell or a Monitor, never a foreground sleep or `gh run watch`, so the reminders keep firing
 
 ### Workflows
 
