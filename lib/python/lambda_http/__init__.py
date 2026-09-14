@@ -24,6 +24,10 @@ def json_response(status_code: int, body: Any) -> Dict[str, Any]:
     }
 
 
+def error_response(status_code: int, message: str) -> Dict[str, Any]:
+    return json_response(status_code, {'error': message})
+
+
 def created(location: str, body: Any) -> Dict[str, Any]:
     response = json_response(201, body)
     response['headers']['Location'] = location

@@ -5,7 +5,8 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from lambda_http import (
-    created, dispatch, has_numbers, has_strings, json_response, parse_valid, path_id,
+    created, dispatch, error_response, has_numbers, has_strings, json_response, parse_valid,
+    path_id,
 )
 from store import member, members, next_id, put
 
@@ -36,25 +37,21 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
         regions = members(os.environ['STORE_TABLE'], COLLECTION)
     except ClientError as error:
         logger.error('Error reading the hyperscale cloud service provider regions: %s', error)
-        return json_response(
-            500, {'error': 'Failed to read the hyperscale cloud service provider regions'}
-        )
+        return error_response(500, 'Failed to read the hyperscale cloud service provider regions')
     return json_response(200, sorted(map(_region, regions), key=lambda region: region['id']))
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
     region_id = path_id(event, 'region')
     if region_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         item = member(os.environ['STORE_TABLE'], COLLECTION, region_id)
     except ClientError as error:
         logger.error('Error reading region %s: %s', region_id, error)
-        return json_response(
-            500, {'error': 'Failed to read the hyperscale cloud service provider region'}
-        )
+        return error_response(500, 'Failed to read the hyperscale cloud service provider region')
     if item is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return json_response(200, _region(item))
 
 
@@ -68,7 +65,7 @@ def _region_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     body = _region_body(event)
     if body is None:
-        return json_response(400, {'error': REGION_BODY})
+        return error_response(400, REGION_BODY)
     table = os.environ['STORE_TABLE']
     try:
         region_id = next_id(table, COLLECTION)
@@ -78,9 +75,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
         })
     except ClientError as error:
         logger.error('Error creating the hyperscale cloud service provider region: %s', error)
-        return json_response(
-            500, {'error': 'Failed to create the hyperscale cloud service provider region'}
-        )
+        return error_response(500, 'Failed to create the hyperscale cloud service provider region')
     return created(f'/{COLLECTION}/{region_id}', _region(item))
 
 

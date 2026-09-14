@@ -6,8 +6,8 @@ from typing import Any, Callable, Dict, NamedTuple, Optional
 from botocore.exceptions import ClientError
 
 from lambda_http import (
-    aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_fields,
-    parse_valid, path_id,
+    aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
+    parse_fields, parse_valid, path_id,
 )
 from store import advance, member, members, next_id, partition, put
 
@@ -43,7 +43,7 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
         carriers = members(os.environ['STORE_TABLE'], COLLECTION)
     except ClientError as error:
         logger.error('Error reading the carriers: %s', error)
-        return json_response(500, {'error': 'Failed to read the carriers'})
+        return error_response(500, 'Failed to read the carriers')
     return json_response(200, sorted(map(_carrier, carriers), key=lambda carrier: carrier['id']))
 
 
@@ -97,31 +97,31 @@ def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         item = _member(COLLECTION, carrier_id)
     except ClientError as error:
         logger.error('Error reading carrier %s: %s', carrier_id, error)
-        return json_response(500, {'error': 'Failed to read the carrier'})
+        return error_response(500, 'Failed to read the carrier')
     if item is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return json_response(200, _carrier(item))
 
 
 def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     name = _name(event)
     if name is None:
-        return json_response(400, {'error': BODY})
+        return error_response(400, BODY)
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         item = _rename(COLLECTION, carrier_id, name)
     except ClientError as error:
         logger.error('Error renaming carrier %s: %s', carrier_id, error)
-        return json_response(500, {'error': 'Failed to update the carrier'})
+        return error_response(500, 'Failed to update the carrier')
     if item is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return json_response(200, _carrier(item))
 
 
@@ -169,16 +169,16 @@ Row = Callable[[Dict[str, Any]], Dict[str, Any]]
 def _list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         carrier = _member(COLLECTION, carrier_id)
         under = f'{COLLECTION}/{carrier_id}'
         items = partition(os.environ['STORE_TABLE'], under, f'{prefix}/') if carrier else []
     except ClientError as error:
         logger.error('Error reading the %s of carrier %s: %s', prefix, carrier_id, error)
-        return json_response(500, {'error': failure})
+        return error_response(500, failure)
     if carrier is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return json_response(200, sorted(map(row, items), key=lambda one: one['id']))
 
 
@@ -197,21 +197,21 @@ def _no_content() -> Dict[str, Any]:
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         removed = _remove(COLLECTION, carrier_id)
     except ClientError as error:
         logger.error('Error deleting carrier %s: %s', carrier_id, error)
-        return json_response(500, {'error': 'Failed to delete the carrier'})
+        return error_response(500, 'Failed to delete the carrier')
     if not removed:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return _no_content()
 
 
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     name = _name(event)
     if name is None:
-        return json_response(400, {'error': BODY})
+        return error_response(400, BODY)
     table = os.environ['STORE_TABLE']
     try:
         carrier_id = next_id(table, COLLECTION)
@@ -220,7 +220,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
         })
     except ClientError as error:
         logger.error('Error creating the carrier: %s', error)
-        return json_response(500, {'error': 'Failed to create the carrier'})
+        return error_response(500, 'Failed to create the carrier')
     return created(f'/{COLLECTION}/{carrier_id}', {'id': carrier_id, 'name': name})
 
 
@@ -306,18 +306,18 @@ FIBER_SEGMENT_KIND = Kind(
 def _add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
     body = kind.body(event)
     if body is None:
-        return json_response(400, {'error': kind.refusal})
+        return error_response(400, kind.refusal)
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     try:
         member_id = _next_under(carrier_id, kind.counter)
         item = kind.put(carrier_id, str(member_id), body) if member_id is not None else None
     except ClientError as error:
         logger.error('Error adding to the %s of carrier %s: %s', kind.prefix, carrier_id, error)
-        return json_response(500, {'error': kind.failure})
+        return error_response(500, kind.failure)
     if item is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     return created(f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}', kind.row(item))
 
 
@@ -338,10 +338,10 @@ def _on_member(
 ) -> Dict[str, Any]:
     carrier_id = _carrier_id(event)
     if carrier_id is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     member_id = path_id(event, kind.parameter)
     if member_id is None:
-        return json_response(404, {'error': kind.missing})
+        return error_response(404, kind.missing)
     try:
         carrier = _member(COLLECTION, carrier_id)
         item = act(carrier_id, member_id) if carrier else None
@@ -349,11 +349,11 @@ def _on_member(
         logger.error(
             'Error with %s %s of carrier %s: %s', kind.parameter, member_id, carrier_id, error
         )
-        return json_response(500, {'error': failure})
+        return error_response(500, failure)
     if carrier is None:
-        return json_response(404, {'error': MISSING})
+        return error_response(404, MISSING)
     if item is None:
-        return json_response(404, {'error': kind.missing})
+        return error_response(404, kind.missing)
     return answer(item) if answer else json_response(200, kind.row(item))
 
 
@@ -385,7 +385,7 @@ def _replace_under(
 def _update_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
     body = kind.body(event)
     if body is None:
-        return json_response(400, {'error': kind.refusal})
+        return error_response(400, kind.refusal)
     return _on_member(event, kind, partial(_replace_under, kind=kind, body=body), failure)
 
 

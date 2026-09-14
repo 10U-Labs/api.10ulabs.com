@@ -259,9 +259,8 @@ def test_a_region_id_that_is_not_a_number_answers_404(answer: Handler, region: s
 
 
 def test_the_regions_counter_is_never_asked_for_as_a_region(
-    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]]
+    answer: Handler, store: SimpleNamespace
 ) -> None:
-    store.items.extend(regions)
     answer(_get_one("#"))
     assert store.gets == []
 
@@ -270,12 +269,12 @@ def test_a_store_that_refuses_the_region_read_answers_500(
     answer: Handler, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    assert answer(_get_one("2"))["statusCode"] == 500
+    assert answer(_get_one("1"))["statusCode"] == 500
 
 
 def test_a_store_that_refuses_the_region_read_names_the_error(
     served: Served, store: SimpleNamespace
 ) -> None:
     store.failing = True
-    error = served(_get_one("2"))["error"]
+    error = served(_get_one("1"))["error"]
     assert error == "Failed to read the hyperscale cloud service provider region"

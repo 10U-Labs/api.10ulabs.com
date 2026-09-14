@@ -7,8 +7,8 @@ import pytest
 
 import lambda_http
 from lambda_http import (
-    aws_client, created, dispatch, has_numbers, has_strings, json_response, parse_body,
-    parse_fields, parse_object, parse_valid, path_id,
+    aws_client, created, dispatch, error_response, has_numbers, has_strings, json_response,
+    parse_body, parse_fields, parse_object, parse_valid, path_id,
 )
 
 
@@ -26,6 +26,18 @@ def test_json_response_is_json() -> None:
 
 def test_json_response_serialises_the_body() -> None:
     assert json.loads(json_response(200, {'a': [1, 2]})['body']) == {'a': [1, 2]}
+
+
+def test_error_response_carries_the_status_code() -> None:
+    assert error_response(404, 'No such thing')['statusCode'] == 404
+
+
+def test_error_response_is_json() -> None:
+    assert error_response(404, 'No such thing')['headers']['Content-Type'] == 'application/json'
+
+
+def test_error_response_names_the_error() -> None:
+    assert json.loads(error_response(404, 'No such thing')['body']) == {'error': 'No such thing'}
 
 
 def test_created_answers_201() -> None:
