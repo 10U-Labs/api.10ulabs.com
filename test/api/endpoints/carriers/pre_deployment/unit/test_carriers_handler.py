@@ -29,7 +29,8 @@ def test_the_carriers_answer_by_id_and_name_in_id_order(
     carriers_handler: ModuleType, store: SimpleNamespace, carriers: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(carriers)
-    assert _body(carriers_handler, _get()) == [{"id": 1, "name": "lumen"}, {"id": 2, "name": "zayo"}]
+    listed = _body(carriers_handler, _get())
+    assert listed == [{"id": 1, "name": "lumen"}, {"id": 2, "name": "zayo"}]
 
 
 def test_the_carriers_are_read_from_the_table_the_environment_names(

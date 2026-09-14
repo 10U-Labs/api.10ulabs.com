@@ -6,8 +6,8 @@ import pytest
 TABLE_NAME = "api-10ulabs-com-store"
 
 
-@pytest.fixture(scope="module")
-def store(dynamodb_client: Any) -> Dict[str, Any]:
+@pytest.fixture(scope="module", name="store")
+def store_fixture(dynamodb_client: Any) -> Dict[str, Any]:
     return dict(dynamodb_client.describe_table(TableName=TABLE_NAME)["Table"])
 
 
