@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
@@ -46,6 +46,7 @@ def test_the_routing_stack_supplies_every_template_variable(
     assert _template_variables(openapi) == _supplied_variables(routing_dir)
 
 
+POP = "/carriers/{carrier}/pops/{pop}"
 CARRIERS_OPERATIONS = [
     ("/carriers", "get"),
     ("/carriers", "post"),
@@ -54,11 +55,16 @@ CARRIERS_OPERATIONS = [
     ("/carriers/{carrier}", "delete"),
     ("/carriers/{carrier}/pops", "get"),
     ("/carriers/{carrier}/pops", "post"),
+    (POP, "get"),
 ]
 CARRIER_METHODS = ["get", "put", "delete"]
 POPS_METHODS = ["get", "post"]
 UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
     ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
+]
+UNDER_A_POP = [(POP, "get")]
+IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
+    (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
 ]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
@@ -80,6 +86,15 @@ def test_the_pops_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> N
 def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"]["/carriers/{carrier}/pops"]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
+
+
+def test_a_pop_answers_get_alone(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][POP]) == ["get"]
+
+
+def test_a_pop_is_served_as_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
+    served = openapi["paths"][POP]["get"]["responses"]["200"]
+    assert served["content"]["application/json"]["schema"]["required"] == POP_FIELDS
 
 
 def _pop_body(openapi: Dict[str, Any]) -> Dict[str, Any]:
@@ -136,25 +151,25 @@ def test_carriers_is_reached_with_a_bearer_token(
     assert openapi["paths"][path][method]["security"] == [{"bearer": []}]
 
 
-@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER)
-def test_a_carrier_is_named_by_its_id_in_the_path(
-    openapi: Dict[str, Any], path: str, method: str
+@pytest.mark.parametrize(("path", "method", "names"), IN_THE_PATH)
+def test_a_member_is_named_by_its_ids_in_the_path(
+    openapi: Dict[str, Any], path: str, method: str, names: List[str]
 ) -> None:
     parameters = openapi["paths"][path][method]["parameters"]
     named = [(one["name"], one["in"], one["required"]) for one in parameters]
-    assert named == [("carrier", "path", True)]
+    assert named == [(name, "path", True) for name in names]
 
 
-@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER)
-def test_a_carrier_id_is_a_positive_integer(
-    openapi: Dict[str, Any], path: str, method: str
+@pytest.mark.parametrize(("path", "method", "names"), IN_THE_PATH)
+def test_an_id_in_the_path_is_a_positive_integer(
+    openapi: Dict[str, Any], path: str, method: str, names: List[str]
 ) -> None:
-    schema = openapi["paths"][path][method]["parameters"][0]["schema"]
-    assert (schema["type"], schema["minimum"]) == ("integer", 1)
+    schemas = [one["schema"] for one in openapi["paths"][path][method]["parameters"]]
+    assert [(one["type"], one["minimum"]) for one in schemas] == [("integer", 1)] * len(names)
 
 
-@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER)
-def test_a_carrier_that_is_not_there_is_documented_as_404(
+@pytest.mark.parametrize(("path", "method"), UNDER_A_CARRIER + UNDER_A_POP)
+def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert "404" in openapi["paths"][path][method]["responses"]

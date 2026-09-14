@@ -756,6 +756,123 @@
         }
       }
     },
+    "/carriers/{carrier}/pops/{pop}": {
+      "get": {
+        "summary": "Get PoP",
+        "description": "Serves one point of presence of one carrier, by the id the API assigned it and where it is.",
+        "operationId": "getPop",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "carrier",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pop",
+            "in": "path",
+            "description": "The id the API assigned the PoP within its carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The PoP, by its id and where it is",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "municipality",
+                    "state",
+                    "country",
+                    "latitude",
+                    "longitude"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "municipality": {
+                      "type": "string",
+                      "example": "Chicago"
+                    },
+                    "state": {
+                      "type": "string",
+                      "example": "IL"
+                    },
+                    "country": {
+                      "type": "string",
+                      "example": "US"
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "example": 41.8781
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "example": -87.6298
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No carrier has that id, or it has no PoP with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be read"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${CarriersHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      }
+    },
     "/diagnostics/echo": {
       "post": {
         "summary": "Echo Endpoint",

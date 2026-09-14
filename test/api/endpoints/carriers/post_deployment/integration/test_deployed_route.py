@@ -126,3 +126,39 @@ def test_a_pop_for_a_carrier_that_is_not_there_names_the_error_through_the_deplo
 ) -> None:
     _, body = post_json(f"{stage_url}/carriers/0/pops", BOISE, bearer)
     assert body["error"] == "No such carrier"
+
+
+def test_a_pop_of_a_carrier_that_is_not_there_answers_404_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    assert status == 404
+
+
+def test_a_pop_of_a_carrier_that_is_not_there_names_the_carrier_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(f"{stage_url}/carriers/0/pops/0", bearer)
+    assert body["error"] == "No such carrier"
+
+
+def test_no_listed_carrier_has_a_pop_zero_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}/carriers", bearer)
+    answered = [get_json(f"{stage_url}/carriers/{one['id']}/pops/0", bearer) for one in listed]
+    assert answered == [(404, {"error": "No such pop"})] * len(listed)
+
+
+def test_the_first_pop_of_every_listed_carrier_is_served_at_its_own_url_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}/carriers", bearer)
+    firsts = [
+        (one["id"], pop)
+        for one in listed
+        for pop in get_json(f"{stage_url}/carriers/{one['id']}/pops", bearer)[1][:1]
+    ]
+    served = [get_json(f"{stage_url}/carriers/{carrier}/pops/{pop['id']}", bearer)
+              for carrier, pop in firsts]
+    assert served == [(200, pop) for _, pop in firsts]

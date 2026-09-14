@@ -13,6 +13,7 @@ COLLECTION = 'carriers'
 COUNTER = '#'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
+MISSING_POP = 'No such pop'
 POPS = 'pops'
 PLACE = ('municipality', 'state', 'country')
 NAMED = ('municipality', 'country')
@@ -93,9 +94,13 @@ def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, An
     return item
 
 
+def _path_id(event: Dict[str, Any], name: str) -> Optional[str]:
+    member_id = str((event.get('pathParameters') or {}).get(name) or '')
+    return member_id if member_id.isdigit() else None
+
+
 def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
-    carrier_id = str((event.get('pathParameters') or {}).get('carrier') or '')
-    return carrier_id if carrier_id.isdigit() else None
+    return _path_id(event, 'carrier')
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -171,6 +176,26 @@ def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
     if carrier is None:
         return json_response(404, {'error': MISSING})
     return json_response(200, sorted(map(_pop, pops), key=lambda pop: pop['id']))
+
+
+def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
+    carrier_id = _carrier_id(event)
+    if carrier_id is None:
+        return json_response(404, {'error': MISSING})
+    pop_id = _path_id(event, 'pop')
+    if pop_id is None:
+        return json_response(404, {'error': MISSING_POP})
+    try:
+        carrier = _member(COLLECTION, carrier_id)
+        pop = _member(f'{COLLECTION}/{carrier_id}', f'{POPS}/{pop_id}') if carrier else None
+    except ClientError as error:
+        logger.error('Error reading pop %s of carrier %s: %s', pop_id, carrier_id, error)
+        return json_response(500, {'error': 'Failed to read the pop'})
+    if carrier is None:
+        return json_response(404, {'error': MISSING})
+    if pop is None:
+        return json_response(404, {'error': MISSING_POP})
+    return json_response(200, _pop(pop))
 
 
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -306,4 +331,5 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         ('/carriers/{carrier}', 'DELETE'): _delete,
         ('/carriers/{carrier}/pops', 'GET'): _list_pops,
         ('/carriers/{carrier}/pops', 'POST'): _add_pop,
+        ('/carriers/{carrier}/pops/{pop}', 'GET'): _read_pop,
     })
