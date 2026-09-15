@@ -53,6 +53,14 @@ resource "aws_s3_object" "spec" {
   etag          = filemd5("${path.module}/../../../www/openapi.json")
 }
 
+resource "aws_s3_object" "not_found" {
+  bucket       = aws_s3_bucket.docs.id
+  key          = "404.html"
+  source       = "${path.module}/../../../www/404.html"
+  content_type = "text/html"
+  etag         = filemd5("${path.module}/../../../www/404.html")
+}
+
 resource "aws_cloudfront_origin_access_control" "docs" {
   name                              = local.docs_bucket
   origin_access_control_origin_type = "s3"
@@ -197,6 +205,24 @@ resource "aws_cloudfront_distribution" "api" {
 
     cache_policy_id          = aws_cloudfront_cache_policy.docs.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/404.html"
+    target_origin_id       = "docs"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    cache_policy_id          = aws_cloudfront_cache_policy.docs.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
+  }
+
+  custom_error_response {
+    error_code         = 404
+    response_code      = 404
+    response_page_path = "/404.html"
   }
 
   viewer_certificate {

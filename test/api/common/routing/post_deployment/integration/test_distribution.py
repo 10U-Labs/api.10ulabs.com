@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, Tuple
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pytest
@@ -16,11 +17,18 @@ def distribution_fixture(cloudfront_client: Any) -> Dict[str, Any]:
     raise LookupError(f"no distribution is commented {API_NAME}")
 
 
+def _answer(url: str) -> Tuple[int, str, str]:
+    try:
+        with urlopen(Request(url), timeout=10) as response:
+            content_type = str(response.headers.get("Content-Type"))
+            return int(response.status), content_type, response.read().decode("utf-8")
+    except HTTPError as error:
+        return error.code, str(error.headers.get("Content-Type")), error.read().decode("utf-8")
+
+
 @pytest.fixture(scope="module", name="root_page")
 def root_page_fixture(distribution: Dict[str, Any]) -> Tuple[int, str, str]:
-    with urlopen(Request(f"https://{distribution['DomainName']}/"), timeout=10) as response:
-        content_type = str(response.headers.get("Content-Type"))
-        return int(response.status), content_type, response.read().decode("utf-8")
+    return _answer(f"https://{distribution['DomainName']}/")
 
 
 @pytest.fixture(scope="module", name="record")
@@ -33,14 +41,22 @@ def record_fixture(route53_client: Any) -> Dict[str, Any]:
 
 @pytest.fixture(scope="module", name="named_status")
 def named_status_fixture() -> int:
-    with urlopen(Request(f"https://{API_NAME}/"), timeout=10) as response:
-        return int(response.status)
+    return _answer(f"https://{API_NAME}/")[0]
 
 
 @pytest.fixture(scope="module", name="served_spec")
-def served_spec_fixture() -> Tuple[str, str]:
-    with urlopen(Request(f"https://{API_NAME}/openapi.json"), timeout=10) as response:
-        return str(response.headers.get("Content-Type")), response.read().decode("utf-8")
+def served_spec_fixture() -> Tuple[int, str, str]:
+    return _answer(f"https://{API_NAME}/openapi.json")
+
+
+@pytest.fixture(scope="module", name="not_found_page")
+def not_found_page_fixture() -> Tuple[int, str, str]:
+    return _answer(f"https://{API_NAME}/404.html")
+
+
+@pytest.fixture(scope="module", name="unserved_answer")
+def unserved_answer_fixture() -> Tuple[int, str, str]:
+    return _answer(f"https://{API_NAME}/nothing-serves-this")
 
 
 def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_id: str) -> None:
@@ -76,12 +92,30 @@ def test_the_name_answers_200(named_status: int) -> None:
     assert named_status == 200
 
 
-def test_the_served_spec_is_json(served_spec: Tuple[str, str]) -> None:
-    assert served_spec[0].startswith("application/json")
+def test_the_served_spec_is_json(served_spec: Tuple[int, str, str]) -> None:
+    assert served_spec[1].startswith("application/json")
 
 
 def test_the_served_spec_is_the_one_the_gateway_is_built_from(
-    served_spec: Tuple[str, str], repo_root: Path
+    served_spec: Tuple[int, str, str], repo_root: Path
 ) -> None:
     spec = repo_root / "src" / "www" / "openapi.json"
-    assert served_spec[1] == spec.read_text(encoding="utf-8")
+    assert served_spec[2] == spec.read_text(encoding="utf-8")
+
+
+def test_the_not_found_page_answers_200(not_found_page: Tuple[int, str, str]) -> None:
+    assert not_found_page[0] == 200
+
+
+def test_the_not_found_page_is_html(not_found_page: Tuple[int, str, str]) -> None:
+    assert not_found_page[1].startswith("text/html")
+
+
+def test_a_path_nothing_serves_answers_404(unserved_answer: Tuple[int, str, str]) -> None:
+    assert unserved_answer[0] == 404
+
+
+def test_a_path_nothing_serves_answers_with_the_not_found_page(
+    unserved_answer: Tuple[int, str, str], not_found_page: Tuple[int, str, str]
+) -> None:
+    assert unserved_answer[2] == not_found_page[2]
