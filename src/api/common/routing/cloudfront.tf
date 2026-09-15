@@ -123,6 +123,7 @@ data "aws_cloudfront_origin_request_policy" "cors_s3_origin" {
 resource "aws_cloudfront_distribution" "api" {
   enabled = true
   comment = module.common.api_name
+  aliases = [module.common.api_name]
 
   logging_config {
     include_cookies = false
@@ -187,5 +188,18 @@ resource "aws_cloudfront_distribution" "api" {
     geo_restriction {
       restriction_type = "none"
     }
+  }
+}
+
+resource "aws_route53_record" "api" {
+  zone_id         = module.common.hosted_zone_id
+  name            = module.common.api_name
+  type            = "A"
+  allow_overwrite = true
+
+  alias {
+    name                   = aws_cloudfront_distribution.api.domain_name
+    zone_id                = aws_cloudfront_distribution.api.hosted_zone_id
+    evaluate_target_health = false
   }
 }

@@ -33,6 +33,11 @@ def lambda_client() -> Any:
 
 
 @pytest.fixture(scope="session")
+def route53_client() -> Any:
+    return boto3.client("route53", region_name=REGION)
+
+
+@pytest.fixture(scope="session")
 def dynamodb_client() -> Any:
     return boto3.client("dynamodb", region_name=REGION)
 
