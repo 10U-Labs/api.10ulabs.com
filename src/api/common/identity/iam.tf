@@ -252,6 +252,7 @@ data "aws_iam_policy_document" "routing" {
       "cloudfront:UpdateFunction",
       "cloudfront:PublishFunction",
       "cloudfront:DeleteFunction",
+      "cloudfront:GetOriginRequestPolicy",
       "acm:DescribeCertificate",
       "acm:DeleteCertificate",
       "acm:ListTagsForCertificate",

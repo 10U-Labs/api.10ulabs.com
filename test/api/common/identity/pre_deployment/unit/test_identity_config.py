@@ -85,3 +85,7 @@ def test_a_managed_policy_attaches_only_under_a_policy_arn_condition(iam_tf: str
 
 def test_the_role_may_rewrite_its_own_description(iam_tf: str) -> None:
     assert '"iam:UpdateRoleDescription"' in iam_tf
+
+
+def test_the_role_may_read_the_managed_origin_request_policies(iam_tf: str) -> None:
+    assert '"cloudfront:GetOriginRequestPolicy",' in iam_tf
