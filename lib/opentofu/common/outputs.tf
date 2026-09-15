@@ -49,3 +49,13 @@ output "lambda_handler_names" {
     wan_syntheses_writer                      = "api-10ulabs-com-wan-syntheses-writer"
   }
 }
+
+output "hosted_zone_id" {
+  description = "The Route 53 zone of the domain, where the API's name and its certificate's validation record live."
+  value       = "Z07722121TJUMGGCZYKBV"
+}
+
+output "logs_bucket" {
+  description = "The account's central logs bucket, declared by 10ulabs.com's bootstrap, where the distribution and the docs bucket write their access logs."
+  value       = "10ulabs-central-logs-us-east-2"
+}

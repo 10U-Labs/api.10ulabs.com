@@ -22,6 +22,12 @@ locals {
   sched_roles  = "arn:aws:iam::${local.account}:role/${local.product}-*-scheduler"
   backup_key   = "arn:aws:kms:${local.region}:${local.account}:key/481c2fb8-f0da-494c-910e-4b09da6dc5c3"
   self         = "arn:aws:iam::${local.account}:role/${local.role_name}"
+  cloudfront   = "arn:aws:cloudfront::${local.account}:*"
+  certificates = "arn:aws:acm:us-east-1:${local.account}:certificate/*"
+  zone         = "arn:aws:route53:::hostedzone/${module.common.hosted_zone_id}"
+  changes      = "arn:aws:route53:::change/*"
+  objects      = "arn:aws:s3:::${local.product}-*/*"
+  logs_bucket  = "arn:aws:s3:::${module.common.logs_bucket}"
   backup_policies = [
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores",
@@ -221,6 +227,63 @@ data "aws_iam_policy_document" "routing" {
     actions   = ["ssm:DescribeParameters"]
     resources = ["*"]
   }
+
+  statement {
+    sid = "DeclareTheDistributionAndItsCertificate"
+    actions = [
+      "cloudfront:CreateDistribution",
+      "cloudfront:GetDistribution",
+      "cloudfront:UpdateDistribution",
+      "cloudfront:DeleteDistribution",
+      "cloudfront:ListTagsForResource",
+      "cloudfront:TagResource",
+      "cloudfront:UntagResource",
+      "cloudfront:CreateOriginAccessControl",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:CreateCachePolicy",
+      "cloudfront:GetCachePolicy",
+      "cloudfront:UpdateCachePolicy",
+      "cloudfront:DeleteCachePolicy",
+      "cloudfront:CreateFunction",
+      "cloudfront:DescribeFunction",
+      "cloudfront:GetFunction",
+      "cloudfront:UpdateFunction",
+      "cloudfront:PublishFunction",
+      "cloudfront:DeleteFunction",
+      "acm:DescribeCertificate",
+      "acm:DeleteCertificate",
+      "acm:ListTagsForCertificate",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+    ]
+    resources = [local.cloudfront, local.certificates]
+  }
+
+  statement {
+    sid       = "ListAndRequestWhatTakesNoResource"
+    actions   = ["cloudfront:ListDistributions", "cloudfront:ListCachePolicies", "cloudfront:ListOriginRequestPolicies", "acm:RequestCertificate"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "DeclareTheApisRecords"
+    actions   = ["route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets", "route53:GetChange"]
+    resources = [local.zone, local.changes]
+
+    condition {
+      test     = "ForAllValues:StringLike"
+      variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
+      values   = [module.common.api_name, "*.${module.common.api_name}"]
+    }
+  }
+
+  statement {
+    sid       = "KeepTheDocsAndReadTheLogsBucketAcl"
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:GetObjectTagging", "s3:PutObjectTagging", "s3:GetBucketAcl"]
+    resources = [local.objects, local.logs_bucket]
+  }
 }
 
 data "aws_iam_policy_document" "storage" {
@@ -268,6 +331,11 @@ data "aws_iam_policy_document" "storage" {
       "s3:GetLifecycleConfiguration",
       "s3:PutLifecycleConfiguration",
       "s3:GetReplicationConfiguration",
+      "s3:PutBucketPolicy",
+      "s3:DeleteBucketPolicy",
+      "s3:PutEncryptionConfiguration",
+      "s3:PutBucketLogging",
+      "s3:DeleteBucket",
     ]
     resources = [local.buckets]
   }

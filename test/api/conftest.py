@@ -23,6 +23,11 @@ def apigateway_client_fixture() -> Any:
 
 
 @pytest.fixture(scope="session")
+def cloudfront_client() -> Any:
+    return boto3.client("cloudfront", region_name=REGION)
+
+
+@pytest.fixture(scope="session")
 def lambda_client() -> Any:
     return boto3.client("lambda", region_name=REGION)
 

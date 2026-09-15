@@ -50,6 +50,7 @@ def test_only_the_actions_that_take_no_resource_are_granted_on_every_resource(ia
         "DescribeParametersToReadATier",
         "ReadIdentityVerificationOnTheArnSesEvaluatesItAgainst",
         "MountTheVaultCapsuleThatTakesNoResource",
+        "ListAndRequestWhatTakesNoResource",
     }
 
 
