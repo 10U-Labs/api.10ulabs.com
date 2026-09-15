@@ -40,6 +40,11 @@ def test_the_catch_all_documents_only_a_404(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/{proxy+}"][ANY_METHOD]["responses"]) == ["404"]
 
 
+def test_the_catch_all_documents_the_page_a_browser_is_given(openapi: Dict[str, Any]) -> None:
+    refusal = openapi["paths"]["/{proxy+}"][ANY_METHOD]["responses"]["404"]
+    assert refusal["content"]["text/html"]["schema"]["type"] == "string"
+
+
 def test_the_routing_stack_supplies_every_template_variable(
     openapi: Dict[str, Any], routing_dir: Path
 ) -> None:

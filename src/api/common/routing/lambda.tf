@@ -14,11 +14,12 @@ resource "aws_lambda_function" "catchall" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Catch-all: answer 404 for any route no other handler serves."
+  description      = "Catch-all: answer 404 for any route no other handler serves, as the not-found page to a browser."
 
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT = "true"
+      NOT_FOUND_PAGE        = file("${path.module}/../../../www/404.html")
     }
   }
 

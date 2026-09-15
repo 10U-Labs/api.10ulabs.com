@@ -219,12 +219,6 @@ resource "aws_cloudfront_distribution" "api" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
   }
 
-  custom_error_response {
-    error_code         = 404
-    response_code      = 404
-    response_page_path = "/404.html"
-  }
-
   viewer_certificate {
     acm_certificate_arn      = aws_acm_certificate_validation.api.certificate_arn
     ssl_support_method       = "sni-only"

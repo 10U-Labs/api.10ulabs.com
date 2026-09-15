@@ -5179,6 +5179,12 @@
                     }
                   }
                 }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "The not-found page, for a request that accepts HTML"
+                }
               }
             }
           }

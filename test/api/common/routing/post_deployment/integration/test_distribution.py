@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -7,6 +8,8 @@ import pytest
 
 API_NAME = "api.10ulabs.com"
 ZONE_ID = "Z07722121TJUMGGCZYKBV"
+UNSERVED = f"https://{API_NAME}/nothing-serves-this"
+BROWSING = {"Accept": "text/html,application/xhtml+xml"}
 
 
 @pytest.fixture(scope="module", name="distribution")
@@ -17,9 +20,9 @@ def distribution_fixture(cloudfront_client: Any) -> Dict[str, Any]:
     raise LookupError(f"no distribution is commented {API_NAME}")
 
 
-def _answer(url: str) -> Tuple[int, str, str]:
+def _answer(url: str, headers: Optional[Dict[str, str]] = None) -> Tuple[int, str, str]:
     try:
-        with urlopen(Request(url), timeout=10) as response:
+        with urlopen(Request(url, headers=headers or {}), timeout=10) as response:
             content_type = str(response.headers.get("Content-Type"))
             return int(response.status), content_type, response.read().decode("utf-8")
     except HTTPError as error:
@@ -54,9 +57,19 @@ def not_found_page_fixture() -> Tuple[int, str, str]:
     return _answer(f"https://{API_NAME}/404.html")
 
 
+@pytest.fixture(scope="module", name="browsed_answer")
+def browsed_answer_fixture() -> Tuple[int, str, str]:
+    return _answer(UNSERVED, BROWSING)
+
+
 @pytest.fixture(scope="module", name="unserved_answer")
 def unserved_answer_fixture() -> Tuple[int, str, str]:
-    return _answer(f"https://{API_NAME}/nothing-serves-this")
+    return _answer(UNSERVED)
+
+
+@pytest.fixture(scope="module", name="missing_carrier")
+def missing_carrier_fixture(bearer: Dict[str, str]) -> Tuple[int, str, str]:
+    return _answer(f"https://{API_NAME}/carriers/999999999", bearer)
 
 
 def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_id: str) -> None:
@@ -115,7 +128,31 @@ def test_a_path_nothing_serves_answers_404(unserved_answer: Tuple[int, str, str]
     assert unserved_answer[0] == 404
 
 
-def test_a_path_nothing_serves_answers_with_the_not_found_page(
-    unserved_answer: Tuple[int, str, str], not_found_page: Tuple[int, str, str]
+def test_a_path_nothing_serves_answers_json(unserved_answer: Tuple[int, str, str]) -> None:
+    assert unserved_answer[1].startswith("application/json")
+
+
+def test_a_path_nothing_serves_names_the_error(unserved_answer: Tuple[int, str, str]) -> None:
+    assert json.loads(unserved_answer[2])["error"] == "Not Found"
+
+
+def test_a_browser_is_answered_404(browsed_answer: Tuple[int, str, str]) -> None:
+    assert browsed_answer[0] == 404
+
+
+def test_a_browser_is_answered_html(browsed_answer: Tuple[int, str, str]) -> None:
+    assert browsed_answer[1].startswith("text/html")
+
+
+def test_a_browser_is_answered_with_the_not_found_page(
+    browsed_answer: Tuple[int, str, str], not_found_page: Tuple[int, str, str]
 ) -> None:
-    assert unserved_answer[2] == not_found_page[2]
+    assert browsed_answer[2] == not_found_page[2]
+
+
+def test_a_missing_carrier_answers_404(missing_carrier: Tuple[int, str, str]) -> None:
+    assert missing_carrier[0] == 404
+
+
+def test_a_missing_carrier_keeps_its_own_json(missing_carrier: Tuple[int, str, str]) -> None:
+    assert json.loads(missing_carrier[2])["error"] == "No such carrier"
