@@ -61,6 +61,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Stacks
 
 - [the-stacks-are-opentofu](the-stacks-are-opentofu.md) — every stack is OpenTofu, set up by `opentofu/setup-opentofu` and run as `tofu`; the shared module is `lib/opentofu/common`, and no path says `terraform` but the state bucket and key
+- [a-by-hand-destroy-follows-the-push-that-drops-the-workflow](a-by-hand-destroy-follows-the-push-that-drops-the-workflow.md) — a run in flight on an earlier commit rebuilds a stack destroyed by hand, so destroy after the push that removes its workflow, or read the account afterwards for what a run rebuilt
 
 ### Priority
 
