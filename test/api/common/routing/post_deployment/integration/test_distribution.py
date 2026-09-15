@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict, Tuple
 from urllib.request import Request, urlopen
 
@@ -36,6 +37,12 @@ def named_status_fixture() -> int:
         return int(response.status)
 
 
+@pytest.fixture(scope="module", name="served_spec")
+def served_spec_fixture() -> Tuple[str, str]:
+    with urlopen(Request(f"https://{API_NAME}/openapi.json"), timeout=10) as response:
+        return str(response.headers.get("Content-Type")), response.read().decode("utf-8")
+
+
 def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_id: str) -> None:
     origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
     assert f"{api_id}.execute-api.us-east-2.amazonaws.com" in origins
@@ -67,3 +74,14 @@ def test_the_name_aliases_the_distribution(
 
 def test_the_name_answers_200(named_status: int) -> None:
     assert named_status == 200
+
+
+def test_the_served_spec_is_json(served_spec: Tuple[str, str]) -> None:
+    assert served_spec[0].startswith("application/json")
+
+
+def test_the_served_spec_is_the_one_the_gateway_is_built_from(
+    served_spec: Tuple[str, str], repo_root: Path
+) -> None:
+    spec = repo_root / "src" / "www" / "openapi.json"
+    assert served_spec[1] == spec.read_text(encoding="utf-8")

@@ -44,6 +44,15 @@ resource "aws_s3_object" "index" {
   etag         = filemd5("${path.module}/../../../www/index.html")
 }
 
+resource "aws_s3_object" "spec" {
+  bucket        = aws_s3_bucket.docs.id
+  key           = "openapi.json"
+  source        = "${path.module}/../../../www/openapi.json"
+  content_type  = "application/json"
+  cache_control = "max-age=60"
+  etag          = filemd5("${path.module}/../../../www/openapi.json")
+}
+
 resource "aws_cloudfront_origin_access_control" "docs" {
   name                              = local.docs_bucket
   origin_access_control_origin_type = "s3"
@@ -176,6 +185,18 @@ resource "aws_cloudfront_distribution" "api" {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.root.arn
     }
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/openapi.json"
+    target_origin_id       = "docs"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    cache_policy_id          = aws_cloudfront_cache_policy.docs.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
   }
 
   viewer_certificate {
