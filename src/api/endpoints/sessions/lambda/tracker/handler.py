@@ -86,7 +86,7 @@ def _write(items: List[Dict[str, Any]]) -> None:
 
 
 def _record(event: Dict[str, Any]) -> Dict[str, Any]:
-    session_id = (event.get('pathParameters') or {}).get('session_id') or ''
+    session_id = (event.get('pathParameters') or {}).get('id') or ''
     if not session_id:
         return _error(400, 'Invalid path: missing session_id')
     body = parse_object(event)
@@ -107,6 +107,6 @@ def _record(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
-    response = dispatch(event, {('/sessions/{session_id}/events', 'POST'): _record})
+    response = dispatch(event, {('/sessions/{id}/events', 'POST'): _record})
     response['headers'].update(CORS_HEADERS)
     return response

@@ -72,6 +72,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Paths
 
 - [no-v1-in-any-api-or-url](no-v1-in-any-api-or-url.md) — no `v1` in any API nor URL; a route `10ulabs.com` served under `/v1/` is served here without it
+- [the-first-parameter-of-a-path-is-id](the-first-parameter-of-a-path-is-id.md) — API Gateway allows one variable child per resource, so the first parameter of a path is `{id}` and a later one names its noun, `{pop_id}`; leaf `{id}` under holder `{holder_id}` cannot deploy
 
 ### Layout
 

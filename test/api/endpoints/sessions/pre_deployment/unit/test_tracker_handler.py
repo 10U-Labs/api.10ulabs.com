@@ -4,13 +4,13 @@ from typing import Any, Dict, List
 
 import pytest
 
-EVENTS = "/sessions/{session_id}/events"
+EVENTS = "/sessions/{id}/events"
 
 
 def _post(body: Any, session_id: str = "session-1") -> Dict[str, Any]:
     raw = body if isinstance(body, str) else json.dumps(body)
     return {"resource": EVENTS, "httpMethod": "POST", "body": raw,
-            "pathParameters": {"session_id": session_id}}
+            "pathParameters": {"id": session_id}}
 
 
 def _request(events: Any, **extra: Any) -> Dict[str, Any]:

@@ -481,7 +481,7 @@
         }
       }
     },
-    "/carriers/{carrier_id}/pops": {
+    "/carriers/{id}/pops": {
       "get": {
         "summary": "List PoPs",
         "description": "Lists the points of presence of one carrier, each by the id the API assigned it and where it is.",
@@ -496,7 +496,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -603,7 +603,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -662,7 +662,7 @@
             "description": "The PoP, by the id the API gave it and where it is",
             "headers": {
               "Location": {
-                "description": "The PoP's own URL, /carriers/{carrier_id}/pops/{id}",
+                "description": "The PoP's own URL, /carriers/{id}/pops/{pop_id}",
                 "schema": {
                   "type": "string",
                   "example": "/carriers/1/pops/1"
@@ -764,7 +764,7 @@
         }
       }
     },
-    "/carriers/{carrier_id}/pops/{id}": {
+    "/carriers/{id}/pops/{pop_id}": {
       "get": {
         "summary": "Get PoP",
         "description": "Serves one point of presence of one carrier, by the id the API assigned it and where it is.",
@@ -779,7 +779,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -790,7 +790,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "pop_id",
             "in": "path",
             "description": "The id the API assigned the PoP within its carrier",
             "required": true,
@@ -894,7 +894,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -905,7 +905,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "pop_id",
             "in": "path",
             "description": "The id the API assigned the PoP within its carrier",
             "required": true,
@@ -1070,7 +1070,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1081,7 +1081,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "pop_id",
             "in": "path",
             "description": "The id the API assigned the PoP within its carrier",
             "required": true,
@@ -1131,7 +1131,7 @@
         }
       }
     },
-    "/carriers/{carrier_id}/fiber-segments": {
+    "/carriers/{id}/fiber-segments": {
       "get": {
         "summary": "List Fiber Segments",
         "description": "Lists the fiber segments of one carrier, each by the id the API assigned it and the two municipalities it spans.",
@@ -1146,7 +1146,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1256,7 +1256,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1317,7 +1317,7 @@
             "description": "The fiber segment, by the id the API gave it and the two municipalities it spans",
             "headers": {
               "Location": {
-                "description": "The fiber segment's own URL, /carriers/{carrier_id}/fiber-segments/{id}",
+                "description": "The fiber segment's own URL, /carriers/{id}/fiber-segments/{fiber_segment_id}",
                 "schema": {
                   "type": "string",
                   "example": "/carriers/1/fiber-segments/1"
@@ -1422,7 +1422,7 @@
         }
       }
     },
-    "/carriers/{carrier_id}/fiber-segments/{id}": {
+    "/carriers/{id}/fiber-segments/{fiber_segment_id}": {
       "get": {
         "summary": "Get Fiber Segment",
         "description": "Serves one fiber segment of one carrier, by the id the API assigned it and the two municipalities it spans.",
@@ -1437,7 +1437,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1448,7 +1448,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "fiber_segment_id",
             "in": "path",
             "description": "The id the API assigned the fiber segment within its carrier",
             "required": true,
@@ -1555,7 +1555,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1566,7 +1566,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "fiber_segment_id",
             "in": "path",
             "description": "The id the API assigned the fiber segment within its carrier",
             "required": true,
@@ -1736,7 +1736,7 @@
         ],
         "parameters": [
           {
-            "name": "carrier_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the carrier",
             "required": true,
@@ -1747,7 +1747,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "fiber_segment_id",
             "in": "path",
             "description": "The id the API assigned the fiber segment within its carrier",
             "required": true,
@@ -3191,7 +3191,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/wan-pops": {
+    "/wan-syntheses/{id}/wan-pops": {
       "get": {
         "summary": "List WAN PoPs",
         "description": "Lists the WAN PoPs of one synthesis's WAN, the carrier PoPs the run chose, each by the id the synthesizer gave it, its name, where it is and its carrier.",
@@ -3206,7 +3206,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3313,7 +3313,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/wan-pops/{id}": {
+    "/wan-syntheses/{id}/wan-pops/{wan_pop_id}": {
       "get": {
         "summary": "Get WAN PoP",
         "description": "Serves one WAN PoP of one synthesis's WAN, by the id the synthesizer gave it, its name, where it is and its carrier.",
@@ -3328,7 +3328,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3339,7 +3339,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "wan_pop_id",
             "in": "path",
             "description": "The id the synthesizer gave the WAN PoP within its WAN",
             "required": true,
@@ -3443,7 +3443,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/backbone-circuits": {
+    "/wan-syntheses/{id}/backbone-circuits": {
       "get": {
         "summary": "List Backbone Circuits",
         "description": "Lists the backbone circuits of one synthesis's WAN, each between two WAN PoPs by id and along the route of places it runs through.",
@@ -3458,7 +3458,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3574,7 +3574,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/homing-circuits": {
+    "/wan-syntheses/{id}/homing-circuits": {
       "get": {
         "summary": "List Homing Circuits",
         "description": "Lists the homing circuits of one synthesis's WAN, each from a site or a provider region to a WAN PoP, the far end named by its id in its own collection and the kind that says which collection.",
@@ -3589,7 +3589,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3699,7 +3699,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/fiber-segments": {
+    "/wan-syntheses/{id}/fiber-segments": {
       "get": {
         "summary": "List Ridden Fiber Segments",
         "description": "Lists the carrier fiber segments one synthesis's WAN rides, the union over every backbone circuit of the segments between consecutive hops of its route, each with its carrier and both ends placed so a map draws the line without looking anything up.",
@@ -3714,7 +3714,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3848,7 +3848,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/sites": {
+    "/wan-syntheses/{id}/sites": {
       "get": {
         "summary": "List Sites",
         "description": "Lists the sites one synthesis was given, the tenant's named places with a coordinate, each by the id given at creation; the sites are an input, so they are there whatever the run's status.",
@@ -3863,7 +3863,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3971,7 +3971,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/sites/{id}": {
+    "/wan-syntheses/{id}/sites/{site_id}": {
       "get": {
         "summary": "Get Site",
         "description": "Serves one site one synthesis was given, by the id given at creation, its name and where it is.",
@@ -3986,7 +3986,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -3997,7 +3997,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "site_id",
             "in": "path",
             "description": "The id the site was given at creation, within its synthesis",
             "required": true,
@@ -4102,7 +4102,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/hyperscale-cloud-service-provider-regions": {
+    "/wan-syntheses/{id}/hyperscale-cloud-service-provider-regions": {
       "get": {
         "summary": "List Given Hyperscale Cloud Service Provider Regions",
         "description": "Lists the hyperscale cloud service provider regions one synthesis was given, the provider regions chosen from the catalog, each as the catalog serves it under the id given at creation; the regions are an input, so they are there whatever the run's status.",
@@ -4117,7 +4117,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4219,7 +4219,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/hyperscale-cloud-service-provider-regions/{id}": {
+    "/wan-syntheses/{id}/hyperscale-cloud-service-provider-regions/{region_id}": {
       "get": {
         "summary": "Get Given Hyperscale Cloud Service Provider Region",
         "description": "Serves one hyperscale cloud service provider region one synthesis was given, by the id given at creation, as the catalog serves it; the regions are an input, so it is there whatever the run's status.",
@@ -4234,7 +4234,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4245,7 +4245,7 @@
             }
           },
           {
-            "name": "id",
+            "name": "region_id",
             "in": "path",
             "description": "The id the region was given at creation, within its synthesis",
             "required": true,
@@ -4344,7 +4344,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/off-net": {
+    "/wan-syntheses/{id}/off-net": {
       "get": {
         "summary": "List Given Off-Net PoPs",
         "description": "Lists the off-net PoPs one synthesis was given, the candidate PoPs in cities no carrier serves, each as the body carried it under the id given at creation; the off-net PoPs are an input, so they are there whatever the run's status.",
@@ -4359,7 +4359,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4455,7 +4455,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/forced-wan-pops": {
+    "/wan-syntheses/{id}/forced-wan-pops": {
       "get": {
         "summary": "List Given Forced WAN PoPs",
         "description": "Lists the forced WAN PoPs one synthesis was given, the carrier PoPs the WAN must place, each named as the body carried it under the id given at creation; the forced WAN PoPs are an input, so they are there whatever the run's status.",
@@ -4470,7 +4470,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4546,7 +4546,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/forced-circuits": {
+    "/wan-syntheses/{id}/forced-circuits": {
       "get": {
         "summary": "List Given Forced Circuits",
         "description": "Lists the forced circuits one synthesis was given, the backbone circuits the WAN must carry between two named carrier PoPs, each as the body carried it under the id given at creation; the forced circuits are an input, so they are there whatever the run's status.",
@@ -4561,7 +4561,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4643,7 +4643,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/forced-homes": {
+    "/wan-syntheses/{id}/forced-homes": {
       "get": {
         "summary": "List Given Forced Homes",
         "description": "Lists the forced homes one synthesis was given, the homing circuits the WAN must carry from a named site to a named carrier PoP, each as the body carried it under the id given at creation; the forced homes are an input, so they are there whatever the run's status.",
@@ -4658,7 +4658,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4740,7 +4740,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/prohibited-wan-pops": {
+    "/wan-syntheses/{id}/prohibited-wan-pops": {
       "get": {
         "summary": "List Given Prohibited WAN PoPs",
         "description": "Lists the prohibited WAN PoPs one synthesis was given, the carrier PoPs the WAN must not place, each named as the body carried it under the id given at creation; the prohibited WAN PoPs are an input, so they are there whatever the run's status.",
@@ -4755,7 +4755,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4831,7 +4831,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/prohibited-circuits": {
+    "/wan-syntheses/{id}/prohibited-circuits": {
       "get": {
         "summary": "List Given Prohibited Circuits",
         "description": "Lists the prohibited circuits one synthesis was given, the backbone circuits the WAN must not carry between two named carrier PoPs, each as the body carried it under the id given at creation; the prohibited circuits are an input, so they are there whatever the run's status.",
@@ -4846,7 +4846,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -4928,7 +4928,7 @@
         }
       }
     },
-    "/wan-syntheses/{synthesis_id}/degree-exempt-wan-pops": {
+    "/wan-syntheses/{id}/degree-exempt-wan-pops": {
       "get": {
         "summary": "List Given Degree-Exempt WAN PoPs",
         "description": "Lists the degree-exempt WAN PoPs one synthesis was given, the carrier PoPs the WAN may place with fewer backbone circuits than the run's degree asks, each named as the body carried it under the id given at creation; the degree-exempt WAN PoPs are an input, so they are there whatever the run's status.",
@@ -4943,7 +4943,7 @@
         ],
         "parameters": [
           {
-            "name": "synthesis_id",
+            "name": "id",
             "in": "path",
             "description": "The id the API assigned the synthesis",
             "required": true,
@@ -5715,7 +5715,7 @@
         }
       }
     },
-    "/sessions/{session_id}/events": {
+    "/sessions/{id}/events": {
       "post": {
         "summary": "Save Session Analytics Events",
         "description": "Saves analytics events for a session",
@@ -5725,7 +5725,7 @@
         ],
         "parameters": [
           {
-            "name": "session_id",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -5857,7 +5857,7 @@
         ],
         "parameters": [
           {
-            "name": "session_id",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
