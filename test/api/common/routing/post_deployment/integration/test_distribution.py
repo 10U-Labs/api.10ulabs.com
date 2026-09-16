@@ -8,6 +8,7 @@ import pytest
 
 API_NAME = "api.10ulabs.com"
 ZONE_ID = "Z07722121TJUMGGCZYKBV"
+BUCKET_HOST = f"{API_NAME.replace('.', '-')}.s3.us-east-2.amazonaws.com"
 UNSERVED = f"https://{API_NAME}/nothing-serves-this"
 BROWSING = {"Accept": "text/html,application/xhtml+xml"}
 
@@ -75,6 +76,11 @@ def missing_carrier_fixture(bearer: Dict[str, str]) -> Tuple[int, str, str]:
 def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_id: str) -> None:
     origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
     assert f"{api_id}.execute-api.us-east-2.amazonaws.com" in origins
+
+
+def test_the_distribution_fronts_the_bucket_named_for_the_host(distribution: Dict[str, Any]) -> None:
+    origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
+    assert BUCKET_HOST in origins
 
 
 def test_the_root_of_the_distribution_answers_200(root_page: Tuple[int, str, str]) -> None:
