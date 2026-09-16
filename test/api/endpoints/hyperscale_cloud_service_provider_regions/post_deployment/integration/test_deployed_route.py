@@ -1,3 +1,4 @@
+import re
 from typing import Any, Callable, Dict, Tuple
 
 REGIONS = "/hyperscale-cloud-service-provider-regions"
@@ -63,7 +64,14 @@ def test_every_listed_region_is_served_at_its_own_url_through_the_deployed_api(
     assert served == [(200, region) for region in listed]
 
 
-PHOENIX = {"name": "us-west-2", "municipality": "Phoenix", "state": "AZ", "country": "US",
+def test_every_listed_region_is_named_provider_and_one_letter_through_the_deployed_api(
+    stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, listed = get_json(f"{stage_url}{REGIONS}", bearer)
+    assert all(re.fullmatch(r"Provider [A-Z]", region["name"]) for region in listed)
+
+
+PHOENIX = {"name": "Provider C", "municipality": "Phoenix", "state": "AZ", "country": "US",
            "latitude": 33.4484, "longitude": -112.074}
 
 

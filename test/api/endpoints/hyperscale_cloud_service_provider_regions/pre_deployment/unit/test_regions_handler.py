@@ -8,9 +8,9 @@ from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
 REGIONS = "/hyperscale-cloud-service-provider-regions"
-COLUMBUS = {"id": 1, "name": "us-east-2", "municipality": "Columbus", "state": "OH",
+COLUMBUS = {"id": 1, "name": "Provider A", "municipality": "Columbus", "state": "OH",
             "country": "US", "latitude": 39.9612, "longitude": -82.9988}
-DUBLIN = {"id": 2, "name": "eu-west-1", "municipality": "Dublin", "state": "",
+DUBLIN = {"id": 2, "name": "Provider B", "municipality": "Dublin", "state": "",
           "country": "Ireland", "latitude": 53.3498, "longitude": -6.2603}
 
 
@@ -68,9 +68,9 @@ def test_another_route_answers_404(answer: Handler) -> None:
     assert answer(_get("/carriers"))["statusCode"] == 404
 
 
-PHOENIX = {"name": "us-west-2", "municipality": "Phoenix", "state": "AZ", "country": "US",
+PHOENIX = {"name": "Provider C", "municipality": "Phoenix", "state": "AZ", "country": "US",
            "latitude": 33.4484, "longitude": -112.074}
-FRANKFURT = {"name": "eu-central-1", "municipality": "Frankfurt", "state": "", "country": "Germany",
+FRANKFURT = {"name": "Provider D", "municipality": "Frankfurt", "state": "", "country": "Germany",
              "latitude": 50.1109, "longitude": 8.6821}
 REGION_BODY = (
     'The body must be exactly '
@@ -146,7 +146,7 @@ def test_the_region_is_written_by_its_id_with_its_place_as_strings_and_numbers(
     answer(_post(PHOENIX))
     assert store.items[-1] == {
         "PK": {"S": "hyperscale-cloud-service-provider-regions"}, "SK": {"S": "3"},
-        "name": {"S": "us-west-2"}, "municipality": {"S": "Phoenix"}, "state": {"S": "AZ"},
+        "name": {"S": "Provider C"}, "municipality": {"S": "Phoenix"}, "state": {"S": "AZ"},
         "country": {"S": "US"}, "latitude": {"N": "33.4484"}, "longitude": {"N": "-112.074"},
     }
 
@@ -253,7 +253,7 @@ def test_an_unknown_region_names_the_error(served: Served) -> None:
     assert served(_get_one("3"))["error"] == MISSING
 
 
-@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+@pytest.mark.parametrize("region", ["#", "", "Provider A", "-1"])
 def test_a_region_id_that_is_not_a_number_answers_404(answer: Handler, region: str) -> None:
     assert answer(_get_one(region))["statusCode"] == 404
 
@@ -373,14 +373,14 @@ def test_correcting_an_unknown_region_adds_none(
     assert len(store.items) == len(regions)
 
 
-@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+@pytest.mark.parametrize("region", ["#", "", "Provider A", "-1"])
 def test_correcting_a_region_id_that_is_not_a_number_answers_404(
     answer: Handler, region: str
 ) -> None:
     assert answer(_put(PHOENIX, region))["statusCode"] == 404
 
 
-@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+@pytest.mark.parametrize("region", ["#", "", "Provider A", "-1"])
 def test_correcting_a_region_id_that_is_not_a_number_asks_the_store_nothing(
     answer: Handler, store: SimpleNamespace, region: str
 ) -> None:
@@ -500,14 +500,14 @@ def test_removing_an_unknown_region_removes_nothing(
     assert len(store.items) == len(regions)
 
 
-@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+@pytest.mark.parametrize("region", ["#", "", "Provider A", "-1"])
 def test_removing_a_region_id_that_is_not_a_number_answers_404(
     answer: Handler, region: str
 ) -> None:
     assert answer(_delete(region))["statusCode"] == 404
 
 
-@pytest.mark.parametrize("region", ["#", "", "us-east-2", "-1"])
+@pytest.mark.parametrize("region", ["#", "", "Provider A", "-1"])
 def test_removing_a_region_id_that_is_not_a_number_asks_the_store_nothing(
     answer: Handler, store: SimpleNamespace, region: str
 ) -> None:

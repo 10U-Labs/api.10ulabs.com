@@ -267,7 +267,7 @@ def test_an_unknown_region_of_a_synthesis_names_the_region(
     assert served(_get_run_region("1", "3"))["error"] == MISSING_REGION
 
 
-@pytest.mark.parametrize("region", ["#", "", "2/", "us-east-2"])
+@pytest.mark.parametrize("region", ["#", "", "2/", "Provider A"])
 def test_a_region_id_that_is_not_a_number_asks_the_store_nothing(
     answer: Handler, store: SimpleNamespace, region: str
 ) -> None:

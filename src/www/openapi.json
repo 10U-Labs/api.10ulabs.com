@@ -1835,8 +1835,8 @@
                       },
                       "name": {
                         "type": "string",
-                        "description": "The region's name as its provider publishes it",
-                        "example": "us-east-2"
+                        "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                        "example": "Provider A"
                       },
                       "municipality": {
                         "type": "string",
@@ -1912,8 +1912,8 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "The region's name as its provider publishes it",
-                    "example": "us-east-2"
+                    "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                    "example": "Provider A"
                   },
                   "municipality": {
                     "type": "string",
@@ -1975,8 +1975,8 @@
                     },
                     "name": {
                       "type": "string",
-                      "description": "The region's name as its provider publishes it",
-                      "example": "us-east-2"
+                      "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                      "example": "Provider A"
                     },
                     "municipality": {
                       "type": "string",
@@ -2088,8 +2088,8 @@
                     },
                     "name": {
                       "type": "string",
-                      "description": "The region's name as its provider publishes it",
-                      "example": "us-east-2"
+                      "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                      "example": "Provider A"
                     },
                     "municipality": {
                       "type": "string",
@@ -2195,8 +2195,8 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "The region's name as its provider publishes it",
-                    "example": "us-east-2"
+                    "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                    "example": "Provider A"
                   },
                   "municipality": {
                     "type": "string",
@@ -2249,8 +2249,8 @@
                     },
                     "name": {
                       "type": "string",
-                      "description": "The region's name as its provider publishes it",
-                      "example": "us-east-2"
+                      "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                      "example": "Provider A"
                     },
                     "municipality": {
                       "type": "string",
@@ -2618,8 +2618,8 @@
                       "properties": {
                         "name": {
                           "type": "string",
-                          "description": "The region's name as its provider publishes it",
-                          "example": "us-east-2",
+                          "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                          "example": "Provider A",
                           "minLength": 1
                         },
                         "municipality": {
@@ -4154,8 +4154,8 @@
                       },
                       "name": {
                         "type": "string",
-                        "description": "The region's name as its provider publishes it",
-                        "example": "us-east-2"
+                        "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                        "example": "Provider A"
                       },
                       "municipality": {
                         "type": "string",
@@ -4280,8 +4280,8 @@
                     },
                     "name": {
                       "type": "string",
-                      "description": "The region's name as its provider publishes it",
-                      "example": "us-east-2"
+                      "description": "The region's name, Provider and one capital letter, which says nothing of its provider",
+                      "example": "Provider A"
                     },
                     "municipality": {
                       "type": "string",
