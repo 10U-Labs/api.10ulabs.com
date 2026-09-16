@@ -13,8 +13,8 @@ def _post(body: Any) -> Dict[str, Any]:
 
 
 def _get(config_hash: str) -> Dict[str, Any]:
-    return {"resource": RACK_CONFIGURATIONS + "/{config_hash}", "httpMethod": "GET",
-            "pathParameters": {"config_hash": config_hash}}
+    return {"resource": RACK_CONFIGURATIONS + "/{id}", "httpMethod": "GET",
+            "pathParameters": {"id": config_hash}}
 
 
 def _submission(configuration: Any, **extra: Any) -> Dict[str, Any]:

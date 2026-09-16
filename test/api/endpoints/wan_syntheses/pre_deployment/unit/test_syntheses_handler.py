@@ -60,7 +60,7 @@ def test_another_route_answers_404(answer: Handler) -> None:
     assert answer(_get("/wan-synthesizer/tenants"))["statusCode"] == 404
 
 
-SYNTHESIS = "/wan-syntheses/{synthesis}"
+SYNTHESIS = "/wan-syntheses/{id}"
 MISSING = "No such wan synthesis"
 MINUTEMAN = {
     "id": 1, "label": "minuteman",
@@ -77,7 +77,7 @@ MINUTEMAN = {
 
 
 def _get_one(synthesis: str) -> Dict[str, Any]:
-    return {**_get(SYNTHESIS), "pathParameters": {"synthesis": synthesis}}
+    return {**_get(SYNTHESIS), "pathParameters": {"id": synthesis}}
 
 
 def test_a_stored_synthesis_answers_200(
@@ -154,7 +154,7 @@ def test_a_store_that_refuses_the_synthesis_names_the_error(
     assert served(_get_one("1"))["error"] == "Failed to read the wan synthesis"
 
 
-WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
+WAN_POPS = "/wan-syntheses/{synthesis_id}/wan-pops"
 NO_WAN = "The synthesis has no wan"
 ASHBURN = {"id": 1, "name": "Ashburn, VA", "municipality": "Ashburn", "state": "VA",
            "country": "US", "latitude": 39.0438, "longitude": -77.4874, "carrier": "zayo"}
@@ -163,7 +163,7 @@ CHEYENNE = {"id": 2, "name": "Cheyenne, WY", "municipality": "Cheyenne", "state"
 
 
 def _get_wan_pops(synthesis: str = "1") -> Dict[str, Any]:
-    return {**_get(WAN_POPS), "pathParameters": {"synthesis": synthesis}}
+    return {**_get(WAN_POPS), "pathParameters": {"synthesis_id": synthesis}}
 
 
 def test_the_wan_pops_of_a_synthesis_answer_200(
@@ -258,12 +258,12 @@ def test_a_store_that_refuses_the_wan_pops_names_the_error(
     assert served(_get_wan_pops())["error"] == "Failed to read the wan pops"
 
 
-WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
+WAN_POP = "/wan-syntheses/{synthesis_id}/wan-pops/{id}"
 MISSING_WAN_POP = "No such wan pop"
 
 
 def _get_wan_pop(synthesis: str = "1", wan_pop: str = "2") -> Dict[str, Any]:
-    return {**_get(WAN_POP), "pathParameters": {"synthesis": synthesis, "wan-pop": wan_pop}}
+    return {**_get(WAN_POP), "pathParameters": {"synthesis_id": synthesis, "id": wan_pop}}
 
 
 def test_a_stored_wan_pop_answers_200(
@@ -376,7 +376,7 @@ def test_a_store_that_refuses_the_wan_pop_names_the_error(
     assert served(_get_wan_pop())["error"] == "Failed to read the wan pop"
 
 
-BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis}/backbone-circuits"
+BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis_id}/backbone-circuits"
 NORTHERN = {"id": 1, "source": 1, "target": 2, "distance_miles": 1480,
             "route": ["Ashburn, VA", "Chicago, IL", "Cheyenne, WY"],
             "reason": "circuit_for_target", "requested_by": []}
@@ -386,7 +386,7 @@ SOUTHERN = {"id": 2, "source": 2, "target": 1, "distance_miles": 1612.5,
 
 
 def _get_backbone_circuits(synthesis: str = "1") -> Dict[str, Any]:
-    return {**_get(BACKBONE_CIRCUITS), "pathParameters": {"synthesis": synthesis}}
+    return {**_get(BACKBONE_CIRCUITS), "pathParameters": {"synthesis_id": synthesis}}
 
 
 def test_the_backbone_circuits_of_a_synthesis_answer_200(
@@ -438,7 +438,7 @@ def test_a_store_that_refuses_the_backbone_circuits_names_the_error(
     assert served(_get_backbone_circuits())["error"] == "Failed to read the backbone circuits"
 
 
-HOMING_CIRCUITS = "/wan-syntheses/{synthesis}/homing-circuits"
+HOMING_CIRCUITS = "/wan-syntheses/{synthesis_id}/homing-circuits"
 MINOT_HOME = {"id": 1, "source_id": 1, "homing_kind": "tenant_to_backbone", "target": 2,
               "route": ["Minot, ND", "Cheyenne, WY"], "distance_miles": 590}
 COLUMBUS_HOME = {"id": 2, "source_id": 1, "homing_kind": "provider_to_backbone", "target": 1,
@@ -446,7 +446,7 @@ COLUMBUS_HOME = {"id": 2, "source_id": 1, "homing_kind": "provider_to_backbone",
 
 
 def _get_homing_circuits(synthesis: str = "1") -> Dict[str, Any]:
-    return {**_get(HOMING_CIRCUITS), "pathParameters": {"synthesis": synthesis}}
+    return {**_get(HOMING_CIRCUITS), "pathParameters": {"synthesis_id": synthesis}}
 
 
 def test_the_homing_circuits_of_a_synthesis_answer_200(
@@ -498,7 +498,7 @@ def test_a_store_that_refuses_the_homing_circuits_names_the_error(
     assert served(_get_homing_circuits())["error"] == "Failed to read the homing circuits"
 
 
-RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
+RIDDEN_FIBER = "/wan-syntheses/{synthesis_id}/fiber-segments"
 IAD_ORD = {"id": 1, "carrier": "zayo", "a_municipality": "Ashburn", "a_state": "VA",
            "a_latitude": 39.0438, "a_longitude": -77.4874, "z_municipality": "Chicago",
            "z_state": "IL", "z_latitude": 41.8781, "z_longitude": -87.6298,
@@ -510,7 +510,7 @@ ORD_CYS = {"id": 2, "carrier": "lumen", "a_municipality": "Chicago", "a_state": 
 
 
 def _get_ridden_fiber(synthesis: str = "1") -> Dict[str, Any]:
-    return {**_get(RIDDEN_FIBER), "pathParameters": {"synthesis": synthesis}}
+    return {**_get(RIDDEN_FIBER), "pathParameters": {"synthesis_id": synthesis}}
 
 
 def test_the_fiber_a_synthesis_rides_answers_200(

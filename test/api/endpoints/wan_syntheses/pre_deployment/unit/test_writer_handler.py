@@ -344,13 +344,13 @@ def test_another_route_answers_404(answer: Handler) -> None:
     assert answer({"resource": SYNTHESES, "httpMethod": "GET"})["statusCode"] == 404
 
 
-SYNTHESIS = "/wan-syntheses/{synthesis}"
+SYNTHESIS = "/wan-syntheses/{id}"
 MISSING = "No such wan synthesis"
 
 
 def _delete(synthesis: str) -> Dict[str, Any]:
     return {
-        "resource": SYNTHESIS, "httpMethod": "DELETE", "pathParameters": {"synthesis": synthesis},
+        "resource": SYNTHESIS, "httpMethod": "DELETE", "pathParameters": {"id": synthesis},
     }
 
 

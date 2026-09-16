@@ -204,12 +204,12 @@ def test_a_store_that_refuses_the_region_names_the_error(
     assert error == "Failed to create the hyperscale cloud service provider region"
 
 
-REGION = "/hyperscale-cloud-service-provider-regions/{region}"
+REGION = "/hyperscale-cloud-service-provider-regions/{id}"
 MISSING = "No such hyperscale cloud service provider region"
 
 
 def _get_one(region: str) -> Dict[str, Any]:
-    return {**_get(REGION), "pathParameters": {"region": region}}
+    return {**_get(REGION), "pathParameters": {"id": region}}
 
 
 def test_a_stored_region_answers_200(
@@ -282,7 +282,7 @@ def test_a_store_that_refuses_the_region_read_names_the_error(
 
 def _put(body: Any, region: str = "2") -> Dict[str, Any]:
     correction = {**_post(body), "resource": REGION, "httpMethod": "PUT"}
-    return {**correction, "pathParameters": {"region": region}}
+    return {**correction, "pathParameters": {"id": region}}
 
 
 def test_a_stored_region_is_corrected_with_200(

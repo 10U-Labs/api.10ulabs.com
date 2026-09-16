@@ -9,12 +9,12 @@ Served = Callable[[Dict[str, Any]], Any]
 MISSING = "No such wan synthesis"
 
 
-def _under(resource: str, synthesis: str, **members: str) -> Dict[str, Any]:
-    parameters = {"synthesis": synthesis, **members}
+def _under(resource: str, synthesis: str, **member: str) -> Dict[str, Any]:
+    parameters = {"synthesis_id": synthesis, **member}
     return {"resource": resource, "httpMethod": "GET", "pathParameters": parameters}
 
 
-SITES = "/wan-syntheses/{synthesis}/sites"
+SITES = "/wan-syntheses/{synthesis_id}/sites"
 WARREN = {"id": 1, "name": "F.E. Warren AFB", "municipality": "Cheyenne", "state": "WY",
           "country": "United States", "latitude": 41.1517, "longitude": -104.8678,
           "exempt_from_distance_constraint": False}
@@ -76,12 +76,12 @@ def test_a_store_that_refuses_the_sites_names_the_error(
     assert served(_get_sites())["error"] == "Failed to read the sites"
 
 
-SITE = "/wan-syntheses/{synthesis}/sites/{site}"
+SITE = "/wan-syntheses/{synthesis_id}/sites/{id}"
 MISSING_SITE = "No such site"
 
 
 def _get_site(synthesis: str = "1", site: str = "2") -> Dict[str, Any]:
-    return _under(SITE, synthesis, site=site)
+    return _under(SITE, synthesis, id=site)
 
 
 def test_a_stored_site_answers_200(
@@ -148,7 +148,7 @@ def test_a_store_that_refuses_the_site_names_the_error(
     assert served(_get_site())["error"] == "Failed to read the site"
 
 
-RUN_REGIONS = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions"
+RUN_REGIONS = "/wan-syntheses/{synthesis_id}/hyperscale-cloud-service-provider-regions"
 PROVIDER_A = {"id": 1, "name": "Provider A", "municipality": "Columbus", "state": "OH",
               "country": "United States", "latitude": 39.9612, "longitude": -82.9988}
 PROVIDER_B = {"id": 2, "name": "Provider B", "municipality": "Boardman", "state": "OR",
@@ -210,12 +210,12 @@ def test_a_store_that_refuses_a_synthesis_s_regions_names_the_error(
     assert error == "Failed to read the hyperscale cloud service provider regions"
 
 
-RUN_REGION = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions/{region}"
+RUN_REGION = "/wan-syntheses/{synthesis_id}/hyperscale-cloud-service-provider-regions/{id}"
 MISSING_REGION = "No such hyperscale cloud service provider region"
 
 
 def _get_run_region(synthesis: str = "1", region: str = "2") -> Dict[str, Any]:
-    return _under(RUN_REGION, synthesis, region=region)
+    return _under(RUN_REGION, synthesis, id=region)
 
 
 def test_a_stored_region_of_a_synthesis_answers_200(
@@ -282,7 +282,7 @@ def test_a_store_that_refuses_a_synthesis_s_region_names_the_error(
     assert error == "Failed to read the hyperscale cloud service provider region"
 
 
-OFF_NET = "/wan-syntheses/{synthesis}/off-net"
+OFF_NET = "/wan-syntheses/{synthesis_id}/off-net"
 DULLES = {"id": 1, "municipality": "Dulles", "state": "VA", "country": "United States",
           "latitude": 38.9519, "longitude": -77.448}
 RENO = {"id": 2, "municipality": "Reno", "state": "NV", "country": "United States",
@@ -342,7 +342,7 @@ def test_a_store_that_refuses_the_off_net_pops_names_the_error(
     assert served(_get_off_net())["error"] == "Failed to read the off-net pops"
 
 
-FORCED_WAN_POPS = "/wan-syntheses/{synthesis}/forced-wan-pops"
+FORCED_WAN_POPS = "/wan-syntheses/{synthesis_id}/forced-wan-pops"
 
 
 def _get_forced_wan_pops(synthesis: str = "1") -> Dict[str, Any]:
@@ -400,7 +400,7 @@ def test_a_store_that_refuses_the_forced_wan_pops_names_the_error(
     assert served(_get_forced_wan_pops())["error"] == "Failed to read the forced wan pops"
 
 
-FORCED_CIRCUITS = "/wan-syntheses/{synthesis}/forced-circuits"
+FORCED_CIRCUITS = "/wan-syntheses/{synthesis_id}/forced-circuits"
 
 
 def _get_forced_circuits(synthesis: str = "1") -> Dict[str, Any]:
@@ -459,7 +459,7 @@ def test_a_store_that_refuses_the_forced_circuits_names_the_error(
     assert served(_get_forced_circuits())["error"] == "Failed to read the forced circuits"
 
 
-FORCED_HOMES = "/wan-syntheses/{synthesis}/forced-homes"
+FORCED_HOMES = "/wan-syntheses/{synthesis_id}/forced-homes"
 
 
 def _get_forced_homes(synthesis: str = "1") -> Dict[str, Any]:
@@ -518,7 +518,7 @@ def test_a_store_that_refuses_the_forced_homes_names_the_error(
     assert served(_get_forced_homes())["error"] == "Failed to read the forced homes"
 
 
-PROHIBITED_WAN_POPS = "/wan-syntheses/{synthesis}/prohibited-wan-pops"
+PROHIBITED_WAN_POPS = "/wan-syntheses/{synthesis_id}/prohibited-wan-pops"
 
 
 def _get_prohibited_wan_pops(synthesis: str = "1") -> Dict[str, Any]:
@@ -579,7 +579,7 @@ def test_a_store_that_refuses_the_prohibited_wan_pops_names_the_error(
     assert error == "Failed to read the prohibited wan pops"
 
 
-PROHIBITED_CIRCUITS = "/wan-syntheses/{synthesis}/prohibited-circuits"
+PROHIBITED_CIRCUITS = "/wan-syntheses/{synthesis_id}/prohibited-circuits"
 
 
 def _get_prohibited_circuits(synthesis: str = "1") -> Dict[str, Any]:
@@ -641,7 +641,7 @@ def test_a_store_that_refuses_the_prohibited_circuits_names_the_error(
     assert error == "Failed to read the prohibited circuits"
 
 
-DEGREE_EXEMPT_WAN_POPS = "/wan-syntheses/{synthesis}/degree-exempt-wan-pops"
+DEGREE_EXEMPT_WAN_POPS = "/wan-syntheses/{synthesis_id}/degree-exempt-wan-pops"
 
 
 def _get_degree_exempt_wan_pops(synthesis: str = "1") -> Dict[str, Any]:

@@ -8,7 +8,7 @@ from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
 CARRIERS = "/carriers"
-CARRIER = "/carriers/{carrier}"
+CARRIER = "/carriers/{id}"
 
 
 def _get(resource: str = CARRIERS) -> Dict[str, Any]:
@@ -66,7 +66,7 @@ def test_another_resource_answers_404(answer: Handler) -> None:
 
 
 def _get_one(carrier: str) -> Dict[str, Any]:
-    return {**_get(CARRIER), "pathParameters": {"carrier": carrier}}
+    return {**_get(CARRIER), "pathParameters": {"id": carrier}}
 
 
 def test_a_stored_carrier_answers_200(
@@ -243,7 +243,7 @@ def test_a_store_that_refuses_the_write_names_the_error(
 
 
 def _put(body: Any, carrier: str = "2") -> Dict[str, Any]:
-    return {**_post(body, CARRIER), "httpMethod": "PUT", "pathParameters": {"carrier": carrier}}
+    return {**_post(body, CARRIER), "httpMethod": "PUT", "pathParameters": {"id": carrier}}
 
 
 def test_a_stored_carrier_is_renamed_with_200(
@@ -367,7 +367,7 @@ def test_a_store_that_refuses_the_rename_names_the_error(
 
 
 def _delete(carrier: str = "1") -> Dict[str, Any]:
-    return {**_get(CARRIER), "httpMethod": "DELETE", "pathParameters": {"carrier": carrier}}
+    return {**_get(CARRIER), "httpMethod": "DELETE", "pathParameters": {"id": carrier}}
 
 
 @pytest.fixture(name="deleted")

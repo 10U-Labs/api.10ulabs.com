@@ -51,17 +51,17 @@ def test_the_routing_stack_supplies_every_template_variable(
     assert _template_variables(openapi) == _supplied_variables(routing_dir)
 
 
-POP = "/carriers/{carrier}/pops/{pop}"
-FIBER_SEGMENTS = "/carriers/{carrier}/fiber-segments"
-FIBER_SEGMENT = "/carriers/{carrier}/fiber-segments/{fiber-segment}"
+POP = "/carriers/{carrier_id}/pops/{id}"
+FIBER_SEGMENTS = "/carriers/{carrier_id}/fiber-segments"
+FIBER_SEGMENT = "/carriers/{carrier_id}/fiber-segments/{id}"
 CARRIERS_OPERATIONS = [
     ("/carriers", "get"),
     ("/carriers", "post"),
-    ("/carriers/{carrier}", "get"),
-    ("/carriers/{carrier}", "put"),
-    ("/carriers/{carrier}", "delete"),
-    ("/carriers/{carrier}/pops", "get"),
-    ("/carriers/{carrier}/pops", "post"),
+    ("/carriers/{id}", "get"),
+    ("/carriers/{id}", "put"),
+    ("/carriers/{id}", "delete"),
+    ("/carriers/{carrier_id}/pops", "get"),
+    ("/carriers/{carrier_id}/pops", "post"),
     (POP, "get"),
     (POP, "put"),
     (POP, "delete"),
@@ -73,35 +73,35 @@ CARRIERS_OPERATIONS = [
 ]
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
-REGION = "/hyperscale-cloud-service-provider-regions/{region}"
+REGION = "/hyperscale-cloud-service-provider-regions/{id}"
 REGION_SERVINGS = ["get", "put"]
 REGION_METHODS = REGION_SERVINGS + ["delete"]
-UNDER_A_REGION = [(REGION, method) for method in REGION_METHODS]
-REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + UNDER_A_REGION
+A_REGION = [(REGION, method) for method in REGION_METHODS]
+REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + A_REGION
 SYNTHESES = "/wan-syntheses"
-SYNTHESIS = "/wan-syntheses/{synthesis}"
-WAN_POPS = "/wan-syntheses/{synthesis}/wan-pops"
-WAN_POP = "/wan-syntheses/{synthesis}/wan-pops/{wan-pop}"
-BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis}/backbone-circuits"
-HOMING_CIRCUITS = "/wan-syntheses/{synthesis}/homing-circuits"
-RIDDEN_FIBER = "/wan-syntheses/{synthesis}/fiber-segments"
-SITES = "/wan-syntheses/{synthesis}/sites"
-SITE = "/wan-syntheses/{synthesis}/sites/{site}"
-RUN_REGIONS = "/wan-syntheses/{synthesis}/hyperscale-cloud-service-provider-regions"
-RUN_REGION = f"{RUN_REGIONS}/{{region}}"
-OFF_NET = "/wan-syntheses/{synthesis}/off-net"
-FORCED_WAN_POPS = "/wan-syntheses/{synthesis}/forced-wan-pops"
-FORCED_CIRCUITS = "/wan-syntheses/{synthesis}/forced-circuits"
-FORCED_HOMES = "/wan-syntheses/{synthesis}/forced-homes"
-PROHIBITED_WAN_POPS = "/wan-syntheses/{synthesis}/prohibited-wan-pops"
-PROHIBITED_CIRCUITS = "/wan-syntheses/{synthesis}/prohibited-circuits"
-DEGREE_EXEMPT_WAN_POPS = "/wan-syntheses/{synthesis}/degree-exempt-wan-pops"
+SYNTHESIS = "/wan-syntheses/{id}"
+WAN_POPS = "/wan-syntheses/{synthesis_id}/wan-pops"
+WAN_POP = "/wan-syntheses/{synthesis_id}/wan-pops/{id}"
+BACKBONE_CIRCUITS = "/wan-syntheses/{synthesis_id}/backbone-circuits"
+HOMING_CIRCUITS = "/wan-syntheses/{synthesis_id}/homing-circuits"
+RIDDEN_FIBER = "/wan-syntheses/{synthesis_id}/fiber-segments"
+SITES = "/wan-syntheses/{synthesis_id}/sites"
+SITE = "/wan-syntheses/{synthesis_id}/sites/{id}"
+RUN_REGIONS = "/wan-syntheses/{synthesis_id}/hyperscale-cloud-service-provider-regions"
+RUN_REGION = f"{RUN_REGIONS}/{{id}}"
+OFF_NET = "/wan-syntheses/{synthesis_id}/off-net"
+FORCED_WAN_POPS = "/wan-syntheses/{synthesis_id}/forced-wan-pops"
+FORCED_CIRCUITS = "/wan-syntheses/{synthesis_id}/forced-circuits"
+FORCED_HOMES = "/wan-syntheses/{synthesis_id}/forced-homes"
+PROHIBITED_WAN_POPS = "/wan-syntheses/{synthesis_id}/prohibited-wan-pops"
+PROHIBITED_CIRCUITS = "/wan-syntheses/{synthesis_id}/prohibited-circuits"
+DEGREE_EXEMPT_WAN_POPS = "/wan-syntheses/{synthesis_id}/degree-exempt-wan-pops"
 NAMED_INPUT_FIELDS = ["id", "name"]
 ENDS_INPUT_FIELDS = ["id", "source", "target"]
 UNDER_A_SITE = [(SITE, "get")]
 UNDER_A_RUN_REGION = [(RUN_REGION, "get")]
+A_SYNTHESIS = [(SYNTHESIS, "get"), (SYNTHESIS, "delete")]
 UNDER_A_SYNTHESIS = [
-    (SYNTHESIS, "get"),
     (WAN_POPS, "get"),
     (BACKBONE_CIRCUITS, "get"),
     (HOMING_CIRCUITS, "get"),
@@ -135,8 +135,8 @@ UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
 ]
-READINGS = (
-    [(SYNTHESES, "get")] + UNDER_A_SYNTHESIS + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
+READINGS = [(SYNTHESES, "get"), (SYNTHESIS, "get")] + UNDER_A_SYNTHESIS + (
+    UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
 )
 WRITINGS = [(SYNTHESES, "post"), (SYNTHESIS, "delete")]
 SYNTHESES_OPERATIONS = READINGS + WRITINGS
@@ -161,20 +161,22 @@ POP_METHODS = POP_SERVINGS + ["delete"]
 FIBER_SEGMENTS_METHODS = ["get", "post"]
 FIBER_SEGMENT_SERVINGS = ["get", "put"]
 FIBER_SEGMENT_METHODS = FIBER_SEGMENT_SERVINGS + ["delete"]
-UNDER_A_CARRIER = [("/carriers/{carrier}", method) for method in CARRIER_METHODS] + [
-    ("/carriers/{carrier}/pops", method) for method in POPS_METHODS
-] + [(FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS]
+A_CARRIER = [("/carriers/{id}", method) for method in CARRIER_METHODS]
+UNDER_A_CARRIER = [("/carriers/{carrier_id}/pops", method) for method in POPS_METHODS] + [
+    (FIBER_SEGMENTS, method) for method in FIBER_SEGMENTS_METHODS
+]
 UNDER_A_POP = [(POP, method) for method in POP_METHODS]
 UNDER_A_FIBER_SEGMENT = [(FIBER_SEGMENT, method) for method in FIBER_SEGMENT_METHODS]
-IN_THE_PATH = [(path, method, ["carrier"]) for path, method in UNDER_A_CARRIER] + [
-    (path, method, ["carrier", "pop"]) for path, method in UNDER_A_POP
-] + [(path, method, ["carrier", "fiber-segment"]) for path, method in UNDER_A_FIBER_SEGMENT] + [
-    (path, method, ["region"]) for path, method in UNDER_A_REGION
-] + [(path, method, ["synthesis"]) for path, method in UNDER_A_SYNTHESIS] + [
-    (path, method, ["synthesis", "wan-pop"]) for path, method in UNDER_A_WAN_POP
-] + [(path, method, ["synthesis", "site"]) for path, method in UNDER_A_SITE] + [
-    (path, method, ["synthesis", "region"]) for path, method in UNDER_A_RUN_REGION
-] + [(SYNTHESIS, "delete", ["synthesis"])]
+ONE_OF_A_COLLECTION = A_CARRIER + A_REGION + A_SYNTHESIS
+IN_THE_PATH = [(path, method, ["id"]) for path, method in ONE_OF_A_COLLECTION] + [
+    (path, method, ["carrier_id"]) for path, method in UNDER_A_CARRIER
+] + [(path, method, ["carrier_id", "id"]) for path, method in UNDER_A_POP] + [
+    (path, method, ["carrier_id", "id"]) for path, method in UNDER_A_FIBER_SEGMENT
+] + [(path, method, ["synthesis_id"]) for path, method in UNDER_A_SYNTHESIS] + [
+    (path, method, ["synthesis_id", "id"]) for path, method in UNDER_A_WAN_POP
+] + [(path, method, ["synthesis_id", "id"]) for path, method in UNDER_A_SITE] + [
+    (path, method, ["synthesis_id", "id"]) for path, method in UNDER_A_RUN_REGION
+]
 POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
 REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
 LISTED = [
@@ -202,8 +204,8 @@ SERVED = [
 FIBER_SEGMENT_FIELDS = [
     "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
 ]
-NAMED_BODIES = [("/carriers", "post"), ("/carriers/{carrier}", "put")]
-PLACED_BODIES = [("/carriers/{carrier}/pops", "post"), (POP, "put")]
+NAMED_BODIES = [("/carriers", "post"), ("/carriers/{id}", "put")]
+PLACED_BODIES = [("/carriers/{carrier_id}/pops", "post"), (POP, "put")]
 SPANNED_BODIES = [(FIBER_SEGMENTS, "post"), (FIBER_SEGMENT, "put")]
 LOCATED_BODIES = [(REGIONS, "post"), (REGION, "put")]
 MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
@@ -222,7 +224,7 @@ OPTIONAL_STATES = [(path, method, "state") for path, method in PLACED_BODIES + L
     (path, method, field) for path, method in SPANNED_BODIES for field in ["a_state", "z_state"]
 ]
 ADDITIONS = [
-    ("/carriers/{carrier}/pops", "post", POP_FIELDS),
+    ("/carriers/{carrier_id}/pops", "post", POP_FIELDS),
     (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS),
     (REGIONS, "post", REGION_FIELDS),
 ]
@@ -230,7 +232,7 @@ CREATIONS = [("/carriers", "post"), (SYNTHESES, "post")] + [
     (path, method) for path, method, _ in ADDITIONS
 ]
 DELETIONS = [
-    ("/carriers/{carrier}", "delete"),
+    ("/carriers/{id}", "delete"),
     (POP, "delete"),
     (FIBER_SEGMENT, "delete"),
     (REGION, "delete"),
@@ -243,15 +245,15 @@ def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
 
 
 def test_a_carrier_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"]["/carriers/{carrier}"]) == CARRIER_METHODS
+    assert list(openapi["paths"]["/carriers/{id}"]) == CARRIER_METHODS
 
 
 def test_the_pops_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"]["/carriers/{carrier}/pops"]) == POPS_METHODS
+    assert list(openapi["paths"]["/carriers/{carrier_id}/pops"]) == POPS_METHODS
 
 
 def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
-    listed = openapi["paths"]["/carriers/{carrier}/pops"]["get"]["responses"]["200"]
+    listed = openapi["paths"]["/carriers/{carrier_id}/pops"]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
@@ -565,10 +567,19 @@ def test_an_id_in_the_path_is_a_positive_integer(
     assert [(one["type"], one["minimum"]) for one in schemas] == [("integer", 1)] * len(names)
 
 
+def test_a_path_that_ends_in_a_parameter_ends_in_id(openapi: Dict[str, Any]) -> None:
+    endings = {path.rsplit("/", 1)[1] for path in openapi["paths"]}
+    assert {end for end in endings if end.startswith("{")} == {"{id}", "{proxy+}"}
+
+
+def test_a_parameter_that_holds_more_path_is_a_named_id(openapi: Dict[str, Any]) -> None:
+    holders = re.findall(r"\{([^}]+)\}/", "\n".join(openapi["paths"]))
+    assert {holder.rsplit("_", 1)[1] for holder in holders} == {"id"}
+
+
 @pytest.mark.parametrize(
     ("path", "method"),
-    UNDER_A_CARRIER + UNDER_A_POP + UNDER_A_FIBER_SEGMENT + UNDER_A_REGION + UNDER_A_SYNTHESIS
-    + UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION + [(SYNTHESIS, "delete")],
+    [(path, method) for path, method, _names in IN_THE_PATH],
 )
 def test_a_member_that_is_not_there_is_documented_as_404(
     openapi: Dict[str, Any], path: str, method: str

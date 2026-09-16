@@ -35,7 +35,7 @@ def _record(item: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
-    synthesis_id = path_id(event, 'synthesis')
+    synthesis_id = path_id(event, 'id')
     if synthesis_id is None:
         return error_response(404, MISSING)
     try:
@@ -50,41 +50,34 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
 
 class Part(NamedTuple):
     prefix: str
-    parameter: str
     missing: str
     given: bool = False
 
 
-WAN_POPS = Part('wan-pops', 'wan-pop', 'No such wan pop')
-BACKBONE_CIRCUITS = Part('backbone-circuits', 'backbone-circuit', 'No such backbone circuit')
-HOMING_CIRCUITS = Part('homing-circuits', 'homing-circuit', 'No such homing circuit')
-FIBER_SEGMENTS = Part('fiber-segments', 'fiber-segment', 'No such fiber segment')
-SITES = Part('sites', 'site', 'No such site', given=True)
+WAN_POPS = Part('wan-pops', 'No such wan pop')
+BACKBONE_CIRCUITS = Part('backbone-circuits', 'No such backbone circuit')
+HOMING_CIRCUITS = Part('homing-circuits', 'No such homing circuit')
+FIBER_SEGMENTS = Part('fiber-segments', 'No such fiber segment')
+SITES = Part('sites', 'No such site', given=True)
 REGIONS = Part(
-    'hyperscale-cloud-service-provider-regions', 'region',
+    'hyperscale-cloud-service-provider-regions',
     'No such hyperscale cloud service provider region', given=True,
 )
-OFF_NET = Part('off-net', 'off-net-pop', 'No such off-net pop', given=True)
-FORCED_WAN_POPS = Part('forced-wan-pops', 'forced-wan-pop', 'No such forced wan pop', given=True)
-FORCED_CIRCUITS = Part('forced-circuits', 'forced-circuit', 'No such forced circuit', given=True)
-FORCED_HOMES = Part('forced-homes', 'forced-home', 'No such forced home', given=True)
-PROHIBITED_WAN_POPS = Part(
-    'prohibited-wan-pops', 'prohibited-wan-pop', 'No such prohibited wan pop', given=True
-)
-PROHIBITED_CIRCUITS = Part(
-    'prohibited-circuits', 'prohibited-circuit', 'No such prohibited circuit', given=True
-)
-DEGREE_EXEMPT_WAN_POPS = Part(
-    'degree-exempt-wan-pops', 'degree-exempt-wan-pop', 'No such degree-exempt wan pop', given=True
-)
+OFF_NET = Part('off-net', 'No such off-net pop', given=True)
+FORCED_WAN_POPS = Part('forced-wan-pops', 'No such forced wan pop', given=True)
+FORCED_CIRCUITS = Part('forced-circuits', 'No such forced circuit', given=True)
+FORCED_HOMES = Part('forced-homes', 'No such forced home', given=True)
+PROHIBITED_WAN_POPS = Part('prohibited-wan-pops', 'No such prohibited wan pop', given=True)
+PROHIBITED_CIRCUITS = Part('prohibited-circuits', 'No such prohibited circuit', given=True)
+DEGREE_EXEMPT_WAN_POPS = Part('degree-exempt-wan-pops', 'No such degree-exempt wan pop', given=True)
 
 
 def _listed(part: Part) -> str:
-    return f'/{COLLECTION}/{{synthesis}}/{part.prefix}'
+    return f'/{COLLECTION}/{{synthesis_id}}/{part.prefix}'
 
 
 def _one(part: Part) -> str:
-    return f'{_listed(part)}/{{{part.parameter}}}'
+    return f'{_listed(part)}/{{id}}'
 
 
 def _held(record: Optional[Dict[str, Any]], part: Part) -> bool:
@@ -98,7 +91,7 @@ def _refusal(record: Optional[Dict[str, Any]], part: Part) -> Optional[Dict[str,
 
 
 def _list_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any]:
-    synthesis_id = path_id(event, 'synthesis')
+    synthesis_id = path_id(event, 'synthesis_id')
     if synthesis_id is None:
         return error_response(404, MISSING)
     table = os.environ['STORE_TABLE']
@@ -116,10 +109,10 @@ def _list_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, An
 
 
 def _read_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any]:
-    synthesis_id = path_id(event, 'synthesis')
+    synthesis_id = path_id(event, 'synthesis_id')
     if synthesis_id is None:
         return error_response(404, MISSING)
-    part_id = path_id(event, part.parameter)
+    part_id = path_id(event, 'id')
     if part_id is None:
         return error_response(404, part.missing)
     table = os.environ['STORE_TABLE']
@@ -211,7 +204,7 @@ def _list_degree_exempt_wan_pops(event: Dict[str, Any]) -> Dict[str, Any]:
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
-        (f'/{COLLECTION}/{{synthesis}}', 'GET'): _read,
+        (f'/{COLLECTION}/{{id}}', 'GET'): _read,
         (_listed(WAN_POPS), 'GET'): _list_wan_pops,
         (_one(WAN_POPS), 'GET'): _read_wan_pop,
         (_listed(BACKBONE_CIRCUITS), 'GET'): _list_backbone_circuits,

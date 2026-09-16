@@ -42,7 +42,7 @@ def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
-    region_id = path_id(event, 'region')
+    region_id = path_id(event, 'id')
     if region_id is None:
         return error_response(404, MISSING)
     try:
@@ -87,7 +87,7 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     body = _region_body(event)
     if body is None:
         return error_response(400, REGION_BODY)
-    region_id = path_id(event, 'region')
+    region_id = path_id(event, 'id')
     if region_id is None:
         return error_response(404, MISSING)
     try:
@@ -104,7 +104,7 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
-    region_id = path_id(event, 'region')
+    region_id = path_id(event, 'id')
     if region_id is None:
         return error_response(404, MISSING)
     try:
@@ -121,7 +121,7 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'GET'): _list,
         (f'/{COLLECTION}', 'POST'): _create,
-        (f'/{COLLECTION}/{{region}}', 'GET'): _read,
-        (f'/{COLLECTION}/{{region}}', 'PUT'): _update,
-        (f'/{COLLECTION}/{{region}}', 'DELETE'): _delete,
+        (f'/{COLLECTION}/{{id}}', 'GET'): _read,
+        (f'/{COLLECTION}/{{id}}', 'PUT'): _update,
+        (f'/{COLLECTION}/{{id}}', 'DELETE'): _delete,
     })

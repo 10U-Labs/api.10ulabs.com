@@ -73,11 +73,11 @@ def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, An
 
 
 def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
-    return path_id(event, 'carrier')
+    return path_id(event, 'carrier_id')
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
+    carrier_id = path_id(event, 'id')
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
@@ -94,7 +94,7 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
     name = _name(event)
     if name is None:
         return error_response(400, BODY)
-    carrier_id = _carrier_id(event)
+    carrier_id = path_id(event, 'id')
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
@@ -151,7 +151,7 @@ def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
+    carrier_id = path_id(event, 'id')
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
@@ -238,7 +238,6 @@ Put = Callable[..., Dict[str, Any]]
 
 class Kind(NamedTuple):
     prefix: str
-    parameter: str
     missing: str
     counter: str
     body: Body
@@ -249,11 +248,11 @@ class Kind(NamedTuple):
 
 
 POP_KIND = Kind(
-    POPS, 'pop', MISSING_POP, 'next_pop', _pop_body, POP_BODY, _put_pop, _pop,
+    POPS, MISSING_POP, 'next_pop', _pop_body, POP_BODY, _put_pop, _pop,
     'Failed to add the pop',
 )
 FIBER_SEGMENT_KIND = Kind(
-    FIBER_SEGMENTS, 'fiber-segment', MISSING_FIBER_SEGMENT, 'next_fiber_segment',
+    FIBER_SEGMENTS, MISSING_FIBER_SEGMENT, 'next_fiber_segment',
     _fiber_segment_body, FIBER_SEGMENT_BODY, _put_fiber_segment, _fiber_segment,
     'Failed to add the fiber segment',
 )
@@ -295,7 +294,7 @@ def _on_member(
     carrier_id = _carrier_id(event)
     if carrier_id is None:
         return error_response(404, MISSING)
-    member_id = path_id(event, kind.parameter)
+    member_id = path_id(event, 'id')
     if member_id is None:
         return error_response(404, kind.missing)
     try:
@@ -303,7 +302,7 @@ def _on_member(
         item = act(carrier_id, member_id) if carrier else None
     except ClientError as error:
         logger.error(
-            'Error with %s %s of carrier %s: %s', kind.parameter, member_id, carrier_id, error
+            'Error with %s/%s of carrier %s: %s', kind.prefix, member_id, carrier_id, error
         )
         return error_response(500, failure)
     if carrier is None:
@@ -375,17 +374,17 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         ('/carriers', 'GET'): _list,
         ('/carriers', 'POST'): _create,
-        ('/carriers/{carrier}', 'GET'): _read,
-        ('/carriers/{carrier}', 'PUT'): _update,
-        ('/carriers/{carrier}', 'DELETE'): _delete,
-        ('/carriers/{carrier}/pops', 'GET'): _list_pops,
-        ('/carriers/{carrier}/pops', 'POST'): _add_pop,
-        ('/carriers/{carrier}/pops/{pop}', 'GET'): _read_pop,
-        ('/carriers/{carrier}/pops/{pop}', 'PUT'): _update_pop,
-        ('/carriers/{carrier}/pops/{pop}', 'DELETE'): _delete_pop,
-        ('/carriers/{carrier}/fiber-segments', 'GET'): _list_fiber_segments,
-        ('/carriers/{carrier}/fiber-segments', 'POST'): _add_fiber_segment,
-        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'GET'): _read_fiber_segment,
-        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'PUT'): _update_fiber_segment,
-        ('/carriers/{carrier}/fiber-segments/{fiber-segment}', 'DELETE'): _delete_fiber_segment,
+        ('/carriers/{id}', 'GET'): _read,
+        ('/carriers/{id}', 'PUT'): _update,
+        ('/carriers/{id}', 'DELETE'): _delete,
+        ('/carriers/{carrier_id}/pops', 'GET'): _list_pops,
+        ('/carriers/{carrier_id}/pops', 'POST'): _add_pop,
+        ('/carriers/{carrier_id}/pops/{id}', 'GET'): _read_pop,
+        ('/carriers/{carrier_id}/pops/{id}', 'PUT'): _update_pop,
+        ('/carriers/{carrier_id}/pops/{id}', 'DELETE'): _delete_pop,
+        ('/carriers/{carrier_id}/fiber-segments', 'GET'): _list_fiber_segments,
+        ('/carriers/{carrier_id}/fiber-segments', 'POST'): _add_fiber_segment,
+        ('/carriers/{carrier_id}/fiber-segments/{id}', 'GET'): _read_fiber_segment,
+        ('/carriers/{carrier_id}/fiber-segments/{id}', 'PUT'): _update_fiber_segment,
+        ('/carriers/{carrier_id}/fiber-segments/{id}', 'DELETE'): _delete_fiber_segment,
     })

@@ -92,7 +92,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _read(event: Dict[str, Any]) -> Dict[str, Any]:
-    config_hash = (event.get('pathParameters') or {}).get('config_hash') or ''
+    config_hash = (event.get('pathParameters') or {}).get('id') or ''
     if not CONFIGURATION_HASH.match(config_hash):
         return _error(400, 'Invalid config_hash format')
     try:
@@ -114,7 +114,7 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     response = dispatch(event, {
         ('/rack-configurations', 'POST'): _create,
-        ('/rack-configurations/{config_hash}', 'GET'): _read,
+        ('/rack-configurations/{id}', 'GET'): _read,
     })
     response['headers'].update(CORS_HEADERS)
     return response

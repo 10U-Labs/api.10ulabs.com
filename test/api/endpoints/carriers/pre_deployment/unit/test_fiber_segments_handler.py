@@ -7,7 +7,7 @@ import pytest
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
-FIBER_SEGMENTS = "/carriers/{carrier}/fiber-segments"
+FIBER_SEGMENTS = "/carriers/{carrier_id}/fiber-segments"
 DEN_ORD = {"id": 1, "a_municipality": "Denver", "a_state": "CO",
            "z_municipality": "Chicago", "z_state": "IL", "submarine": False}
 NYC_AMS = {"id": 3, "a_municipality": "New York", "a_state": "NY",
@@ -16,7 +16,7 @@ NYC_AMS = {"id": 3, "a_municipality": "New York", "a_state": "NY",
 
 def _get_fiber_segments(carrier: str = "1") -> Dict[str, Any]:
     event = {"resource": FIBER_SEGMENTS, "httpMethod": "GET"}
-    return {**event, "pathParameters": {"carrier": carrier}}
+    return {**event, "pathParameters": {"carrier_id": carrier}}
 
 
 def test_the_fiber_segments_of_a_stored_carrier_answer_200(
@@ -119,7 +119,7 @@ FIBER_SEGMENT_BODY = (
 
 def _post_fiber_segment(body: Any, carrier: str = "1") -> Dict[str, Any]:
     event = {"resource": FIBER_SEGMENTS, "httpMethod": "POST", "body": json.dumps(body)}
-    return {**event, "pathParameters": {"carrier": carrier}}
+    return {**event, "pathParameters": {"carrier_id": carrier}}
 
 
 def test_a_fiber_segment_is_added_with_201(
@@ -316,12 +316,12 @@ def test_a_store_that_refuses_the_fiber_segment_names_the_error(
     assert served(_post_fiber_segment(DEN_SLC))["error"] == "Failed to add the fiber segment"
 
 
-FIBER_SEGMENT = "/carriers/{carrier}/fiber-segments/{fiber-segment}"
+FIBER_SEGMENT = "/carriers/{carrier_id}/fiber-segments/{id}"
 
 
 def _get_fiber_segment(carrier: str = "1", fiber_segment: str = "3") -> Dict[str, Any]:
     event = {"resource": FIBER_SEGMENT, "httpMethod": "GET"}
-    return {**event, "pathParameters": {"carrier": carrier, "fiber-segment": fiber_segment}}
+    return {**event, "pathParameters": {"carrier_id": carrier, "id": fiber_segment}}
 
 
 def test_a_stored_fiber_segment_answers_200(
@@ -430,7 +430,7 @@ def test_a_store_that_refuses_the_fiber_segment_read_names_the_error(
 
 def _put_fiber_segment(body: Any, carrier: str = "1", fiber_segment: str = "3") -> Dict[str, Any]:
     event = {"resource": FIBER_SEGMENT, "httpMethod": "PUT", "body": json.dumps(body)}
-    return {**event, "pathParameters": {"carrier": carrier, "fiber-segment": fiber_segment}}
+    return {**event, "pathParameters": {"carrier_id": carrier, "id": fiber_segment}}
 
 
 def test_a_stored_fiber_segment_is_corrected_with_200(

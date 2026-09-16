@@ -174,7 +174,7 @@ def _removed(table: str, synthesis_id: Optional[str]) -> Dict[str, Any]:
 
 def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        return _removed(os.environ['STORE_TABLE'], path_id(event, 'synthesis'))
+        return _removed(os.environ['STORE_TABLE'], path_id(event, 'id'))
     except ClientError as error:
         logger.error('Error deleting a wan synthesis: %s', error)
         return error_response(500, 'Failed to delete the wan synthesis')
@@ -183,5 +183,5 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
         (f'/{COLLECTION}', 'POST'): _create,
-        (f'/{COLLECTION}/{{synthesis}}', 'DELETE'): _delete,
+        (f'/{COLLECTION}/{{id}}', 'DELETE'): _delete,
     })

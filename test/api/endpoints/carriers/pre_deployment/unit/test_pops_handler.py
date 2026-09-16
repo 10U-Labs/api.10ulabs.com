@@ -7,7 +7,7 @@ import pytest
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
-POPS = "/carriers/{carrier}/pops"
+POPS = "/carriers/{carrier_id}/pops"
 CHICAGO = {"id": 3, "municipality": "Chicago", "state": "IL", "country": "US",
            "latitude": 41.8781, "longitude": -87.6298}
 DENVER = {"id": 1, "municipality": "Denver", "state": "CO", "country": "US",
@@ -15,7 +15,7 @@ DENVER = {"id": 1, "municipality": "Denver", "state": "CO", "country": "US",
 
 
 def _get_pops(carrier: str = "1") -> Dict[str, Any]:
-    return {"resource": POPS, "httpMethod": "GET", "pathParameters": {"carrier": carrier}}
+    return {"resource": POPS, "httpMethod": "GET", "pathParameters": {"carrier_id": carrier}}
 
 
 def test_the_pops_of_a_stored_carrier_answer_200(
@@ -94,7 +94,7 @@ POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latit
 
 def _post_pop(body: Any, carrier: str = "1") -> Dict[str, Any]:
     event = {"resource": POPS, "httpMethod": "POST", "body": json.dumps(body)}
-    return {**event, "pathParameters": {"carrier": carrier}}
+    return {**event, "pathParameters": {"carrier_id": carrier}}
 
 
 def test_a_pop_is_added_with_201(
@@ -266,12 +266,12 @@ def test_a_store_that_refuses_the_pop_names_the_error(
     assert served(_post_pop(BOISE))["error"] == "Failed to add the pop"
 
 
-POP = "/carriers/{carrier}/pops/{pop}"
+POP = "/carriers/{carrier_id}/pops/{id}"
 
 
 def _get_pop(carrier: str = "1", pop: str = "3") -> Dict[str, Any]:
     event = {"resource": POP, "httpMethod": "GET"}
-    return {**event, "pathParameters": {"carrier": carrier, "pop": pop}}
+    return {**event, "pathParameters": {"carrier_id": carrier, "id": pop}}
 
 
 def test_a_stored_pop_answers_200(
@@ -376,7 +376,7 @@ def test_a_store_that_refuses_the_pop_read_names_the_error(
 
 def _put_pop(body: Any, carrier: str = "1", pop: str = "3") -> Dict[str, Any]:
     event = {"resource": POP, "httpMethod": "PUT", "body": json.dumps(body)}
-    return {**event, "pathParameters": {"carrier": carrier, "pop": pop}}
+    return {**event, "pathParameters": {"carrier_id": carrier, "id": pop}}
 
 
 def test_a_stored_pop_is_corrected_with_200(
