@@ -18,6 +18,7 @@ locals {
   plans        = "arn:aws:backup:${local.region}:${local.account}:backup-plan:*"
   backup_roles = "arn:aws:iam::${local.account}:role/${local.product}-*-backup"
   buckets      = "arn:aws:s3:::${local.product}-*"
+  www_bucket   = "arn:aws:s3:::${local.product}"
   schedules    = "arn:aws:scheduler:${local.region}:${local.account}:schedule/default/${local.product}-*"
   sched_roles  = "arn:aws:iam::${local.account}:role/${local.product}-*-scheduler"
   backup_key   = "arn:aws:kms:${local.region}:${local.account}:key/481c2fb8-f0da-494c-910e-4b09da6dc5c3"
@@ -27,6 +28,7 @@ locals {
   zone         = "arn:aws:route53:::hostedzone/${module.common.hosted_zone_id}"
   changes      = "arn:aws:route53:::change/*"
   objects      = "arn:aws:s3:::${local.product}-*/*"
+  www_objects  = "arn:aws:s3:::${local.product}/*"
   logs_bucket  = "arn:aws:s3:::${module.common.logs_bucket}"
   backup_policies = [
     "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
@@ -281,9 +283,9 @@ data "aws_iam_policy_document" "routing" {
   }
 
   statement {
-    sid       = "KeepTheDocsAndReadTheLogsBucketAcl"
+    sid       = "KeepTheHostsFilesAndReadTheLogsBucketAcl"
     actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:GetObjectTagging", "s3:PutObjectTagging", "s3:GetBucketAcl"]
-    resources = [local.objects, local.logs_bucket]
+    resources = [local.www_objects, local.objects, local.logs_bucket]
   }
 }
 
@@ -338,7 +340,7 @@ data "aws_iam_policy_document" "storage" {
       "s3:PutBucketLogging",
       "s3:DeleteBucket",
     ]
-    resources = [local.buckets]
+    resources = [local.www_bucket, local.buckets]
   }
 
   statement {

@@ -1,17 +1,17 @@
 locals {
-  docs_bucket  = "${module.common.product}-docs"
+  www_bucket   = module.common.product
   logs_bucket  = module.common.logs_bucket
   logs_domain  = "${local.logs_bucket}.s3.amazonaws.com"
   gateway_host = "${aws_api_gateway_rest_api.api.id}.execute-api.${local.aws_region}.amazonaws.com"
 }
 
-resource "aws_s3_bucket" "docs" {
-  bucket        = local.docs_bucket
+resource "aws_s3_bucket" "www" {
+  bucket        = local.www_bucket
   force_destroy = true
 }
 
-resource "aws_s3_bucket_public_access_block" "docs" {
-  bucket = aws_s3_bucket.docs.id
+resource "aws_s3_bucket_public_access_block" "www" {
+  bucket = aws_s3_bucket.www.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -19,8 +19,8 @@ resource "aws_s3_bucket_public_access_block" "docs" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "docs" {
-  bucket = aws_s3_bucket.docs.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "www" {
+  bucket = aws_s3_bucket.www.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -29,15 +29,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "docs" {
   }
 }
 
-resource "aws_s3_bucket_logging" "docs" {
-  bucket = aws_s3_bucket.docs.id
+resource "aws_s3_bucket_logging" "www" {
+  bucket = aws_s3_bucket.www.id
 
   target_bucket = local.logs_bucket
   target_prefix = "s3-access/${module.common.api_name}/"
 }
 
 resource "aws_s3_object" "index" {
-  bucket       = aws_s3_bucket.docs.id
+  bucket       = aws_s3_bucket.www.id
   key          = "index.html"
   source       = "${path.module}/../../../www/index.html"
   content_type = "text/html"
@@ -45,7 +45,7 @@ resource "aws_s3_object" "index" {
 }
 
 resource "aws_s3_object" "spec" {
-  bucket        = aws_s3_bucket.docs.id
+  bucket        = aws_s3_bucket.www.id
   key           = "openapi.json"
   source        = "${path.module}/../../../www/openapi.json"
   content_type  = "application/json"
@@ -54,22 +54,22 @@ resource "aws_s3_object" "spec" {
 }
 
 resource "aws_s3_object" "not_found" {
-  bucket       = aws_s3_bucket.docs.id
+  bucket       = aws_s3_bucket.www.id
   key          = "404.html"
   source       = "${path.module}/../../../www/404.html"
   content_type = "text/html"
   etag         = filemd5("${path.module}/../../../www/404.html")
 }
 
-resource "aws_cloudfront_origin_access_control" "docs" {
-  name                              = local.docs_bucket
+resource "aws_cloudfront_origin_access_control" "www" {
+  name                              = local.www_bucket
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
 }
 
-resource "aws_s3_bucket_policy" "docs" {
-  bucket = aws_s3_bucket.docs.id
+resource "aws_s3_bucket_policy" "www" {
+  bucket = aws_s3_bucket.www.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -78,7 +78,7 @@ resource "aws_s3_bucket_policy" "docs" {
       Effect    = "Allow"
       Principal = { Service = "cloudfront.amazonaws.com" }
       Action    = "s3:GetObject"
-      Resource  = "${aws_s3_bucket.docs.arn}/*"
+      Resource  = "${aws_s3_bucket.www.arn}/*"
       Condition = {
         StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.api.arn }
       }
@@ -86,8 +86,8 @@ resource "aws_s3_bucket_policy" "docs" {
   })
 }
 
-resource "aws_cloudfront_cache_policy" "docs" {
-  name        = local.docs_bucket
+resource "aws_cloudfront_cache_policy" "www" {
+  name        = local.www_bucket
   min_ttl     = 60
   default_ttl = 86400
   max_ttl     = 31536000
@@ -162,9 +162,9 @@ resource "aws_cloudfront_distribution" "api" {
   }
 
   origin {
-    domain_name              = aws_s3_bucket.docs.bucket_regional_domain_name
-    origin_id                = "docs"
-    origin_access_control_id = aws_cloudfront_origin_access_control.docs.id
+    domain_name              = aws_s3_bucket.www.bucket_regional_domain_name
+    origin_id                = "www"
+    origin_access_control_id = aws_cloudfront_origin_access_control.www.id
   }
 
   default_cache_behavior {
@@ -180,13 +180,13 @@ resource "aws_cloudfront_distribution" "api" {
 
   ordered_cache_behavior {
     path_pattern           = "/"
-    target_origin_id       = "docs"
+    target_origin_id       = "www"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = aws_cloudfront_cache_policy.docs.id
+    cache_policy_id          = aws_cloudfront_cache_policy.www.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
 
     function_association {
@@ -197,25 +197,25 @@ resource "aws_cloudfront_distribution" "api" {
 
   ordered_cache_behavior {
     path_pattern           = "/openapi.json"
-    target_origin_id       = "docs"
+    target_origin_id       = "www"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = aws_cloudfront_cache_policy.docs.id
+    cache_policy_id          = aws_cloudfront_cache_policy.www.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
   }
 
   ordered_cache_behavior {
     path_pattern           = "/404.html"
-    target_origin_id       = "docs"
+    target_origin_id       = "www"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = aws_cloudfront_cache_policy.docs.id
+    cache_policy_id          = aws_cloudfront_cache_policy.www.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
   }
 

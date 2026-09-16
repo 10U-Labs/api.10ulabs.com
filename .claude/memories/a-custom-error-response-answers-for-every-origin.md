@@ -9,7 +9,7 @@ metadata:
 
 `custom_error_response` sits on the distribution, not on a behaviour, so
 `response_page_path` answers every origin's error of that code. On a distribution
-that fronts both the docs bucket and the API gateway, a 404 page for unmatched
+that fronts both the host's bucket and the API gateway, a 404 page for unmatched
 paths therefore swallows the API's own refusals: the bodies clients read, such as
 `{"error": "No such carrier"}`, arrive as HTML.
 

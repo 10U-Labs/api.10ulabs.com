@@ -56,6 +56,6 @@ output "hosted_zone_id" {
 }
 
 output "logs_bucket" {
-  description = "The account's central logs bucket, declared by 10ulabs.com's bootstrap, where the distribution and the docs bucket write their access logs."
+  description = "The account's central logs bucket, declared by 10ulabs.com's bootstrap, where the distribution and the host's bucket write their access logs."
   value       = "10ulabs-central-logs-us-east-2"
 }
