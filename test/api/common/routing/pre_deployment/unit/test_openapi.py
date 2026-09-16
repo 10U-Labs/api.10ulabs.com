@@ -175,6 +175,67 @@ IN_THE_PATH = [(path, method, ["id"]) for path, method in ONE_OF_A_COLLECTION] +
 ] + [(path, method, ["id", "wan_pop_id"]) for path, method in UNDER_A_WAN_POP] + [
     (path, method, ["id", "site_id"]) for path, method in UNDER_A_SITE
 ] + [(path, method, ["id", "region_id"]) for path, method in UNDER_A_RUN_REGION]
+POP_FIELDS = ["id", "municipality", "state", "country", "latitude", "longitude"]
+REGION_FIELDS = ["id", "name", "municipality", "state", "country", "latitude", "longitude"]
+LISTED = [
+    (SYNTHESES, ["id", "label"]),
+    (WAN_POPS, WAN_POP_FIELDS),
+    (BACKBONE_CIRCUITS, CIRCUIT_FIELDS),
+    (HOMING_CIRCUITS, HOMING_FIELDS),
+    (RIDDEN_FIBER, RIDDEN_FIBER_FIELDS),
+    (SITES, SITE_FIELDS),
+    (RUN_REGIONS, REGION_FIELDS),
+    (OFF_NET, POP_FIELDS),
+    (FORCED_WAN_POPS, NAMED_INPUT_FIELDS),
+    (FORCED_CIRCUITS, ENDS_INPUT_FIELDS),
+    (FORCED_HOMES, ENDS_INPUT_FIELDS),
+    (PROHIBITED_WAN_POPS, NAMED_INPUT_FIELDS),
+    (PROHIBITED_CIRCUITS, ENDS_INPUT_FIELDS),
+    (DEGREE_EXEMPT_WAN_POPS, NAMED_INPUT_FIELDS),
+]
+SERVED = [
+    (SYNTHESIS, SYNTHESIS_FIELDS),
+    (WAN_POP, WAN_POP_FIELDS),
+    (SITE, SITE_FIELDS),
+    (RUN_REGION, REGION_FIELDS),
+]
+FIBER_SEGMENT_FIELDS = [
+    "id", "a_municipality", "a_state", "z_municipality", "z_state", "submarine"
+]
+NAMED_BODIES = [("/carriers", "post"), ("/carriers/{id}", "put")]
+PLACED_BODIES = [("/carriers/{id}/pops", "post"), (POP, "put")]
+SPANNED_BODIES = [(FIBER_SEGMENTS, "post"), (FIBER_SEGMENT, "put")]
+LOCATED_BODIES = [(REGIONS, "post"), (REGION, "put")]
+MEMBER_BODIES = [(path, method, POP_FIELDS) for path, method in PLACED_BODIES] + [
+    (path, method, FIBER_SEGMENT_FIELDS) for path, method in SPANNED_BODIES
+] + [(path, method, REGION_FIELDS) for path, method in LOCATED_BODIES]
+NAMED_ENDS = [
+    (path, method, field) for path, method in PLACED_BODIES for field in ["municipality", "country"]
+] + [
+    (path, method, field)
+    for path, method in SPANNED_BODIES for field in ["a_municipality", "z_municipality"]
+] + [
+    (path, method, field)
+    for path, method in LOCATED_BODIES for field in ["name", "municipality", "country"]
+]
+OPTIONAL_STATES = [(path, method, "state") for path, method in PLACED_BODIES + LOCATED_BODIES] + [
+    (path, method, field) for path, method in SPANNED_BODIES for field in ["a_state", "z_state"]
+]
+ADDITIONS = [
+    ("/carriers/{id}/pops", "post", POP_FIELDS),
+    (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS),
+    (REGIONS, "post", REGION_FIELDS),
+]
+CREATIONS = [("/carriers", "post"), (SYNTHESES, "post")] + [
+    (path, method) for path, method, _ in ADDITIONS
+]
+DELETIONS = [
+    ("/carriers/{id}", "delete"),
+    (POP, "delete"),
+    (FIBER_SEGMENT, "delete"),
+    (REGION, "delete"),
+    (SYNTHESIS, "delete"),
+]
 
 
 def test_carriers_answers_get_and_post(openapi: Dict[str, Any]) -> None:
@@ -511,7 +572,7 @@ def test_the_first_parameter_of_a_path_is_id(openapi: Dict[str, Any]) -> None:
 
 def test_a_parameter_after_the_first_names_its_noun(openapi: Dict[str, Any]) -> None:
     laters = re.findall(r"\}.*?\{([^}]+)\}", "\n".join(openapi["paths"]))
-    assert laters and all(later.endswith("_id") for later in laters)
+    assert {later[-3:] for later in laters} == {"_id"}
 
 
 @pytest.mark.parametrize(
