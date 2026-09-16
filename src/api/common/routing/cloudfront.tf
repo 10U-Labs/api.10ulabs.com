@@ -110,47 +110,6 @@ resource "aws_cloudfront_cache_policy" "www" {
   }
 }
 
-moved {
-  from = aws_cloudfront_origin_access_control.docs
-  to   = aws_cloudfront_origin_access_control.retired
-}
-
-resource "aws_cloudfront_origin_access_control" "retired" {
-  name                              = "${local.www_bucket}-retired"
-  origin_access_control_origin_type = "s3"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
-}
-
-moved {
-  from = aws_cloudfront_cache_policy.docs
-  to   = aws_cloudfront_cache_policy.retired
-}
-
-resource "aws_cloudfront_cache_policy" "retired" {
-  name        = "${local.www_bucket}-retired"
-  min_ttl     = 60
-  default_ttl = 86400
-  max_ttl     = 31536000
-
-  parameters_in_cache_key_and_forwarded_to_origin {
-    cookies_config {
-      cookie_behavior = "none"
-    }
-
-    headers_config {
-      header_behavior = "none"
-    }
-
-    query_strings_config {
-      query_string_behavior = "none"
-    }
-
-    enable_accept_encoding_brotli = true
-    enable_accept_encoding_gzip   = true
-  }
-}
-
 resource "aws_cloudfront_function" "root" {
   name    = "${module.common.product}-root"
   runtime = "cloudfront-js-2.0"
