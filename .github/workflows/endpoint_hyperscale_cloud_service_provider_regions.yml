@@ -324,70 +324,6 @@ jobs:
         run: |
           tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions init -input=false
           tofu -chdir=src/api/endpoints/hyperscale_cloud_service_provider_regions apply -auto-approve -input=false
-  reload-the-regions:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs:
-      - post-deployment-integration-tests
-    permissions:
-      actions: read
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - env:
-          BEFORE: ${{ github.event.before }}
-          GH_TOKEN: ${{ github.token }}
-        id: changed
-        name: Tell whether the push changed the regions' data since the last load
-        run: |
-          RUNS="repos/$GITHUB_REPOSITORY/actions/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml/runs"
-          SINCE=$(gh api "$RUNS?branch=main&event=push&status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // empty')
-          if [ -z "$SINCE" ]; then
-            SINCE=$BEFORE
-          fi
-          if git diff --quiet "$SINCE" "$GITHUB_SHA" -- data/hyperscale_cloud_service_provider_regions; then
-            echo "The regions' data has not changed since $SINCE."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "The regions' data changed since $SINCE."
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.changed.outputs.changed == 'true'
-        name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          aws-region: us-east-2
-          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
-      - if: steps.changed.outputs.changed == 'true'
-        name: Delete every region the list names, then create one per line of the data
-        run: |
-          KEY=$(aws ssm get-parameter --name /api.10ulabs.com/api-key --with-decryption \
-            --query Parameter.Value --output text)
-          echo "::add-mask::$KEY"
-          API=$(aws apigateway get-rest-apis --query "items[?name=='api.10ulabs.com'].id" --output text)
-          REGIONS="https://$API.execute-api.us-east-2.amazonaws.com/prod/hyperscale-cloud-service-provider-regions"
-          LISTED=$(curl --silent --show-error --fail --header "Authorization: Bearer $KEY" "$REGIONS")
-          jq --raw-output '.[].id' <<< "$LISTED" | while read -r ID; do
-            curl --silent --show-error --fail --request DELETE \
-              --header "Authorization: Bearer $KEY" "$REGIONS/$ID"
-          done
-          echo "Deleted $(jq 'length' <<< "$LISTED") regions."
-          DATA=data/hyperscale_cloud_service_provider_regions/regions.csv
-          tail --lines=+2 "$DATA" | jq --raw-input --compact-output \
-            'split(",") | {name: .[0], municipality: .[1], state: .[2], country: .[3],
-                           latitude: (.[4] | tonumber), longitude: (.[5] | tonumber)}' \
-            | while read -r REGION; do
-              curl --silent --show-error --fail --output /dev/null \
-                --header "Authorization: Bearer $KEY" \
-                --header "Content-Type: application/json" \
-                --data "$REGION" "$REGIONS"
-            done
-          echo "Created $(tail --lines=+2 "$DATA" | wc --lines) regions."
   test-repo-libraries:
     runs-on: ubuntu-latest
     steps:
@@ -475,7 +411,6 @@ on:
     paths:
       - .github/actions/wait-for-workflow/action.yml
       - .github/workflows/endpoint_hyperscale_cloud_service_provider_regions.yml
-      - data/hyperscale_cloud_service_provider_regions/**
       - lib/opentofu/common/**
       - lib/python/**
       - src/api/endpoints/hyperscale_cloud_service_provider_regions/**

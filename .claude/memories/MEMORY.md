@@ -9,7 +9,7 @@
   - [Verification](#verification)
   - [Workflows](#workflows)
   - [Cost](#cost)
-  - [Writes](#writes)
+  - [Scope](#scope)
   - [Stacks](#stacks)
   - [Priority](#priority)
   - [Paths](#paths)
@@ -54,9 +54,9 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [the-cheapest-backend-wins](the-cheapest-backend-wins.md) — a backend is chosen by its monthly cost alone, to the fraction of a cent; provisioned DynamoDB inside the always-free tier costs nothing, S3 never does
 
-### Writes
+### Scope
 
-- [the-verbs-are-the-only-way-in](the-verbs-are-the-only-way-in.md) — no seed and no loader; a collection's workflow calls its HTTP verbs on a push to the data it serves, for what changed only
+- [this-repo-serves-routes-and-loads-nothing](this-repo-serves-routes-and-loads-nothing.md) — this repo creates REST APIs and nothing else; the data and its ETLs live in `wan-synthesizer`, one ETL per dataset
 
 ### Stacks
 
