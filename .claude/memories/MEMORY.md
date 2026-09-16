@@ -63,6 +63,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [the-stacks-are-opentofu](the-stacks-are-opentofu.md) — every stack is OpenTofu, set up by `opentofu/setup-opentofu` and run as `tofu`; the shared module is `lib/opentofu/common`, and no path says `terraform` but the state bucket and key
 - [a-by-hand-destroy-follows-the-push-that-drops-the-workflow](a-by-hand-destroy-follows-the-push-that-drops-the-workflow.md) — a run in flight on an earlier commit rebuilds a stack destroyed by hand, so destroy after the push that removes its workflow, or read the account afterwards for what a run rebuilt
 - [an-alias-moves-behind-a-txt-record-put-before-the-first-call](an-alias-moves-behind-a-txt-record-put-before-the-first-call.md) — `associate-alias` moves a CloudFront alias between distributions without downtime, but checks a `_<alias>` TXT record naming the target, and a refusal is cached for the zone's negative TTL, so put the record and see it resolve before the first call
+- [a-renamed-label-is-moved-in-state](a-renamed-label-is-moved-in-state.md) — a label rename carries a `moved` block, or tofu destroys before the dependent updates and a CloudFront policy in use refuses; an orphan in use is parked under a holding label for one apply
 - [a-custom-error-response-answers-for-every-origin](a-custom-error-response-answers-for-every-origin.md) — a CloudFront custom error response is distribution-wide and swallows the gateway's own 404s, so the not-found page comes from the catch-all handler, by `Accept`
 
 ### Priority
