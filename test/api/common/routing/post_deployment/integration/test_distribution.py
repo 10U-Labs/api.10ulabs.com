@@ -78,7 +78,9 @@ def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_i
     assert f"{api_id}.execute-api.us-east-2.amazonaws.com" in origins
 
 
-def test_the_distribution_fronts_the_bucket_named_for_the_host(distribution: Dict[str, Any]) -> None:
+def test_the_distribution_fronts_the_bucket_named_for_the_host(
+    distribution: Dict[str, Any],
+) -> None:
     origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
     assert BUCKET_HOST in origins
 

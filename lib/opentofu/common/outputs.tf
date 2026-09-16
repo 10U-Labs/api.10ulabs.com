@@ -14,7 +14,7 @@ output "state_bucket" {
 }
 
 output "product" {
-  description = "The prefix every resource this repository owns is named under."
+  description = "The host with its dots replaced: the name of the bucket behind it and the prefix every other resource this repository owns is named under."
   value       = "api-10ulabs-com"
 }
 
