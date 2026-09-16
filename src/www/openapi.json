@@ -5149,7 +5149,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "The rest of a path no route serves"
           }
         ],
         "responses": {
@@ -5577,7 +5578,8 @@
             "schema": {
               "type": "string",
               "pattern": "^[0-9A-Z]{9}$"
-            }
+            },
+            "description": "The config_hash the API answered saving the configuration with"
           }
         ],
         "responses": {
@@ -5672,7 +5674,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "The config_hash the API answered saving the configuration with"
           }
         ],
         "responses": {
@@ -5730,7 +5733,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "The id the site gave the session"
           }
         ],
         "requestBody": {
@@ -5862,7 +5866,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "The id the site gave the session"
           }
         ],
         "responses": {

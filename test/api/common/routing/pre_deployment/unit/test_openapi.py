@@ -565,6 +565,16 @@ def test_an_id_in_the_path_is_a_positive_integer(
     assert [(one["type"], one["minimum"]) for one in schemas] == [("integer", 1)] * len(names)
 
 
+def test_every_parameter_in_the_path_says_what_it_holds(openapi: Dict[str, Any]) -> None:
+    in_the_path = [
+        one
+        for operations in openapi["paths"].values()
+        for operation in operations.values() if isinstance(operation, dict)
+        for one in operation.get("parameters", []) if one["in"] == "path"
+    ]
+    assert all(one.get("description") for one in in_the_path)
+
+
 def test_the_first_parameter_of_a_path_is_id(openapi: Dict[str, Any]) -> None:
     firsts = {re.search(r"\{([^}]+)\}", path) for path in openapi["paths"]}
     assert {first.group(1) for first in firsts if first} == {"id", "proxy+"}
