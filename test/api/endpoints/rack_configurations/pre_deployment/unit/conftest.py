@@ -1,5 +1,5 @@
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, Iterable, List
 
 import pytest
 from botocore.exceptions import ClientError
@@ -27,15 +27,28 @@ def table_fixture() -> SimpleNamespace:
     return table
 
 
+@pytest.fixture(name="distribution")
+def distribution_fixture() -> SimpleNamespace:
+    distribution = SimpleNamespace(invalidated=[])
+
+    def invalidate(paths: Iterable[str]) -> None:
+        distribution.invalidated.append(list(paths))
+
+    distribution.invalidate = invalidate
+    return distribution
+
+
 @pytest.fixture
 def rack_handler(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     table: SimpleNamespace,
+    distribution: SimpleNamespace,
 ) -> ModuleType:
     handler = load_handler("api/endpoints/rack_configurations")
     monkeypatch.setenv("RACK_CONFIGURATIONS_TABLE", "configurations")
     monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": table}[service])
+    monkeypatch.setattr(handler, "invalidate", distribution.invalidate, raising=False)
     return handler
 
 

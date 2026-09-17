@@ -83,6 +83,32 @@ def test_the_same_configuration_is_stored_once(
     assert len(table.items) == 1
 
 
+def test_a_first_store_invalidates_the_hash_it_answers(
+    rack_handler: ModuleType, configuration: Dict[str, Any], distribution: SimpleNamespace
+) -> None:
+    config_hash = _body(rack_handler, _post(_submission(configuration)))["config_hash"]
+    assert distribution.invalidated == [[f"{RACK_CONFIGURATIONS}/{config_hash}"]]
+
+
+def test_a_repeat_store_invalidates_nothing(
+    rack_handler: ModuleType, configuration: Dict[str, Any], distribution: SimpleNamespace
+) -> None:
+    _answer(rack_handler, _post(_submission(configuration)))
+    _answer(rack_handler, _post(_submission(configuration)))
+    assert len(distribution.invalidated) == 1
+
+
+def test_a_refused_store_invalidates_nothing(
+    rack_handler: ModuleType,
+    configuration: Dict[str, Any],
+    table: SimpleNamespace,
+    distribution: SimpleNamespace,
+) -> None:
+    table.failing = True
+    _answer(rack_handler, _post(_submission(configuration)))
+    assert distribution.invalidated == []
+
+
 def test_a_missing_device_is_refused(
     rack_handler: ModuleType, configuration: Dict[str, Any]
 ) -> None:
