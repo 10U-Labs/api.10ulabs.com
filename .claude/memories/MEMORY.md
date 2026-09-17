@@ -33,6 +33,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [write-the-test-first](write-the-test-first.md) — the test is authored before the code, and red and green are observed in CI
 - [the-deployed-tests-hold-only-the-workflows-key](the-deployed-tests-hold-only-the-workflows-key.md) — post-deployment tests bear only the workflows' API key; a route it is denied is tested for its 403, its logic in the unit tests
 - [a-fixture-consumed-in-its-own-file-is-named](a-fixture-consumed-in-its-own-file-is-named.md) — `name=` on a `*_fixture` function when the file that defines a fixture also requests it, a plain `def` when only other files do; W0621 and `assert-pytest-fixture-name-is-needed` pull opposite ways
+- [a-raise-expected-in-a-test-is-raised-in-a-fixture](a-raise-expected-in-a-test-is-raised-in-a-fixture.md) — `assert-one-assert-per-pytest` counts `pytest.raises` as an assert, so the raising call goes in a fixture and the test keeps its one assert
 
 ### Verification
 
@@ -65,6 +66,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [an-alias-moves-behind-a-txt-record-put-before-the-first-call](an-alias-moves-behind-a-txt-record-put-before-the-first-call.md) — `associate-alias` moves a CloudFront alias between distributions without downtime, but checks a `_<alias>` TXT record naming the target, and a refusal is cached for the zone's negative TTL, so put the record and see it resolve before the first call
 - [a-renamed-label-is-moved-in-state](a-renamed-label-is-moved-in-state.md) — a label rename carries a `moved` block, or tofu destroys before the dependent updates and a CloudFront policy in use refuses; an orphan in use is parked under a holding label for one apply
 - [a-custom-error-response-answers-for-every-origin](a-custom-error-response-answers-for-every-origin.md) — a CloudFront custom error response is distribution-wide and swallows the gateway's own 404s, so the not-found page comes from the catch-all handler, by `Accept`
+- [a-cached-route-lets-every-method-through-and-is-read-until-it-hits](a-cached-route-lets-every-method-through-and-is-read-until-it-hits.md) — a behavior on the reads policy allows every method and caches GET and HEAD, since writes share the reads' paths; a deployed cache-hit test re-reads a bounded number of times
 
 ### Priority
 
