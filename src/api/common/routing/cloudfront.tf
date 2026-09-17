@@ -88,8 +88,8 @@ resource "aws_s3_bucket_policy" "www" {
 
 resource "aws_cloudfront_cache_policy" "www" {
   name        = local.www_bucket
-  min_ttl     = 60
-  default_ttl = 86400
+  min_ttl     = 0
+  default_ttl = 2592000
   max_ttl     = 31536000
 
   parameters_in_cache_key_and_forwarded_to_origin {
