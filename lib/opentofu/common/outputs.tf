@@ -34,7 +34,7 @@ output "deploy_role_name" {
 }
 
 output "lambda_handler_names" {
-  description = "Deterministic Lambda function names, one per Lambda, verb-scoped or not, and the authorizer in front of the protected routes, which the routing stack composes into integration URIs; a route reaches its Lambda only once the stack declaring it has applied, after routing, so a Lambda's deployed tests belong to its own stack."
+  description = "Deterministic Lambda function names, one per Lambda, whether a stack's single handler or a row of its verbs table, and the authorizer in front of the protected routes, which the routing stack composes into integration URIs; a route reaches its Lambda only once the stack declaring it has applied, after routing, so a Lambda's deployed tests belong to its own stack."
   value = {
     add_pop                                   = "api-10ulabs-com-add-pop"
     authorizer                                = "api-10ulabs-com-authorizer"
