@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 import pytest
 
+THROUGH_THE_NAME = "https://api.10ulabs.com/carriers/0"
 MEMBERS = ["pops", "fiber-segments"]
 MISSING = dict(zip(MEMBERS, ["No such pop", "No such fiber segment"]))
 BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
@@ -50,6 +51,20 @@ def test_a_carrier_that_is_not_there_names_the_error_through_the_deployed_api(
     stage_url: str, get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
 ) -> None:
     _, body = get_json(f"{stage_url}/carriers/0", bearer)
+    assert body["error"] == "No such carrier"
+
+
+def test_a_carrier_that_is_not_there_answers_404_through_the_name(
+    get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    status, _ = get_json(THROUGH_THE_NAME, bearer)
+    assert status == 404
+
+
+def test_a_carrier_that_is_not_there_keeps_its_own_json_through_the_name(
+    get_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> None:
+    _, body = get_json(THROUGH_THE_NAME, bearer)
     assert body["error"] == "No such carrier"
 
 

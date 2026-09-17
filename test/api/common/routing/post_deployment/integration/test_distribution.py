@@ -85,11 +85,6 @@ def unserved_answer_fixture() -> Tuple[int, str, str]:
     return _answer(UNSERVED)
 
 
-@pytest.fixture(scope="module", name="missing_carrier")
-def missing_carrier_fixture(bearer: Dict[str, str]) -> Tuple[int, str, str]:
-    return _answer(f"https://{API_NAME}/carriers/999999999", bearer)
-
-
 def test_the_distribution_fronts_the_gateway(distribution: Dict[str, Any], api_id: str) -> None:
     origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
     assert f"{api_id}.execute-api.us-east-2.amazonaws.com" in origins
@@ -205,11 +200,3 @@ def test_a_browser_is_answered_with_the_not_found_page(
     browsed_answer: Tuple[int, str, str], not_found_page: Tuple[int, str, str]
 ) -> None:
     assert browsed_answer[2] == not_found_page[2]
-
-
-def test_a_missing_carrier_answers_404(missing_carrier: Tuple[int, str, str]) -> None:
-    assert missing_carrier[0] == 404
-
-
-def test_a_missing_carrier_keeps_its_own_json(missing_carrier: Tuple[int, str, str]) -> None:
-    assert json.loads(missing_carrier[2])["error"] == "No such carrier"
