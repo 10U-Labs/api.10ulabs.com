@@ -159,6 +159,20 @@ def test_the_served_spec_asks_for_no_holding_time_of_its_own(
     assert spec_cache_control is None
 
 
+def test_the_root_of_the_distribution_is_the_index_in_src_www(
+    root_page: Tuple[int, str, str], repo_root: Path
+) -> None:
+    index = repo_root / "src" / "www" / "index.html"
+    assert root_page[2] == index.read_text(encoding="utf-8")
+
+
+def test_the_not_found_page_is_the_one_in_src_www(
+    not_found_page: Tuple[int, str, str], repo_root: Path
+) -> None:
+    page = repo_root / "src" / "www" / "404.html"
+    assert not_found_page[2] == page.read_text(encoding="utf-8")
+
+
 def test_the_not_found_page_answers_200(not_found_page: Tuple[int, str, str]) -> None:
     assert not_found_page[0] == 200
 
