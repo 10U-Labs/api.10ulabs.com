@@ -12,11 +12,20 @@ READS_POLICY = "aws_cloudfront_cache_policy.reads.id"
 DISABLED_POLICY = "data.aws_cloudfront_cache_policy.disabled.id"
 A_DAY = "86400"
 REGIONS = "/hyperscale-cloud-service-provider-regions"
+SYNTHESIS = "/wan-syntheses/1"
+PARTS = [
+    "wan-pops", "wan-pops/1", "backbone-circuits", "homing-circuits", "fiber-segments", "sites",
+    "sites/1", "hyperscale-cloud-service-provider-regions",
+    "hyperscale-cloud-service-provider-regions/1", "off-net", "forced-wan-pops",
+    "forced-circuits", "forced-homes", "prohibited-wan-pops", "prohibited-circuits",
+    "degree-exempt-wan-pops",
+]
 CACHED_READS = [
     "/carriers", "/carriers/1", "/carriers/1/pops", "/carriers/1/pops/1",
     "/carriers/1/fiber-segments", "/carriers/1/fiber-segments/1",
     REGIONS, f"{REGIONS}/1",
     "/rack-configurations/abcdefghi",
+    "/wan-syntheses", SYNTHESIS, *(f"{SYNTHESIS}/{part}" for part in PARTS),
 ]
 EVERY_METHOD = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 
