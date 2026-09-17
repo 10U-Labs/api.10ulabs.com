@@ -20,6 +20,10 @@ data "archive_file" "synthesizer" {
     content  = file("${path.module}/../../../../lib/python/store/__init__.py")
     filename = "store.py"
   }
+  source {
+    content  = file("${path.module}/../../../../lib/python/cache/__init__.py")
+    filename = "cache.py"
+  }
   output_path = "${path.module}/.terraform/lambda_packages/synthesizer.zip"
 }
 
@@ -54,6 +58,7 @@ resource "aws_lambda_function" "synthesizer" {
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT = "true"
+      DISTRIBUTION_ID       = data.terraform_remote_state.routing.outputs.distribution_id
       STORE_TABLE           = data.terraform_remote_state.storage.outputs.table_name
     }
   }
@@ -88,6 +93,7 @@ resource "aws_lambda_function" "failure_handler" {
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT = "true"
+      DISTRIBUTION_ID       = data.terraform_remote_state.routing.outputs.distribution_id
       STORE_TABLE           = data.terraform_remote_state.storage.outputs.table_name
     }
   }

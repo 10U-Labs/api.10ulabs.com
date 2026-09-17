@@ -49,6 +49,19 @@ resource "aws_iam_role_policy" "synthesizer_failure_handler" {
   })
 }
 
+resource "aws_iam_role_policy" "synthesizer_invalidations" {
+  name = "Invalidations"
+  role = aws_iam_role.synthesizer.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudfront:CreateInvalidation"]
+      Resource = ["arn:aws:cloudfront::${module.common.aws_account_id}:distribution/${data.terraform_remote_state.routing.outputs.distribution_id}"]
+    }]
+  })
+}
+
 resource "aws_iam_role" "failure_handler" {
   name = "${local.failure_handler_name}-lambda"
   assume_role_policy = jsonencode({
@@ -83,6 +96,19 @@ resource "aws_iam_role_policy" "failure_handler_store" {
       Effect   = "Allow"
       Action   = ["dynamodb:UpdateItem"]
       Resource = [data.terraform_remote_state.storage.outputs.table_arn]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "failure_handler_invalidations" {
+  name = "Invalidations"
+  role = aws_iam_role.failure_handler.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudfront:CreateInvalidation"]
+      Resource = ["arn:aws:cloudfront::${module.common.aws_account_id}:distribution/${data.terraform_remote_state.routing.outputs.distribution_id}"]
     }]
   })
 }

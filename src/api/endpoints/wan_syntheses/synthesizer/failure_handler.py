@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from cache import invalidate
 from store import assign
 
 COLLECTION = "wan-syntheses"
@@ -21,4 +22,5 @@ def lambda_handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
         os.environ["STORE_TABLE"], COLLECTION, str(synthesis_id),
         {"status": "timeout", "reason": _reason(event)},
     )
+    invalidate([f"/{COLLECTION}/{synthesis_id}"])
     return {"status": "timeout", "synthesis": synthesis_id}

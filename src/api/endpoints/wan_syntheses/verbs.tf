@@ -105,6 +105,7 @@ locals {
     create_wan_synthesis = { timeout = 30, memory_size = 256 }
     delete_wan_synthesis = { timeout = 30, memory_size = 256 }
   }
+  writes = toset(["create_wan_synthesis", "delete_wan_synthesis"])
 }
 
 data "archive_file" "verb" {
@@ -127,6 +128,10 @@ data "archive_file" "verb" {
     content  = file("${path.module}/../../../../lib/python/store/__init__.py")
     filename = "store.py"
   }
+  source {
+    content  = file("${path.module}/../../../../lib/python/cache/__init__.py")
+    filename = "cache.py"
+  }
   output_path = "${path.module}/.terraform/lambda_packages/${each.key}.zip"
 }
 
@@ -147,6 +152,7 @@ resource "aws_lambda_function" "verb" {
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT = "true"
+      DISTRIBUTION_ID       = data.terraform_remote_state.routing.outputs.distribution_id
       STORE_TABLE           = data.terraform_remote_state.storage.outputs.table_name
       SYNTHESIZER           = aws_lambda_function.synthesizer.function_name
     }
@@ -236,6 +242,22 @@ resource "aws_iam_role_policy" "create_synthesizer" {
       Effect   = "Allow"
       Action   = ["lambda:InvokeFunction"]
       Resource = [aws_lambda_function.synthesizer.arn]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "verb_invalidations" {
+  for_each = local.writes
+
+  name = "Invalidations"
+  role = aws_iam_role.verb[each.key].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudfront:CreateInvalidation"]
+      Resource = ["arn:aws:cloudfront::${module.common.aws_account_id}:distribution/${data.terraform_remote_state.routing.outputs.distribution_id}"]
     }]
   })
 }

@@ -324,12 +324,18 @@ def test_a_refused_run_is_invalidated_once_marked_synthesizing_and_again_once_ma
     assert distribution.invalidated == [RUN_PATHS, RUN_PATHS]
 
 
-def test_a_store_that_refuses_the_first_mark_invalidates_nothing(
-    synthesizer: ModuleType, store: SimpleNamespace, run: List[Dict[str, Any]],
-    distribution: SimpleNamespace,
+@pytest.fixture(name="unmarked")
+def unmarked_fixture(
+    synthesizer: ModuleType, store: SimpleNamespace, run: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(run)
     store.failing = True
     with pytest.raises(ClientError):
         synthesizer.lambda_handler({"synthesis": 1}, None)
+
+
+@pytest.mark.usefixtures("unmarked")
+def test_a_store_that_refuses_the_first_mark_invalidates_nothing(
+    distribution: SimpleNamespace
+) -> None:
     assert distribution.invalidated == []

@@ -9,6 +9,7 @@ from lambda_http import (
     aws_client, created, dispatch, error_response, has_numbers, has_strings, parse_fields,
 )
 from store import next_id, put, typed
+from syntheses import staled
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -147,6 +148,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         logger.error('Error creating the wan synthesis: %s', error)
         return error_response(500, 'Failed to create the wan synthesis')
+    staled(str(synthesis_id))
     try:
         aws_client('lambda').invoke(
             FunctionName=os.environ['SYNTHESIZER'], InvocationType='Event',

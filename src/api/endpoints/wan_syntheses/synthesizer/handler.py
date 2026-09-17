@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Any, NamedTuple
 
+from cache import invalidate
 from store import assign, member, members, partition, plain, put, sort_id, typed
 from synthesizer import collections as published
 from synthesizer.codec import load_merged_carriers, load_off_net, load_regions, load_sites
@@ -254,6 +255,10 @@ def _build_wan(
     return parts, _delivered(artifacts, loaded.config.params)
 
 
+def _staled(synthesis_id: int) -> None:
+    invalidate([f"/{COLLECTION}/{synthesis_id}", f"/{COLLECTION}/{synthesis_id}/*"])
+
+
 def _publish(table: str, synthesis_id: int, parts: dict[str, list[dict[str, Any]]]) -> None:
     under = f"{COLLECTION}/{synthesis_id}"
     for prefix, rows in parts.items():
@@ -267,15 +272,18 @@ def lambda_handler(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     table = os.environ["STORE_TABLE"]
     synthesis_id = int(event["synthesis"])
     assign(table, COLLECTION, str(synthesis_id), {"status": "synthesizing"})
+    _staled(synthesis_id)
     logger.info("Synthesis %s started", synthesis_id)
     try:
         parts, delivered = _build_wan(table, synthesis_id)
     except ValueError as refusal:
         logger.warning("Synthesis %s failed: %s", synthesis_id, refusal)
         assign(table, COLLECTION, str(synthesis_id), {"status": "fail", "reason": str(refusal)})
+        _staled(synthesis_id)
         return {"status": "fail", "synthesis": synthesis_id}
     logger.info("Publishing the WAN of synthesis %s", synthesis_id)
     _publish(table, synthesis_id, parts)
     assign(table, COLLECTION, str(synthesis_id), {"status": "success", **delivered})
+    _staled(synthesis_id)
     logger.info("Synthesis %s succeeded", synthesis_id)
     return {"status": "success", "synthesis": synthesis_id}

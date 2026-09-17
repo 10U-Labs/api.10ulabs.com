@@ -4,6 +4,7 @@ from typing import Any, Dict, NamedTuple, Optional
 
 from botocore.exceptions import ClientError
 
+from cache import invalidate
 from lambda_http import error_response, json_response, path_id
 from store import member, partition, plain, sort_id
 
@@ -14,6 +15,11 @@ COLLECTION = 'wan-syntheses'
 KEY = ('PK', 'SK')
 MISSING = 'No such wan synthesis'
 NO_WAN = 'The synthesis has no wan'
+
+
+def staled(synthesis_id: str) -> None:
+    one = f'/{COLLECTION}/{synthesis_id}'
+    invalidate([f'/{COLLECTION}', one, f'{one}/*'])
 
 
 def synthesis(item: Dict[str, Any]) -> Dict[str, Any]:

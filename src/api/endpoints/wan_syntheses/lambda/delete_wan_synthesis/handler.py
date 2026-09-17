@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 
 from lambda_http import dispatch, error_response, no_content, path_id
 from store import member, remove
+from syntheses import staled
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -23,6 +24,7 @@ def _removed(table: str, synthesis_id: Optional[str]) -> Dict[str, Any]:
         return error_response(409, 'The synthesis is still running')
     if not remove(table, COLLECTION, synthesis_id):
         return error_response(404, MISSING)
+    staled(synthesis_id)
     return no_content()
 
 
