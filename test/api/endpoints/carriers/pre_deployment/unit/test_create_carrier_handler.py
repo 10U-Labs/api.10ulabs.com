@@ -15,10 +15,6 @@ def _post(body: Any, resource: str = CARRIERS) -> Dict[str, Any]:
     return {"resource": resource, "httpMethod": "POST", "body": json.dumps(body)}
 
 
-def _counter(store: SimpleNamespace) -> Dict[str, Any]:
-    return next(item for item in store.items if item["SK"] == {"S": "#"})
-
-
 def test_a_carrier_is_created_with_201(answer: Handler) -> None:
     assert answer(_post({"name": "lumen"}))["statusCode"] == 201
 
@@ -44,7 +40,7 @@ def test_the_counter_moves_past_the_id_it_gave(
 ) -> None:
     store.items.extend(carriers)
     answer(_post({"name": "cogent"}))
-    assert _counter(store)["next"] == {"N": "4"}
+    assert store.items[0]["next"] == {"N": "4"}
 
 
 def test_an_id_is_never_reused(served: Served) -> None:
