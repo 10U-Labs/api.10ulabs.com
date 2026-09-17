@@ -60,13 +60,13 @@ CARRIER_VERBS = [
     ("/carriers/{id}", "get", "${ReadCarrierHandlerArn}"),
     ("/carriers/{id}", "put", "${RenameCarrierHandlerArn}"),
     ("/carriers/{id}", "delete", "${DeleteCarrierHandlerArn}"),
+    ("/carriers/{id}/pops", "get", "${ListPopsHandlerArn}"),
+    ("/carriers/{id}/pops", "post", "${AddPopHandlerArn}"),
+    (POP, "get", "${ReadPopHandlerArn}"),
+    (POP, "put", "${CorrectPopHandlerArn}"),
+    (POP, "delete", "${RemovePopHandlerArn}"),
 ]
-SUB_COLLECTION_OPERATIONS = [
-    ("/carriers/{id}/pops", "get"),
-    ("/carriers/{id}/pops", "post"),
-    (POP, "get"),
-    (POP, "put"),
-    (POP, "delete"),
+FIBER_SEGMENT_OPERATIONS = [
     (FIBER_SEGMENTS, "get"),
     (FIBER_SEGMENTS, "post"),
     (FIBER_SEGMENT, "get"),
@@ -75,7 +75,7 @@ SUB_COLLECTION_OPERATIONS = [
 ]
 CARRIERS_OPERATIONS = [
     (path, method) for path, method, _ in CARRIER_VERBS
-] + SUB_COLLECTION_OPERATIONS
+] + FIBER_SEGMENT_OPERATIONS
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
 REGION = "/hyperscale-cloud-service-provider-regions/{id}"
@@ -386,8 +386,8 @@ def test_each_carrier_verb_is_served_by_its_own_handler(
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == uri
 
 
-@pytest.mark.parametrize(("path", "method"), SUB_COLLECTION_OPERATIONS)
-def test_the_sub_collections_are_served_by_the_carriers_handler(
+@pytest.mark.parametrize(("path", "method"), FIBER_SEGMENT_OPERATIONS)
+def test_the_fiber_segments_are_served_by_the_carriers_handler(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"

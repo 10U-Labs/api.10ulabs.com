@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
+from pops import get_pop, get_pops
+
 
 @pytest.fixture
 def handler(request: pytest.FixtureRequest, endpoint: Callable[..., ModuleType]) -> ModuleType:
@@ -18,6 +20,24 @@ def listed(endpoint: Callable[..., ModuleType]) -> Callable[[], Any]:
         answer = lister.lambda_handler({"resource": "/carriers", "httpMethod": "GET"}, None)
         return json.loads(answer["body"])
     return listing
+
+
+@pytest.fixture
+def pops_listed(endpoint: Callable[..., ModuleType]) -> Callable[[], Any]:
+    lister = endpoint("carriers", "lambda/list_pops")
+
+    def listing() -> Any:
+        return json.loads(lister.lambda_handler(get_pops(), None)["body"])
+    return listing
+
+
+@pytest.fixture
+def pop_read(endpoint: Callable[..., ModuleType]) -> Callable[[], Dict[str, Any]]:
+    reader = endpoint("carriers", "lambda/read_pop")
+
+    def reading() -> Dict[str, Any]:
+        return dict(reader.lambda_handler(get_pop(), None))
+    return reading
 
 
 @pytest.fixture(name="carriers")
