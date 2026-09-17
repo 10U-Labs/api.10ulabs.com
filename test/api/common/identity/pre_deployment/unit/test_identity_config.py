@@ -89,3 +89,11 @@ def test_the_role_may_rewrite_its_own_description(iam_tf: str) -> None:
 
 def test_the_role_may_read_the_managed_origin_request_policies(iam_tf: str) -> None:
     assert '"cloudfront:GetOriginRequestPolicy",' in iam_tf
+
+
+def test_the_role_may_tell_the_distribution_to_drop_its_copies(iam_tf: str) -> None:
+    assert '"cloudfront:CreateInvalidation",' in iam_tf
+
+
+def test_the_role_may_read_whether_the_copies_are_dropped(iam_tf: str) -> None:
+    assert '"cloudfront:GetInvalidation",' in iam_tf
