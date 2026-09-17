@@ -148,9 +148,27 @@ UNDER_A_WAN_POP = [(WAN_POP, "get")]
 WAN_POP_FIELDS = [
     "id", "name", "municipality", "state", "country", "latitude", "longitude", "carrier"
 ]
-READINGS = [(SYNTHESES, "get"), (SYNTHESIS, "get")] + UNDER_A_SYNTHESIS + (
-    UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
-)
+READ_VERBS = [
+    (SYNTHESES, "get", "${ListWanSynthesesHandlerArn}"),
+    (SYNTHESIS, "get", "${ReadWanSynthesisHandlerArn}"),
+    (WAN_POPS, "get", "${ListWanPopsHandlerArn}"),
+    (WAN_POP, "get", "${ReadWanPopHandlerArn}"),
+    (BACKBONE_CIRCUITS, "get", "${ListBackboneCircuitsHandlerArn}"),
+    (HOMING_CIRCUITS, "get", "${ListHomingCircuitsHandlerArn}"),
+    (RIDDEN_FIBER, "get", "${ListRiddenFiberHandlerArn}"),
+    (SITES, "get", "${ListSitesHandlerArn}"),
+    (SITE, "get", "${ReadSiteHandlerArn}"),
+    (RUN_REGIONS, "get", "${ListRunRegionsHandlerArn}"),
+    (RUN_REGION, "get", "${ReadRunRegionHandlerArn}"),
+    (OFF_NET, "get", "${ListOffNetHandlerArn}"),
+    (FORCED_WAN_POPS, "get", "${ListForcedWanPopsHandlerArn}"),
+    (FORCED_CIRCUITS, "get", "${ListForcedCircuitsHandlerArn}"),
+    (FORCED_HOMES, "get", "${ListForcedHomesHandlerArn}"),
+    (PROHIBITED_WAN_POPS, "get", "${ListProhibitedWanPopsHandlerArn}"),
+    (PROHIBITED_CIRCUITS, "get", "${ListProhibitedCircuitsHandlerArn}"),
+    (DEGREE_EXEMPT_WAN_POPS, "get", "${ListDegreeExemptWanPopsHandlerArn}"),
+]
+READINGS = [(path, method) for path, method, _ in READ_VERBS]
 WRITE_VERBS = [
     (SYNTHESES, "post", "${CreateWanSynthesisHandlerArn}"),
     (SYNTHESIS, "delete", "${DeleteWanSynthesisHandlerArn}"),
@@ -392,7 +410,8 @@ def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, metho
 
 
 @pytest.mark.parametrize(
-    ("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS + RACK_VERBS + WRITE_VERBS
+    ("path", "method", "uri"),
+    CARRIER_VERBS + REGION_VERBS + RACK_VERBS + WRITE_VERBS + READ_VERBS,
 )
 def test_each_verb_is_served_by_its_own_handler(
     openapi: Dict[str, Any], path: str, method: str, uri: str
@@ -407,13 +426,6 @@ def test_the_regions_answer_get_and_post(openapi: Dict[str, Any]) -> None:
 def test_a_region_is_a_named_and_located_municipality_with_an_id(openapi: Dict[str, Any]) -> None:
     listed = openapi["paths"][REGIONS]["get"]["responses"]["200"]
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == REGION_FIELDS
-
-
-@pytest.mark.parametrize(("path", "method"), READINGS)
-def test_the_syntheses_are_served_by_the_syntheses_handler(
-    openapi: Dict[str, Any], path: str, method: str
-) -> None:
-    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
 
 
 def test_a_synthesis_answers_get_and_delete(openapi: Dict[str, Any]) -> None:

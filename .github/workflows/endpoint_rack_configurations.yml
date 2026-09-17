@@ -4,8 +4,8 @@ concurrency:
   group: endpoint_rack_configurations-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
-  MYPYPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/hyperscale_cloud_service_provider_regions/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit:test/api/endpoints/carriers/pre_deployment/unit/lib:test/api/endpoints/hyperscale_cloud_service_provider_regions/pre_deployment/unit/lib:src/api/endpoints/rack_configurations/lambda:test/api/endpoints/rack_configurations/pre_deployment/unit/lib
-  PYTHONPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/hyperscale_cloud_service_provider_regions/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit:test/api/endpoints/carriers/pre_deployment/unit/lib:test/api/endpoints/hyperscale_cloud_service_provider_regions/pre_deployment/unit/lib:src/api/endpoints/rack_configurations/lambda:test/api/endpoints/rack_configurations/pre_deployment/unit/lib
+  MYPYPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/hyperscale_cloud_service_provider_regions/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit:test/api/endpoints/carriers/pre_deployment/unit/lib:test/api/endpoints/hyperscale_cloud_service_provider_regions/pre_deployment/unit/lib:src/api/endpoints/rack_configurations/lambda:test/api/endpoints/rack_configurations/pre_deployment/unit/lib:src/api/endpoints/wan_syntheses/lambda
+  PYTHONPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/hyperscale_cloud_service_provider_regions/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit:test/api/endpoints/carriers/pre_deployment/unit/lib:test/api/endpoints/hyperscale_cloud_service_provider_regions/pre_deployment/unit/lib:src/api/endpoints/rack_configurations/lambda:test/api/endpoints/rack_configurations/pre_deployment/unit/lib:src/api/endpoints/wan_syntheses/lambda
 jobs:
   assert-no-comments:
     runs-on: ubuntu-latest
