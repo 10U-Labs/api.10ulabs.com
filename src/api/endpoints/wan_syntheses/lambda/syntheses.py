@@ -116,4 +116,3 @@ def read_under(event: Dict[str, Any], part: Part, failure: str) -> Dict[str, Any
     if item is None:
         return error_response(404, part.missing)
     return json_response(200, record(item))
-
