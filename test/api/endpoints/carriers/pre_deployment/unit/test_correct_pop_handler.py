@@ -173,12 +173,12 @@ def test_a_refused_correction_names_what_is_expected(served: Served) -> None:
 
 
 def test_a_refused_correction_changes_nothing(
-    answer: Handler, pop_read: Callable[[], Dict[str, Any]], store: SimpleNamespace,
+    pop_read: Callable[[], Dict[str, Any]], served: Served, store: SimpleNamespace,
     carriers: List[Dict[str, Any]],
 ) -> None:
     store.items.extend(carriers)
-    answer(put_pop({}))
-    assert (store.puts, json.loads(pop_read()["body"])) == ([], CHICAGO)
+    refusal = served(put_pop({}))["error"]
+    assert (refusal, store.puts, json.loads(pop_read()["body"])) == (POP_BODY, [], CHICAGO)
 
 
 def test_a_store_that_refuses_the_correction_answers_500(
