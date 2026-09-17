@@ -1,4 +1,4 @@
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
 
 import pytest
@@ -6,12 +6,8 @@ import pytest
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
+HANDLER = "lambda/read_carrier"
 CARRIER = "/carriers/{id}"
-
-
-@pytest.fixture
-def handler(endpoint: Callable[..., ModuleType]) -> ModuleType:
-    return endpoint("carriers", "lambda/read_carrier")
 
 
 def _get_one(carrier: str) -> Dict[str, Any]:

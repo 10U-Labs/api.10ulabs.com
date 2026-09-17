@@ -1,5 +1,5 @@
 import json
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
 
 import pytest
@@ -7,16 +7,12 @@ import pytest
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
+HANDLER = "lambda/create_carrier"
 CARRIERS = "/carriers"
 
 
-@pytest.fixture
-def handler(endpoint: Callable[..., ModuleType]) -> ModuleType:
-    return endpoint("carriers", "lambda/create_carrier")
-
-
-def _post(body: Any) -> Dict[str, Any]:
-    return {"resource": CARRIERS, "httpMethod": "POST", "body": json.dumps(body)}
+def _post(body: Any, resource: str = CARRIERS) -> Dict[str, Any]:
+    return {"resource": resource, "httpMethod": "POST", "body": json.dumps(body)}
 
 
 def _counter(store: SimpleNamespace) -> Dict[str, Any]:
@@ -128,3 +124,7 @@ def test_a_store_that_refuses_the_write_names_the_error(
 
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**_post({"name": "lumen"}), "httpMethod": "GET"})["statusCode"] == 404
+
+
+def test_another_resource_answers_404(answer: Handler) -> None:
+    assert answer(_post({"name": "lumen"}, "/carriers/{id}"))["statusCode"] == 404

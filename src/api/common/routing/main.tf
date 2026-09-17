@@ -20,10 +20,15 @@ locals {
     CarriersHandlerArn                              = local.integration.carriers
     CatchAllHandlerArn                              = local.integration.catchall
     ContactHandlerArn                               = local.integration.contact
+    CreateCarrierHandlerArn                         = local.integration.create_carrier
+    DeleteCarrierHandlerArn                         = local.integration.delete_carrier
     DiagnosticsHandlerArn                           = local.integration.diagnostics
     HealthHandlerArn                                = local.integration.health
     HyperscaleCloudServiceProviderRegionsHandlerArn = local.integration.hyperscale_cloud_service_provider_regions
+    ListCarriersHandlerArn                          = local.integration.list_carriers
     RackConfigurationsHandlerArn                    = local.integration.rack_configurations
+    ReadCarrierHandlerArn                           = local.integration.read_carrier
+    RenameCarrierHandlerArn                         = local.integration.rename_carrier
     SessionsHandlerArn                              = local.integration.sessions
     WanSynthesesHandlerArn                          = local.integration.wan_syntheses
     WanSynthesesWriterHandlerArn                    = local.integration.wan_syntheses_writer

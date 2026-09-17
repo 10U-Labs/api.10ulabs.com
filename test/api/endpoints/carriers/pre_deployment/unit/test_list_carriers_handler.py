@@ -1,17 +1,11 @@
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
-
-import pytest
 
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
+HANDLER = "lambda/list_carriers"
 CARRIERS = "/carriers"
-
-
-@pytest.fixture
-def handler(endpoint: Callable[..., ModuleType]) -> ModuleType:
-    return endpoint("carriers", "lambda/list_carriers")
 
 
 def _get(resource: str = CARRIERS) -> Dict[str, Any]:

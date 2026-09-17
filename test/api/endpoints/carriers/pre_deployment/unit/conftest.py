@@ -6,8 +6,8 @@ import pytest
 
 
 @pytest.fixture
-def handler(endpoint: Callable[[str], ModuleType]) -> ModuleType:
-    return endpoint("carriers")
+def handler(request: pytest.FixtureRequest, endpoint: Callable[..., ModuleType]) -> ModuleType:
+    return endpoint("carriers", getattr(request.module, "HANDLER", "lambda"))
 
 
 @pytest.fixture

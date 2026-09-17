@@ -1,25 +1,16 @@
-import logging
 import os
 from functools import partial
 from typing import Any, Callable, Dict, NamedTuple, Optional
 
 from botocore.exceptions import ClientError
 
+from carriers import COLLECTION, MISSING, held, logger, requested
 from lambda_http import (
     created, dispatch, error_response, has_numbers, has_strings, json_response, no_content,
-    parse_fields, parse_valid, path_id,
+    parse_valid, path_id,
 )
-from store import (
-    advance, conditional, conditioned, delete, member, members, next_id, partition, put, remove,
-    sort_id,
-)
+from store import advance, conditional, delete, partition, put, sort_id
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-COLLECTION = 'carriers'
-BODY = 'The body must be exactly {"name"}'
-MISSING = 'No such carrier'
 MISSING_POP = 'No such pop'
 MISSING_FIBER_SEGMENT = 'No such fiber segment'
 POPS = 'pops'
@@ -35,76 +26,6 @@ FIBER_SEGMENT_BODY = (
     'The body must be exactly '
     '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
 )
-
-
-def _carrier(item: Dict[str, Any]) -> Dict[str, Any]:
-    return {'id': sort_id(item), 'name': item['name']['S']}
-
-
-def _list(_event: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        carriers = members(os.environ['STORE_TABLE'], COLLECTION)
-    except ClientError as error:
-        logger.error('Error reading the carriers: %s', error)
-        return error_response(500, 'Failed to read the carriers')
-    return json_response(200, sorted(map(_carrier, carriers), key=lambda carrier: carrier['id']))
-
-
-def _member(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
-    return member(os.environ['STORE_TABLE'], collection, member_id)
-
-
-def _name(event: Dict[str, Any]) -> Optional[str]:
-    body = parse_fields(event, ('name',))
-    if body is None:
-        return None
-    name = body['name']
-    return name if isinstance(name, str) and name else None
-
-
-def _rename(collection: str, member_id: str, name: str) -> Optional[Dict[str, Any]]:
-    return conditioned(
-        'update_item', os.environ['STORE_TABLE'], {'PK': {'S': collection}, 'SK': {'S': member_id}},
-        UpdateExpression='SET #name = :name',
-        ExpressionAttributeNames={'#name': 'name'},
-        ExpressionAttributeValues={':name': {'S': name}},
-        ReturnValues='ALL_NEW',
-    )
-
-
-def _carrier_id(event: Dict[str, Any]) -> Optional[str]:
-    return path_id(event, 'id')
-
-
-def _read(event: Dict[str, Any]) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
-    if carrier_id is None:
-        return error_response(404, MISSING)
-    try:
-        item = _member(COLLECTION, carrier_id)
-    except ClientError as error:
-        logger.error('Error reading carrier %s: %s', carrier_id, error)
-        return error_response(500, 'Failed to read the carrier')
-    if item is None:
-        return error_response(404, MISSING)
-    return json_response(200, _carrier(item))
-
-
-def _update(event: Dict[str, Any]) -> Dict[str, Any]:
-    name = _name(event)
-    if name is None:
-        return error_response(400, BODY)
-    carrier_id = _carrier_id(event)
-    if carrier_id is None:
-        return error_response(404, MISSING)
-    try:
-        item = _rename(COLLECTION, carrier_id, name)
-    except ClientError as error:
-        logger.error('Error renaming carrier %s: %s', carrier_id, error)
-        return error_response(500, 'Failed to update the carrier')
-    if item is None:
-        return error_response(404, MISSING)
-    return json_response(200, _carrier(item))
 
 
 def _pop(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -127,11 +48,11 @@ Row = Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
 def _list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
+    carrier_id = requested(event)
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
-        carrier = _member(COLLECTION, carrier_id)
+        carrier = held(COLLECTION, carrier_id)
         under = f'{COLLECTION}/{carrier_id}'
         items = partition(os.environ['STORE_TABLE'], under, f'{prefix}/') if carrier else []
     except ClientError as error:
@@ -148,36 +69,6 @@ def _list_pops(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def _list_fiber_segments(event: Dict[str, Any]) -> Dict[str, Any]:
     return _list_under(event, FIBER_SEGMENTS, _fiber_segment, 'Failed to read the fiber segments')
-
-
-def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
-    if carrier_id is None:
-        return error_response(404, MISSING)
-    try:
-        removed = remove(os.environ['STORE_TABLE'], COLLECTION, carrier_id)
-    except ClientError as error:
-        logger.error('Error deleting carrier %s: %s', carrier_id, error)
-        return error_response(500, 'Failed to delete the carrier')
-    if not removed:
-        return error_response(404, MISSING)
-    return no_content()
-
-
-def _create(event: Dict[str, Any]) -> Dict[str, Any]:
-    name = _name(event)
-    if name is None:
-        return error_response(400, BODY)
-    table = os.environ['STORE_TABLE']
-    try:
-        carrier_id = next_id(table, COLLECTION)
-        put(table, COLLECTION, str(carrier_id), {
-            'name': {'S': name}, 'next_pop': {'N': '1'}, 'next_fiber_segment': {'N': '1'},
-        })
-    except ClientError as error:
-        logger.error('Error creating the carrier: %s', error)
-        return error_response(500, 'Failed to create the carrier')
-    return created(f'/{COLLECTION}/{carrier_id}', {'id': carrier_id, 'name': name})
 
 
 def _next_under(carrier_id: str, counter: str) -> Optional[int]:
@@ -263,7 +154,7 @@ def _add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
     body = kind.body(event)
     if body is None:
         return error_response(400, kind.refusal)
-    carrier_id = _carrier_id(event)
+    carrier_id = requested(event)
     if carrier_id is None:
         return error_response(404, MISSING)
     try:
@@ -292,14 +183,14 @@ Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
 def _on_member(
     event: Dict[str, Any], kind: Kind, act: Act, failure: str, answer: Optional[Answer] = None
 ) -> Dict[str, Any]:
-    carrier_id = _carrier_id(event)
+    carrier_id = requested(event)
     if carrier_id is None:
         return error_response(404, MISSING)
     member_id = path_id(event, kind.parameter)
     if member_id is None:
         return error_response(404, kind.missing)
     try:
-        carrier = _member(COLLECTION, carrier_id)
+        carrier = held(COLLECTION, carrier_id)
         item = act(carrier_id, member_id) if carrier else None
     except ClientError as error:
         logger.error(
@@ -314,7 +205,7 @@ def _on_member(
 
 
 def _stored_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
-    return _member(f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
+    return held(f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
 
 
 def _read_pop(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -373,11 +264,6 @@ def _delete_fiber_segment(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     return dispatch(event, {
-        ('/carriers', 'GET'): _list,
-        ('/carriers', 'POST'): _create,
-        ('/carriers/{id}', 'GET'): _read,
-        ('/carriers/{id}', 'PUT'): _update,
-        ('/carriers/{id}', 'DELETE'): _delete,
         ('/carriers/{id}/pops', 'GET'): _list_pops,
         ('/carriers/{id}/pops', 'POST'): _add_pop,
         ('/carriers/{id}/pops/{pop_id}', 'GET'): _read_pop,

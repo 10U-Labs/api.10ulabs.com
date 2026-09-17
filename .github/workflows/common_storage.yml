@@ -4,8 +4,8 @@ concurrency:
   group: common_storage-${{ github.ref }}
 env:
   AWS_USE_FIPS_ENDPOINT: "true"
-  MYPYPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
-  PYTHONPATH: lib/python:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
+  MYPYPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
+  PYTHONPATH: lib/python:src/api/endpoints/carriers/lambda:src/api/endpoints/wan_syntheses:test/api/endpoints/wan_syntheses/pre_deployment/unit
 jobs:
   assert-no-comments:
     runs-on: ubuntu-latest

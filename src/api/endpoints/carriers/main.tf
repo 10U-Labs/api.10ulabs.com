@@ -34,6 +34,10 @@ data "archive_file" "handler" {
     filename = "handler.py"
   }
   source {
+    content  = file("${path.module}/lambda/carriers.py")
+    filename = "carriers.py"
+  }
+  source {
     content  = file("${path.module}/../../../../lib/python/lambda_http/__init__.py")
     filename = "lambda_http.py"
   }
@@ -54,7 +58,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Carriers endpoint: list the carriers in the store, create one, serve, rename or delete one by its id, list or add its PoPs or serve, correct or remove one by its id, and list or add its fiber segments or serve, correct or remove one by its id."
+  description      = "Carriers endpoint: lists or adds a carrier's PoPs or serves, corrects or removes one by its id, and lists or adds its fiber segments or serves, corrects or removes one by its id."
 
   environment {
     variables = {

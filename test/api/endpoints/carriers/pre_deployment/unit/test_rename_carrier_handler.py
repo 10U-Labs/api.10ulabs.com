@@ -1,5 +1,5 @@
 import json
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List
 
 import pytest
@@ -7,12 +7,8 @@ import pytest
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
+HANDLER = "lambda/rename_carrier"
 CARRIER = "/carriers/{id}"
-
-
-@pytest.fixture
-def handler(endpoint: Callable[..., ModuleType]) -> ModuleType:
-    return endpoint("carriers", "lambda/rename_carrier")
 
 
 def _put(body: Any, carrier: str = "2") -> Dict[str, Any]:
