@@ -1,5 +1,95 @@
 locals {
   verbs = {
+    list_wan_syntheses = {
+      name        = module.common.lambda_handler_names.list_wan_syntheses
+      description = "Lists the wan syntheses by id and label."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    read_wan_synthesis = {
+      name        = module.common.lambda_handler_names.read_wan_synthesis
+      description = "Serves a wan synthesis's record by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_wan_pops = {
+      name        = module.common.lambda_handler_names.list_wan_pops
+      description = "Lists the wan pops of a synthesis's wan."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    read_wan_pop = {
+      name        = module.common.lambda_handler_names.read_wan_pop
+      description = "Serves a wan pop of a synthesis's wan by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_backbone_circuits = {
+      name        = module.common.lambda_handler_names.list_backbone_circuits
+      description = "Lists the backbone circuits of a synthesis's wan."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_homing_circuits = {
+      name        = module.common.lambda_handler_names.list_homing_circuits
+      description = "Lists the homing circuits of a synthesis's wan."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_ridden_fiber = {
+      name        = module.common.lambda_handler_names.list_ridden_fiber
+      description = "Lists the fiber segments a synthesis's wan rides."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_sites = {
+      name        = module.common.lambda_handler_names.list_sites
+      description = "Lists the sites a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    read_site = {
+      name        = module.common.lambda_handler_names.read_site
+      description = "Serves a site a synthesis was given by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_run_regions = {
+      name        = module.common.lambda_handler_names.list_run_regions
+      description = "Lists the hyperscale cloud service provider regions a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    read_run_region = {
+      name        = module.common.lambda_handler_names.read_run_region
+      description = "Serves a hyperscale cloud service provider region a synthesis was given by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_off_net = {
+      name        = module.common.lambda_handler_names.list_off_net
+      description = "Lists the off-net pops a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_forced_wan_pops = {
+      name        = module.common.lambda_handler_names.list_forced_wan_pops
+      description = "Lists the forced wan pops a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_forced_circuits = {
+      name        = module.common.lambda_handler_names.list_forced_circuits
+      description = "Lists the forced circuits a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_forced_homes = {
+      name        = module.common.lambda_handler_names.list_forced_homes
+      description = "Lists the forced homes a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_prohibited_wan_pops = {
+      name        = module.common.lambda_handler_names.list_prohibited_wan_pops
+      description = "Lists the prohibited wan pops a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_prohibited_circuits = {
+      name        = module.common.lambda_handler_names.list_prohibited_circuits
+      description = "Lists the prohibited circuits a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    list_degree_exempt_wan_pops = {
+      name        = module.common.lambda_handler_names.list_degree_exempt_wan_pops
+      description = "Lists the degree-exempt wan pops a synthesis was given."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
     create_wan_synthesis = {
       name        = module.common.lambda_handler_names.create_wan_synthesis
       description = "Creates a wan synthesis from a run's inputs, writing its record and list items under the next id and starting the synthesizer on it."
@@ -11,6 +101,10 @@ locals {
       actions     = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem"]
     }
   }
+  sized = {
+    create_wan_synthesis = { timeout = 30, memory_size = 256 }
+    delete_wan_synthesis = { timeout = 30, memory_size = 256 }
+  }
 }
 
 data "archive_file" "verb" {
@@ -20,6 +114,10 @@ data "archive_file" "verb" {
   source {
     content  = file("${path.module}/lambda/${each.key}/handler.py")
     filename = "handler.py"
+  }
+  source {
+    content  = file("${path.module}/lambda/syntheses.py")
+    filename = "syntheses.py"
   }
   source {
     content  = file("${path.module}/../../../../lib/python/lambda_http/__init__.py")
@@ -42,8 +140,8 @@ resource "aws_lambda_function" "verb" {
   source_code_hash = data.archive_file.verb[each.key].output_base64sha256
   runtime          = "python3.13"
   architectures    = ["arm64"]
-  timeout          = 30
-  memory_size      = 256
+  timeout          = try(local.sized[each.key].timeout, 10)
+  memory_size      = try(local.sized[each.key].memory_size, 128)
   description      = each.value.description
 
   environment {

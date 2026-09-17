@@ -1,13 +1,3 @@
-output "lambda_function_arn" {
-  description = "ARN of the wan syntheses Lambda."
-  value       = aws_lambda_function.handler.arn
-}
-
-output "lambda_function_name" {
-  description = "Name of the wan syntheses Lambda."
-  value       = aws_lambda_function.handler.function_name
-}
-
 output "lambda_function_arns" {
   description = "ARN of each verb's Lambda, by verb."
   value       = { for verb, function in aws_lambda_function.verb : verb => function.arn }

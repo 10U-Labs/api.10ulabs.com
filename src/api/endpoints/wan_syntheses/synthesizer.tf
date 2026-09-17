@@ -1,6 +1,6 @@
 locals {
-  synthesizer_name     = "${local.function_name}-synthesizer"
-  failure_handler_name = "${local.function_name}-failure-handler"
+  synthesizer_name     = "${local.syntheses_name}-synthesizer"
+  failure_handler_name = "${local.syntheses_name}-failure-handler"
 }
 
 data "archive_file" "synthesizer" {
@@ -32,7 +32,7 @@ data "archive_file" "solver_layer" {
 resource "aws_lambda_layer_version" "solver" {
   filename                 = data.archive_file.solver_layer.output_path
   source_code_hash         = data.archive_file.solver_layer.output_base64sha256
-  layer_name               = "${local.function_name}-solver"
+  layer_name               = "${local.syntheses_name}-solver"
   compatible_runtimes      = ["python3.13"]
   compatible_architectures = ["arm64"]
   description              = "highspy 1.15.1 and numpy 2.3.5: the solver the synthesizer's backbone search calls."

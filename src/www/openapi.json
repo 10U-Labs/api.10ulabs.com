@@ -2447,7 +2447,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListWanSynthesesHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3104,7 +3104,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ReadWanSynthesisHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3307,7 +3307,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListWanPopsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3437,7 +3437,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ReadWanPopHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3568,7 +3568,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListBackboneCircuitsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3693,7 +3693,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListHomingCircuitsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3842,7 +3842,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListRiddenFiberHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3965,7 +3965,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListSitesHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4096,7 +4096,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ReadSiteHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4213,7 +4213,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListRunRegionsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4338,7 +4338,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ReadRunRegionHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4449,7 +4449,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListOffNetHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4540,7 +4540,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListForcedWanPopsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4637,7 +4637,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListForcedCircuitsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4734,7 +4734,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListForcedHomesHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4825,7 +4825,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListProhibitedWanPopsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -4922,7 +4922,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListProhibitedCircuitsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -5013,7 +5013,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesHandlerArn}",
+          "uri": "${ListDegreeExemptWanPopsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
