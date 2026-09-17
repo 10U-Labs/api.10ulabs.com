@@ -309,6 +309,18 @@ resource "aws_cloudfront_distribution" "api" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
   }
 
+  ordered_cache_behavior {
+    path_pattern           = "/rack-configurations/*"
+    target_origin_id       = "gateway"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    cache_policy_id          = aws_cloudfront_cache_policy.reads.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+  }
+
   viewer_certificate {
     acm_certificate_arn      = aws_acm_certificate_validation.api.certificate_arn
     ssl_support_method       = "sni-only"
