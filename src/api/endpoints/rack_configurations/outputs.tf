@@ -1,11 +1,11 @@
-output "lambda_function_arn" {
-  description = "ARN of the rack configurations Lambda."
-  value       = aws_lambda_function.handler.arn
+output "lambda_function_arns" {
+  description = "ARN of each verb's Lambda, by verb."
+  value       = { for verb, function in aws_lambda_function.verb : verb => function.arn }
 }
 
-output "lambda_function_name" {
-  description = "Name of the rack configurations Lambda."
-  value       = aws_lambda_function.handler.function_name
+output "lambda_function_names" {
+  description = "Name of each verb's Lambda, by verb."
+  value       = { for verb, function in aws_lambda_function.verb : verb => function.function_name }
 }
 
 output "table_name" {

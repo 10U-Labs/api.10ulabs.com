@@ -5510,7 +5510,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${RackConfigurationsHandlerArn}",
+          "uri": "${StoreRackConfigurationHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -5655,7 +5655,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${RackConfigurationsHandlerArn}",
+          "uri": "${ReadRackConfigurationHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
