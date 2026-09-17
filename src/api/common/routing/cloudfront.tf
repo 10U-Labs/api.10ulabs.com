@@ -60,6 +60,21 @@ resource "aws_s3_object" "not_found" {
   etag         = filemd5("${path.module}/../../../www/404.html")
 }
 
+resource "terraform_data" "invalidation" {
+  triggers_replace = [
+    aws_s3_object.index.etag,
+    aws_s3_object.spec.etag,
+    aws_s3_object.not_found.etag,
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      id=$(aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.api.id} --paths '/*' --query Invalidation.Id --output text)
+      aws cloudfront wait invalidation-completed --distribution-id ${aws_cloudfront_distribution.api.id} --id "$id"
+    EOT
+  }
+}
+
 resource "aws_cloudfront_origin_access_control" "www" {
   name                              = local.www_bucket
   origin_access_control_origin_type = "s3"
