@@ -16,8 +16,13 @@ INPUTS = {
 
 
 @pytest.fixture
-def handler(endpoint: Callable[[str], ModuleType]) -> ModuleType:
-    return endpoint("wan_syntheses")
+def handler(
+    request: pytest.FixtureRequest,
+    endpoint: Callable[..., ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
+) -> ModuleType:
+    monkeypatch.setenv("SYNTHESIZER", "the-synthesizer")
+    return endpoint("wan_syntheses", getattr(request.module, "HANDLER", "lambda"))
 
 
 @pytest.fixture

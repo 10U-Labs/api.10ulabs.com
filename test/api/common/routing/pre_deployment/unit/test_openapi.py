@@ -151,7 +151,11 @@ WAN_POP_FIELDS = [
 READINGS = [(SYNTHESES, "get"), (SYNTHESIS, "get")] + UNDER_A_SYNTHESIS + (
     UNDER_A_WAN_POP + UNDER_A_SITE + UNDER_A_RUN_REGION
 )
-WRITINGS = [(SYNTHESES, "post"), (SYNTHESIS, "delete")]
+WRITE_VERBS = [
+    (SYNTHESES, "post", "${CreateWanSynthesisHandlerArn}"),
+    (SYNTHESIS, "delete", "${DeleteWanSynthesisHandlerArn}"),
+]
+WRITINGS = [(path, method) for path, method, _ in WRITE_VERBS]
 SYNTHESES_OPERATIONS = READINGS + WRITINGS
 RUN_FIELDS = [
     "label", "wan_pop_count", "backbone_number_of_diverse_circuits", "homing_degree",
@@ -387,7 +391,9 @@ def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, metho
     assert "content" not in openapi["paths"][path][method]["responses"]["204"]
 
 
-@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS + RACK_VERBS)
+@pytest.mark.parametrize(
+    ("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS + RACK_VERBS + WRITE_VERBS
+)
 def test_each_verb_is_served_by_its_own_handler(
     openapi: Dict[str, Any], path: str, method: str, uri: str
 ) -> None:
@@ -408,13 +414,6 @@ def test_the_syntheses_are_served_by_the_syntheses_handler(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesHandlerArn}"
-
-
-@pytest.mark.parametrize(("path", "method"), WRITINGS)
-def test_the_syntheses_are_written_by_the_writer(
-    openapi: Dict[str, Any], path: str, method: str
-) -> None:
-    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${WanSynthesesWriterHandlerArn}"
 
 
 def test_a_synthesis_answers_get_and_delete(openapi: Dict[str, Any]) -> None:
