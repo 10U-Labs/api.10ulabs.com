@@ -16,6 +16,7 @@ CACHED_READS = [
     "/carriers", "/carriers/1", "/carriers/1/pops", "/carriers/1/pops/1",
     "/carriers/1/fiber-segments", "/carriers/1/fiber-segments/1",
     REGIONS, f"{REGIONS}/1",
+    "/rack-configurations/abcdefghi",
 ]
 EVERY_METHOD = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 
