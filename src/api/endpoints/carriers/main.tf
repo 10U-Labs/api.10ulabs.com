@@ -58,7 +58,7 @@ resource "aws_lambda_function" "handler" {
   architectures    = ["arm64"]
   timeout          = 10
   memory_size      = 128
-  description      = "Carriers endpoint: lists or adds a carrier's PoPs or serves, corrects or removes one by its id, and lists or adds its fiber segments or serves, corrects or removes one by its id."
+  description      = "Carriers endpoint: lists or adds a carrier's fiber segments, or serves, corrects or removes one by its id."
 
   environment {
     variables = {

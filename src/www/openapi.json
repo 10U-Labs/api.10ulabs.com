@@ -584,7 +584,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${ListPopsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -758,7 +758,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${AddPopHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -875,7 +875,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${ReadPopHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1051,7 +1051,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${CorrectPopHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1125,7 +1125,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${RemovePopHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }

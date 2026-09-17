@@ -25,6 +25,31 @@ locals {
       description = "Deletes a carrier by its id, with the PoPs and fiber segments under it."
       actions     = ["dynamodb:Query", "dynamodb:DeleteItem"]
     }
+    list_pops = {
+      name        = module.common.lambda_handler_names.list_pops
+      description = "Lists the PoPs of a carrier."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    add_pop = {
+      name        = module.common.lambda_handler_names.add_pop
+      description = "Adds a PoP to a carrier under the next id the carrier holds."
+      actions     = ["dynamodb:UpdateItem", "dynamodb:PutItem"]
+    }
+    read_pop = {
+      name        = module.common.lambda_handler_names.read_pop
+      description = "Serves a PoP of a carrier by its id."
+      actions     = ["dynamodb:GetItem"]
+    }
+    correct_pop = {
+      name        = module.common.lambda_handler_names.correct_pop
+      description = "Corrects a PoP of a carrier by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:PutItem"]
+    }
+    remove_pop = {
+      name        = module.common.lambda_handler_names.remove_pop
+      description = "Removes a PoP of a carrier by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
+    }
   }
 }
 

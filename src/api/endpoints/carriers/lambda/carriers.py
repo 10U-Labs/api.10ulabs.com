@@ -1,9 +1,15 @@
 import logging
 import os
-from typing import Any, Dict, Optional
+from functools import partial
+from typing import Any, Callable, Dict, NamedTuple, Optional
 
-from lambda_http import parse_fields, path_id
-from store import member, sort_id
+from botocore.exceptions import ClientError
+
+from lambda_http import (
+    created, error_response, has_numbers, has_strings, json_response, no_content, parse_fields,
+    parse_valid, path_id,
+)
+from store import advance, conditional, delete, member, partition, put, sort_id
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -11,6 +17,12 @@ logger.setLevel(logging.INFO)
 COLLECTION = 'carriers'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
+MISSING_POP = 'No such pop'
+POPS = 'pops'
+PLACE = ('municipality', 'state', 'country')
+NAMED = ('municipality', 'country')
+COORDINATES = ('latitude', 'longitude')
+POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
 
 
 def carrier(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -31,3 +43,173 @@ def named(event: Dict[str, Any]) -> Optional[str]:
         return None
     name = body['name']
     return name if isinstance(name, str) and name else None
+
+
+def pop(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'id': sort_id(item),
+        'municipality': item['municipality']['S'],
+        'state': item['state']['S'],
+        'country': item['country']['S'],
+        'latitude': float(item['latitude']['N']),
+        'longitude': float(item['longitude']['N']),
+    }
+
+
+Row = Callable[[Dict[str, Any]], Dict[str, Any]]
+
+
+def list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> Dict[str, Any]:
+    carrier_id = requested(event)
+    if carrier_id is None:
+        return error_response(404, MISSING)
+    try:
+        stored = held(COLLECTION, carrier_id)
+        table = os.environ['STORE_TABLE']
+        items = partition(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/') if stored else []
+    except ClientError as error:
+        logger.error('Error reading the %s of carrier %s: %s', prefix, carrier_id, error)
+        return error_response(500, failure)
+    if stored is None:
+        return error_response(404, MISSING)
+    return json_response(200, sorted(map(row, items), key=lambda one: one['id']))
+
+
+def next_under(carrier_id: str, counter: str) -> Optional[int]:
+    try:
+        return advance(
+            os.environ['STORE_TABLE'], {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, counter,
+            ConditionExpression='attribute_exists(PK)',
+            UpdateExpression='SET #next = #next + :one',
+        )
+    except ClientError as error:
+        if conditional(error):
+            return None
+        raise
+
+
+def pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return parse_valid(
+        event, PLACE + COORDINATES,
+        lambda body: has_strings(body, PLACE, NAMED) and has_numbers(body, COORDINATES),
+    )
+
+
+def put_under(
+    carrier_id: str, prefix: str, member_id: str, attributes: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    table = os.environ['STORE_TABLE']
+    return put(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}', attributes, **request)
+
+
+def put_pop(
+    carrier_id: str, pop_id: str, body: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    return put_under(carrier_id, POPS, pop_id, {
+        **{field: {'S': body[field]} for field in PLACE},
+        **{field: {'N': str(body[field])} for field in COORDINATES},
+    }, **request)
+
+
+Body = Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]
+Put = Callable[..., Dict[str, Any]]
+
+
+class Kind(NamedTuple):
+    prefix: str
+    parameter: str
+    missing: str
+    counter: str
+    body: Body
+    refusal: str
+    put: Put
+    row: Row
+    failure: str
+
+
+POP_KIND = Kind(
+    POPS, 'pop_id', MISSING_POP, 'next_pop', pop_body, POP_BODY, put_pop, pop,
+    'Failed to add the pop',
+)
+
+
+def add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
+    body = kind.body(event)
+    if body is None:
+        return error_response(400, kind.refusal)
+    carrier_id = requested(event)
+    if carrier_id is None:
+        return error_response(404, MISSING)
+    try:
+        member_id = next_under(carrier_id, kind.counter)
+        item = kind.put(carrier_id, str(member_id), body) if member_id is not None else None
+    except ClientError as error:
+        logger.error('Error adding to the %s of carrier %s: %s', kind.prefix, carrier_id, error)
+        return error_response(500, kind.failure)
+    if item is None:
+        return error_response(404, MISSING)
+    return created(f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}', kind.row(item))
+
+
+Act = Callable[[str, str], Optional[Dict[str, Any]]]
+Answer = Callable[[Dict[str, Any]], Dict[str, Any]]
+
+
+def on_member(
+    event: Dict[str, Any], kind: Kind, act: Act, failure: str, answer: Optional[Answer] = None
+) -> Dict[str, Any]:
+    carrier_id = requested(event)
+    if carrier_id is None:
+        return error_response(404, MISSING)
+    member_id = path_id(event, kind.parameter)
+    if member_id is None:
+        return error_response(404, kind.missing)
+    try:
+        stored = held(COLLECTION, carrier_id)
+        item = act(carrier_id, member_id) if stored else None
+    except ClientError as error:
+        logger.error(
+            'Error with %s/%s of carrier %s: %s', kind.prefix, member_id, carrier_id, error
+        )
+        return error_response(500, failure)
+    if stored is None:
+        return error_response(404, MISSING)
+    if item is None:
+        return error_response(404, kind.missing)
+    return answer(item) if answer else json_response(200, kind.row(item))
+
+
+def stored_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
+    return held(f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
+
+
+def read_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    return on_member(event, kind, partial(stored_under, prefix=kind.prefix), failure)
+
+
+def replace_under(
+    carrier_id: str, member_id: str, kind: Kind, body: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    try:
+        return kind.put(carrier_id, member_id, body, ConditionExpression='attribute_exists(PK)')
+    except ClientError as error:
+        if conditional(error):
+            return None
+        raise
+
+
+def update_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    body = kind.body(event)
+    if body is None:
+        return error_response(400, kind.refusal)
+    return on_member(event, kind, partial(replace_under, kind=kind, body=body), failure)
+
+
+def remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
+    table = os.environ['STORE_TABLE']
+    return delete(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}')
+
+
+def delete_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    removed = partial(remove_under, prefix=kind.prefix)
+    return on_member(event, kind, removed, failure, lambda _gone: no_content())

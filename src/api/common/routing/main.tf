@@ -16,18 +16,23 @@ locals {
   }
 
   openapi_spec = templatefile("${path.module}/../../../www/openapi.json", {
+    AddPopHandlerArn                                = local.integration.add_pop
     AuthorizerHandlerArn                            = local.integration.authorizer
     CarriersHandlerArn                              = local.integration.carriers
     CatchAllHandlerArn                              = local.integration.catchall
     ContactHandlerArn                               = local.integration.contact
+    CorrectPopHandlerArn                            = local.integration.correct_pop
     CreateCarrierHandlerArn                         = local.integration.create_carrier
     DeleteCarrierHandlerArn                         = local.integration.delete_carrier
     DiagnosticsHandlerArn                           = local.integration.diagnostics
     HealthHandlerArn                                = local.integration.health
     HyperscaleCloudServiceProviderRegionsHandlerArn = local.integration.hyperscale_cloud_service_provider_regions
     ListCarriersHandlerArn                          = local.integration.list_carriers
+    ListPopsHandlerArn                              = local.integration.list_pops
     RackConfigurationsHandlerArn                    = local.integration.rack_configurations
     ReadCarrierHandlerArn                           = local.integration.read_carrier
+    ReadPopHandlerArn                               = local.integration.read_pop
+    RemovePopHandlerArn                             = local.integration.remove_pop
     RenameCarrierHandlerArn                         = local.integration.rename_carrier
     SessionsHandlerArn                              = local.integration.sessions
     WanSynthesesHandlerArn                          = local.integration.wan_syntheses
