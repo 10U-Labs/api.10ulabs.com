@@ -11,6 +11,8 @@ ZONE_ID = "Z07722121TJUMGGCZYKBV"
 BUCKET_HOST = f"{API_NAME.replace('.', '-')}.s3.us-east-2.amazonaws.com"
 UNSERVED = f"https://{API_NAME}/nothing-serves-this"
 BROWSING = {"Accept": "text/html,application/xhtml+xml"}
+A_MONTH = 30 * 24 * 60 * 60
+A_YEAR = 365 * 24 * 60 * 60
 
 
 @pytest.fixture(scope="module", name="distribution")
@@ -19,6 +21,14 @@ def distribution_fixture(cloudfront_client: Any) -> Dict[str, Any]:
         if item["Comment"] == API_NAME:
             return dict(item)
     raise LookupError(f"no distribution is commented {API_NAME}")
+
+
+@pytest.fixture(scope="module", name="cache_policy")
+def cache_policy_fixture(cloudfront_client: Any, distribution: Dict[str, Any]) -> Dict[str, Any]:
+    behaviors = distribution["CacheBehaviors"]["Items"]
+    root = next(behavior for behavior in behaviors if behavior["PathPattern"] == "/")
+    policy = cloudfront_client.get_cache_policy(Id=root["CachePolicyId"])
+    return dict(policy["CachePolicy"]["CachePolicyConfig"])
 
 
 def _answer(url: str, headers: Optional[Dict[str, str]] = None) -> Tuple[int, str, str]:
@@ -83,6 +93,18 @@ def test_the_distribution_fronts_the_bucket_named_for_the_host(
 ) -> None:
     origins = [origin["DomainName"] for origin in distribution["Origins"]["Items"]]
     assert BUCKET_HOST in origins
+
+
+def test_the_pages_are_held_for_as_little_as_they_ask(cache_policy: Dict[str, Any]) -> None:
+    assert cache_policy["MinTTL"] == 0
+
+
+def test_the_pages_are_held_a_month_when_they_do_not_say(cache_policy: Dict[str, Any]) -> None:
+    assert cache_policy["DefaultTTL"] == A_MONTH
+
+
+def test_the_pages_are_held_a_year_at_most(cache_policy: Dict[str, Any]) -> None:
+    assert cache_policy["MaxTTL"] == A_YEAR
 
 
 def test_the_root_of_the_distribution_answers_200(root_page: Tuple[int, str, str]) -> None:
