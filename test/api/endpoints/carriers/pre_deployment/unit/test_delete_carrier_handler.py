@@ -47,16 +47,28 @@ def test_a_deletion_leaves_the_other_carriers_alone(store: SimpleNamespace) -> N
 
 @pytest.mark.usefixtures("deleted")
 def test_a_deletion_goes_to_the_table_the_environment_names(store: SimpleNamespace) -> None:
-    assert {request["TableName"] for request in store.deletes} == {"store"}
+    tables = {request["TableName"] for request in store.deletes}
+    assert tables | {table for batch in store.batches for table in batch["RequestItems"]} == {
+        "store"
+    }
 
 
 @pytest.mark.usefixtures("deleted")
-def test_the_carrier_is_deleted_after_everything_under_it(store: SimpleNamespace) -> None:
-    assert [request["Key"] for request in store.deletes] == [
+def test_everything_under_the_carrier_is_deleted_in_one_batch(store: SimpleNamespace) -> None:
+    assert [
+        [one["DeleteRequest"]["Key"] for one in batch["RequestItems"]["store"]]
+        for batch in store.batches
+    ] == [[
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/3"}},
         {"PK": {"S": "carriers/1"}, "SK": {"S": "pops/1"}},
         {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/3"}},
         {"PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/1"}},
+    ]]
+
+
+@pytest.mark.usefixtures("deleted")
+def test_the_carrier_itself_is_deleted_by_one_delete(store: SimpleNamespace) -> None:
+    assert [request["Key"] for request in store.deletes] == [
         {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
     ]
 

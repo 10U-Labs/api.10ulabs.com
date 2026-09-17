@@ -305,3 +305,38 @@ def test_a_fiber_segment_for_a_carrier_that_is_not_there_names_the_error_through
 ) -> None:
     _, body = post_json(f"{stage_url}/carriers/0/fiber-segments", DEN_SLC, bearer)
     assert body["error"] == "No such carrier"
+
+
+@pytest.fixture(name="throwaway", scope="module")
+def throwaway_fixture(
+    stage_url: str,
+    get_json: Callable[..., Tuple[int, Any]],
+    post_json: Callable[..., Tuple[int, Any]],
+    delete_json: Callable[..., Tuple[int, Any]],
+    bearer: Dict[str, str],
+) -> Dict[str, Any]:
+    created, carrier = post_json(f"{stage_url}/carriers", {"name": "throwaway"}, bearer)
+    if created != 201:
+        raise AssertionError(f"the throwaway carrier was refused with {created}")
+    url = f"{stage_url}/carriers/{carrier['id']}"
+    added = [post_json(f"{url}/pops", BOISE, bearer)[0],
+             post_json(f"{url}/fiber-segments", DEN_SLC, bearer)[0]]
+    deleted, _ = delete_json(url, bearer)
+    read_back, _ = get_json(url, bearer)
+    return {"added": added, "deleted": deleted, "read_back": read_back}
+
+
+def test_the_workflows_key_fills_a_carrier_it_built_through_the_deployed_api(
+    throwaway: Dict[str, Any]
+) -> None:
+    assert throwaway["added"] == [201, 201]
+
+
+def test_the_workflows_key_deletes_a_carrier_with_everything_under_it_through_the_deployed_api(
+    throwaway: Dict[str, Any]
+) -> None:
+    assert throwaway["deleted"] == 204
+
+
+def test_a_deleted_carrier_is_gone_through_the_deployed_api(throwaway: Dict[str, Any]) -> None:
+    assert throwaway["read_back"] == 404

@@ -16,7 +16,7 @@ Served = Callable[[Dict[str, Any]], Any]
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
     store = SimpleNamespace(
-        items=[], failing=False, queries=[], gets=[], updates=[], deletes=[], puts=[]
+        items=[], failing=False, queries=[], gets=[], updates=[], deletes=[], puts=[], batches=[]
     )
 
     def refuse(operation: str) -> None:
@@ -98,11 +98,21 @@ def store_fixture() -> SimpleNamespace:
         store.items.append(item)
         return {}
 
+    def batch_write_item(**request: Any) -> Dict[str, Any]:
+        store.batches.append(request)
+        refuse("BatchWriteItem")
+        for one in [one for listed in request["RequestItems"].values() for one in listed]:
+            item = held(one["DeleteRequest"]["Key"])
+            if item is not None:
+                store.items.remove(item)
+        return {"UnprocessedItems": {}}
+
     store.query = query
     store.get_item = get_item
     store.update_item = update_item
     store.delete_item = delete_item
     store.put_item = put_item
+    store.batch_write_item = batch_write_item
     return store
 
 

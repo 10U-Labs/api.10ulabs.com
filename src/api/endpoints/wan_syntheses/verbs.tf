@@ -98,7 +98,7 @@ locals {
     delete_wan_synthesis = {
       name        = module.common.lambda_handler_names.delete_wan_synthesis
       description = "Deletes a finished wan synthesis with everything under it."
-      actions     = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem"]
+      actions     = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:BatchWriteItem", "dynamodb:DeleteItem"]
     }
   }
   sized = {

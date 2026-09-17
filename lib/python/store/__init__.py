@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from lambda_http import aws_client
 
 COUNTER = '#'
+BATCH = 25
 
 
 def partition(table: str, key: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -115,10 +116,19 @@ def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, 
     return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')
 
 
+def _delete_batch(store: Any, table: str, keys: List[Dict[str, Any]]) -> None:
+    requests = [{'DeleteRequest': {'Key': key}} for key in keys]
+    while requests:
+        answer = store.batch_write_item(RequestItems={table: requests})
+        requests = answer.get('UnprocessedItems', {}).get(table, [])
+
+
 def remove(table: str, collection: str, member_id: str) -> bool:
     store = aws_client('dynamodb')
-    for item in partition(table, f'{collection}/{member_id}'):
-        store.delete_item(TableName=table, Key={'PK': item['PK'], 'SK': item['SK']})
+    under = partition(table, f'{collection}/{member_id}')
+    keys = [{'PK': item['PK'], 'SK': item['SK']} for item in under]
+    for start in range(0, len(keys), BATCH):
+        _delete_batch(store, table, keys[start:start + BATCH])
     try:
         store.delete_item(
             TableName=table,

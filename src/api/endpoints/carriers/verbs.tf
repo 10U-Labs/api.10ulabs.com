@@ -23,7 +23,7 @@ locals {
     delete_carrier = {
       name        = module.common.lambda_handler_names.delete_carrier
       description = "Deletes a carrier by its id, with the PoPs and fiber segments under it."
-      actions     = ["dynamodb:Query", "dynamodb:DeleteItem"]
+      actions     = ["dynamodb:Query", "dynamodb:BatchWriteItem", "dynamodb:DeleteItem"]
     }
     list_pops = {
       name        = module.common.lambda_handler_names.list_pops

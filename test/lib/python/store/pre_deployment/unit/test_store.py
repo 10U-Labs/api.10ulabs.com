@@ -18,7 +18,8 @@ ZAYO = {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "zayo"}}
 @pytest.fixture(name="dynamodb")
 def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     dynamodb = SimpleNamespace(
-        queries=[], gets=[], updates=[], puts=[], deletes=[], items=[COUNTER, ZAYO, LUMEN]
+        queries=[], gets=[], updates=[], puts=[], deletes=[], batches=[], unprocessed=[],
+        items=[COUNTER, ZAYO, LUMEN],
     )
 
     def query(**request: Any) -> Dict[str, Any]:
@@ -46,11 +47,20 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "DeleteItem")
         return {"Attributes": held[0]}
 
+    def batch_write_item(**request: Any) -> Dict[str, Any]:
+        dynamodb.batches.append(request)
+        for one in request["RequestItems"]["the-table"]:
+            dynamodb.items = [
+                item for item in dynamodb.items if item["SK"] != one["DeleteRequest"]["Key"]["SK"]
+            ]
+        return {"UnprocessedItems": dynamodb.unprocessed.pop(0) if dynamodb.unprocessed else {}}
+
     dynamodb.query = query
     dynamodb.get_item = get_item
     dynamodb.update_item = update_item
     dynamodb.put_item = put_item
     dynamodb.delete_item = delete_item
+    dynamodb.batch_write_item = batch_write_item
     monkeypatch.setattr(store, "aws_client", lambda service: {"dynamodb": dynamodb}[service])
     return dynamodb
 
@@ -392,24 +402,81 @@ def test_a_removal_reads_everything_under_the_member(furnished: SimpleNamespace)
     assert _query(furnished)["ExpressionAttributeValues"] == {":pk": {"S": "carriers/1"}}
 
 
-def test_a_removal_deletes_everything_under_the_member_then_the_member(
+def _batched(dynamodb: SimpleNamespace) -> List[List[Dict[str, Any]]]:
+    batches: List[Dict[str, Any]] = dynamodb.batches
+    return [
+        [one["DeleteRequest"]["Key"] for one in batch["RequestItems"]["the-table"]]
+        for batch in batches
+    ]
+
+
+@pytest.fixture(name="crowded")
+def crowded_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
+    under = [{"PK": {"S": "carriers/1"}, "SK": {"S": f"pops/{n}"}} for n in range(30)]
+
+    def query(**request: Any) -> Dict[str, Any]:
+        dynamodb.queries.append(request)
+        return {"Items": list(under), "Count": len(under)}
+    dynamodb.query = query
+    dynamodb.items.extend(under)
+    return dynamodb
+
+
+@pytest.fixture(name="bare")
+def bare_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
+    def query(**request: Any) -> Dict[str, Any]:
+        dynamodb.queries.append(request)
+        return {"Items": [], "Count": 0}
+    dynamodb.query = query
+    return dynamodb
+
+
+def test_a_removal_batches_the_deletes_of_everything_under_the_member(
     furnished: SimpleNamespace
 ) -> None:
     remove("the-table", "carriers", "1")
+    assert _batched(furnished) == [UNDER_LUMEN]
+
+
+def test_a_removal_deletes_the_member_itself_by_one_delete(furnished: SimpleNamespace) -> None:
+    remove("the-table", "carriers", "1")
     assert [request["Key"] for request in furnished.deletes] == [
-        *UNDER_LUMEN, {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
+        {"PK": {"S": "carriers"}, "SK": {"S": "1"}},
     ]
+
+
+def test_a_removal_of_a_member_with_nothing_under_it_batches_nothing(
+    bare: SimpleNamespace
+) -> None:
+    remove("the-table", "carriers", "1")
+    assert bare.batches == []
+
+
+def test_a_removal_sends_at_most_twenty_five_deletes_a_batch(crowded: SimpleNamespace) -> None:
+    remove("the-table", "carriers", "1")
+    assert [len(batch) for batch in _batched(crowded)] == [25, 5]
+
+
+def test_a_removal_sends_the_deletes_the_store_left_unprocessed_again(
+    furnished: SimpleNamespace
+) -> None:
+    furnished.unprocessed = [{"the-table": [{"DeleteRequest": {"Key": UNDER_LUMEN[1]}}]}]
+    remove("the-table", "carriers", "1")
+    assert _batched(furnished) == [UNDER_LUMEN, [UNDER_LUMEN[1]]]
 
 
 def test_a_removal_goes_to_the_table_it_names(furnished: SimpleNamespace) -> None:
     remove("the-table", "carriers", "1")
-    assert {request["TableName"] for request in furnished.deletes} == {"the-table"}
+    tables = {request["TableName"] for request in furnished.deletes}
+    assert tables | {table for batch in furnished.batches for table in batch["RequestItems"]} == {
+        "the-table"
+    }
 
 
 def test_a_removal_requires_the_member_alone_to_exist(furnished: SimpleNamespace) -> None:
     remove("the-table", "carriers", "1")
     assert [request.get("ConditionExpression") for request in furnished.deletes] == [
-        None, None, "attribute_exists(PK)",
+        "attribute_exists(PK)",
     ]
 
 
