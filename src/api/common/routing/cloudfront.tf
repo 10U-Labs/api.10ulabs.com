@@ -45,12 +45,11 @@ resource "aws_s3_object" "index" {
 }
 
 resource "aws_s3_object" "spec" {
-  bucket        = aws_s3_bucket.www.id
-  key           = "openapi.json"
-  source        = "${path.module}/../../../www/openapi.json"
-  content_type  = "application/json"
-  cache_control = "max-age=60"
-  etag          = filemd5("${path.module}/../../../www/openapi.json")
+  bucket       = aws_s3_bucket.www.id
+  key          = "openapi.json"
+  source       = "${path.module}/../../../www/openapi.json"
+  content_type = "application/json"
+  etag         = filemd5("${path.module}/../../../www/openapi.json")
 }
 
 resource "aws_s3_object" "not_found" {
