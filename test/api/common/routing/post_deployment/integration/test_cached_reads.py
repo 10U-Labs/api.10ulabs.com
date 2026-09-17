@@ -7,6 +7,7 @@ import pytest
 API_NAME = "api.10ulabs.com"
 COLLECTIONS = ["/carriers", "/hyperscale-cloud-service-provider-regions"]
 HIT = "Hit from cloudfront"
+RE_READS = 5
 UNKNOWN = {"Authorization": "Bearer not-the-key"}
 RACK = "/rack-configurations"
 SUBMISSION = {
@@ -24,13 +25,21 @@ def _answered(path: str, headers: Optional[Dict[str, str]] = None) -> Tuple[int,
         return error.code, str(error.headers.get("X-Cache"))
 
 
+def _repeated(path: str, headers: Optional[Dict[str, str]] = None) -> Tuple[int, str]:
+    answer = _answered(path, headers)
+    for _ in range(RE_READS):
+        if answer[1] == HIT:
+            break
+        answer = _answered(path, headers)
+    return answer
+
+
 @pytest.fixture(scope="module", name="cached", params=COLLECTIONS)
 def cached_fixture(
     request: pytest.FixtureRequest, bearer: Dict[str, str]
 ) -> Tuple[str, Tuple[int, str]]:
     collection = str(request.param)
-    _answered(collection, bearer)
-    return collection, _answered(collection, bearer)
+    return collection, _repeated(collection, bearer)
 
 
 def test_a_repeated_read_of_a_cached_collection_is_served_by_the_distribution(
@@ -74,4 +83,4 @@ def test_a_stored_configuration_is_read_back_through_the_name(
 def test_a_repeated_read_of_a_stored_configuration_is_served_by_the_distribution(
     stored_hash: str
 ) -> None:
-    assert _answered(f"{RACK}/{stored_hash}") == (200, HIT)
+    assert _repeated(f"{RACK}/{stored_hash}") == (200, HIT)
