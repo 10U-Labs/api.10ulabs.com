@@ -15,8 +15,8 @@ def table_fixture() -> SimpleNamespace:
     def put_item(**request: Any) -> None:
         if table.failing:
             raise ClientError({"Error": {"Code": "InternalServerError"}}, "PutItem")
-        stored: List[str] = [item["config_hash"]["S"] for item in table.items]
-        if request["Item"]["config_hash"]["S"] in stored:
+        hashes: List[str] = [item["config_hash"]["S"] for item in table.items]
+        if request["Item"]["config_hash"]["S"] in hashes:
             raise ClientError({"Error": {"Code": "ConditionalCheckFailedException"}}, "PutItem")
         table.items.append(request["Item"])
 
@@ -49,11 +49,11 @@ def rack_fixture(
     distribution: SimpleNamespace,
 ) -> Callable[[str], ModuleType]:
     def load(verb: str) -> ModuleType:
-        handler = load_handler("api/endpoints/rack_configurations", f"lambda/{verb}")
+        module = load_handler("api/endpoints/rack_configurations", f"lambda/{verb}")
         monkeypatch.setenv("RACK_CONFIGURATIONS_TABLE", "configurations")
-        monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": table}[service])
-        monkeypatch.setattr(handler, "invalidate", distribution.invalidate, raising=False)
-        return handler
+        monkeypatch.setattr(module, "aws_client", lambda service: {"dynamodb": table}[service])
+        monkeypatch.setattr(module, "invalidate", distribution.invalidate, raising=False)
+        return module
     return load
 
 
@@ -66,8 +66,8 @@ def handler(request: pytest.FixtureRequest, rack: Callable[[str], ModuleType]) -
 def stored(rack: Callable[[str], ModuleType]) -> Callable[[Dict[str, Any]], str]:
     storer = rack("store_rack_configuration")
 
-    def storing(configuration: Dict[str, Any]) -> str:
-        answer = storer.lambda_handler(post(submission(configuration)), None)
+    def storing(submitted: Dict[str, Any]) -> str:
+        answer = storer.lambda_handler(post(submission(submitted)), None)
         return str(json.loads(answer["body"])["config_hash"])
     return storing
 

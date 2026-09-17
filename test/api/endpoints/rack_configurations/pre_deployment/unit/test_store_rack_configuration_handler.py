@@ -1,11 +1,10 @@
 import json
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict
 
 import pytest
 
 from lambda_http import Handler
-from rack_configurations import configuration_hash
 from rack_events import RACK_CONFIGURATIONS, post, submission
 
 Served = Callable[[Dict[str, Any]], Any]
@@ -31,9 +30,9 @@ def test_the_answer_carries_a_nine_character_hash(
     assert len(served(post(submission(configuration)))["config_hash"]) == 9
 
 
-def test_the_hash_is_the_one_10ulabs_com_computes() -> None:
+def test_the_hash_is_the_one_10ulabs_com_computes(handler: ModuleType) -> None:
     smallest = {"rackHeight": 1, "rackCount": 1, "placedParts": []}
-    assert configuration_hash(smallest) == "YGMVKYYYT"
+    assert handler.configuration_hash(smallest) == "YGMVKYYYT"
 
 
 def test_the_hash_is_stored_with_the_configuration(
