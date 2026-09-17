@@ -78,7 +78,14 @@ REGION = "/hyperscale-cloud-service-provider-regions/{id}"
 REGION_SERVINGS = ["get", "put"]
 REGION_METHODS = REGION_SERVINGS + ["delete"]
 A_REGION = [(REGION, method) for method in REGION_METHODS]
-REGIONS_OPERATIONS = [(REGIONS, method) for method in REGIONS_METHODS] + A_REGION
+REGION_VERBS = [
+    (REGIONS, "get", "${ListRegionsHandlerArn}"),
+    (REGIONS, "post", "${CreateRegionHandlerArn}"),
+    (REGION, "get", "${ReadRegionHandlerArn}"),
+    (REGION, "put", "${CorrectRegionHandlerArn}"),
+    (REGION, "delete", "${DeleteRegionHandlerArn}"),
+]
+REGIONS_OPERATIONS = [(path, method) for path, method, _ in REGION_VERBS]
 SYNTHESES = "/wan-syntheses"
 SYNTHESIS = "/wan-syntheses/{id}"
 WAN_POPS = "/wan-syntheses/{id}/wan-pops"
@@ -375,19 +382,11 @@ def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, metho
     assert "content" not in openapi["paths"][path][method]["responses"]["204"]
 
 
-@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS)
-def test_each_carrier_verb_is_served_by_its_own_handler(
+@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS)
+def test_each_verb_is_served_by_its_own_handler(
     openapi: Dict[str, Any], path: str, method: str, uri: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == uri
-
-
-@pytest.mark.parametrize(("path", "method"), REGIONS_OPERATIONS)
-def test_the_regions_are_served_by_the_regions_handler(
-    openapi: Dict[str, Any], path: str, method: str
-) -> None:
-    uri = openapi["paths"][path][method][INTEGRATION]["uri"]
-    assert uri == "${HyperscaleCloudServiceProviderRegionsHandlerArn}"
 
 
 def test_the_regions_answer_get_and_post(openapi: Dict[str, Any]) -> None:
