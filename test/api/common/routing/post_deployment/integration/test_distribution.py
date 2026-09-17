@@ -63,6 +63,13 @@ def served_spec_fixture() -> Tuple[int, str, str]:
     return _answer(f"https://{API_NAME}/openapi.json")
 
 
+@pytest.fixture(scope="module", name="spec_cache_control")
+def spec_cache_control_fixture() -> Optional[str]:
+    with urlopen(Request(f"https://{API_NAME}/openapi.json"), timeout=10) as response:
+        header = response.headers.get("Cache-Control")
+        return None if header is None else str(header)
+
+
 @pytest.fixture(scope="module", name="not_found_page")
 def not_found_page_fixture() -> Tuple[int, str, str]:
     return _answer(f"https://{API_NAME}/404.html")
@@ -144,6 +151,12 @@ def test_the_served_spec_is_the_one_the_gateway_is_built_from(
 ) -> None:
     spec = repo_root / "src" / "www" / "openapi.json"
     assert served_spec[2] == spec.read_text(encoding="utf-8")
+
+
+def test_the_served_spec_asks_for_no_holding_time_of_its_own(
+    spec_cache_control: Optional[str],
+) -> None:
+    assert spec_cache_control is None
 
 
 def test_the_not_found_page_answers_200(not_found_page: Tuple[int, str, str]) -> None:
