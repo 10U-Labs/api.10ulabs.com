@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, Optional
 
+from cache import invalidate
 from lambda_http import has_numbers, has_strings, parse_valid
 from store import sort_id
 
@@ -26,6 +27,10 @@ def region(item: Dict[str, Any]) -> Dict[str, Any]:
         **{field: item[field]['S'] for field in WORDED},
         **{field: float(item[field]['N']) for field in COORDINATES},
     }
+
+
+def staled(region_id: str) -> None:
+    invalidate([ROUTE, f'{ROUTE}/{region_id}'])
 
 
 def region_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:

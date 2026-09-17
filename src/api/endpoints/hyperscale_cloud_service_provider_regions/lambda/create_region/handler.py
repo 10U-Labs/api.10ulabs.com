@@ -4,7 +4,9 @@ from typing import Any, Dict
 from botocore.exceptions import ClientError
 
 from lambda_http import created, dispatch, error_response
-from regions import COLLECTION, REGION_BODY, ROUTE, attributes, logger, region, region_body
+from regions import (
+    COLLECTION, REGION_BODY, ROUTE, attributes, logger, region, region_body, staled,
+)
 from store import next_id, put
 
 FAILURE = 'Failed to create the hyperscale cloud service provider region'
@@ -21,6 +23,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         logger.error('Error creating the hyperscale cloud service provider region: %s', error)
         return error_response(500, FAILURE)
+    staled(str(region_id))
     return created(f'{ROUTE}/{region_id}', region(item))
 
 

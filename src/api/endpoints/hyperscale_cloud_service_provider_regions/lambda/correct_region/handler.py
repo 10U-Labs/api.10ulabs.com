@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 
 from lambda_http import dispatch, error_response, json_response, path_id
 from regions import (
-    COLLECTION, MEMBER, MISSING, REGION_BODY, attributes, logger, region, region_body,
+    COLLECTION, MEMBER, MISSING, REGION_BODY, attributes, logger, region, region_body, staled,
 )
 from store import conditional, put
 
@@ -29,6 +29,7 @@ def _correct(event: Dict[str, Any]) -> Dict[str, Any]:
             return error_response(404, MISSING)
         logger.error('Error updating region %s: %s', region_id, error)
         return error_response(500, FAILURE)
+    staled(region_id)
     return json_response(200, region(item))
 
 
