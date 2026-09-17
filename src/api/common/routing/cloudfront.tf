@@ -124,6 +124,34 @@ resource "aws_cloudfront_cache_policy" "www" {
   }
 }
 
+resource "aws_cloudfront_cache_policy" "reads" {
+  name        = "${module.common.product}-reads"
+  comment     = "A read of the API, keyed on its path and Authorization header so an unknown token still reaches the authorizer."
+  min_ttl     = 0
+  default_ttl = 86400
+  max_ttl     = 86400
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config {
+      cookie_behavior = "none"
+    }
+
+    headers_config {
+      header_behavior = "whitelist"
+      headers {
+        items = ["Authorization"]
+      }
+    }
+
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+
+    enable_accept_encoding_brotli = true
+    enable_accept_encoding_gzip   = true
+  }
+}
+
 resource "aws_cloudfront_function" "root" {
   name    = "${module.common.product}-root"
   runtime = "cloudfront-js-2.0"
@@ -231,6 +259,30 @@ resource "aws_cloudfront_distribution" "api" {
 
     cache_policy_id          = aws_cloudfront_cache_policy.www.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3_origin.id
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/carriers"
+    target_origin_id       = "gateway"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    cache_policy_id          = aws_cloudfront_cache_policy.reads.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/carriers/*"
+    target_origin_id       = "gateway"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    cache_policy_id          = aws_cloudfront_cache_policy.reads.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
   }
 
   viewer_certificate {
