@@ -324,8 +324,8 @@ def test_a_refused_run_is_invalidated_once_marked_synthesizing_and_again_once_ma
     assert distribution.invalidated == [RUN_PATHS, RUN_PATHS]
 
 
-@pytest.fixture(name="unmarked")
-def unmarked_fixture(
+@pytest.fixture
+def unmarked(
     synthesizer: ModuleType, store: SimpleNamespace, run: List[Dict[str, Any]]
 ) -> None:
     store.items.extend(run)

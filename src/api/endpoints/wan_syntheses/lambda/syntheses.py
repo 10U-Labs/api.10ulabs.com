@@ -18,8 +18,8 @@ NO_WAN = 'The synthesis has no wan'
 
 
 def staled(synthesis_id: str) -> None:
-    one = f'/{COLLECTION}/{synthesis_id}'
-    invalidate([f'/{COLLECTION}', one, f'{one}/*'])
+    route = f'/{COLLECTION}/{synthesis_id}'
+    invalidate([f'/{COLLECTION}', route, f'{route}/*'])
 
 
 def synthesis(item: Dict[str, Any]) -> Dict[str, Any]:
