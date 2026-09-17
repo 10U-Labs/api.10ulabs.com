@@ -49,7 +49,7 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
     def batch_write_item(**request: Any) -> Dict[str, Any]:
         dynamodb.batches.append(request)
-        for one in request["RequestItems"]["the-table"]:
+        for one in [one for listed in request["RequestItems"].values() for one in listed]:
             dynamodb.items = [
                 item for item in dynamodb.items if item["SK"] != one["DeleteRequest"]["Key"]["SK"]
             ]

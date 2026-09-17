@@ -13,6 +13,22 @@ from lambda_http import Handler
 Served = Callable[[Dict[str, Any]], Any]
 
 
+def _batch_deleting(
+    store: SimpleNamespace,
+    held: Callable[..., Optional[Dict[str, Any]]],
+    refuse: Callable[..., None],
+) -> Callable[..., Dict[str, Any]]:
+    def batch_write_item(**request: Any) -> Dict[str, Any]:
+        store.batches.append(request)
+        refuse("BatchWriteItem")
+        for one in [one for listed in request["RequestItems"].values() for one in listed]:
+            item = held(one["DeleteRequest"]["Key"])
+            if item is not None:
+                store.items.remove(item)
+        return {"UnprocessedItems": {}}
+    return batch_write_item
+
+
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
     store = SimpleNamespace(
@@ -98,21 +114,12 @@ def store_fixture() -> SimpleNamespace:
         store.items.append(item)
         return {}
 
-    def batch_write_item(**request: Any) -> Dict[str, Any]:
-        store.batches.append(request)
-        refuse("BatchWriteItem")
-        for one in [one for listed in request["RequestItems"].values() for one in listed]:
-            item = held(one["DeleteRequest"]["Key"])
-            if item is not None:
-                store.items.remove(item)
-        return {"UnprocessedItems": {}}
-
     store.query = query
     store.get_item = get_item
     store.update_item = update_item
     store.delete_item = delete_item
     store.put_item = put_item
-    store.batch_write_item = batch_write_item
+    store.batch_write_item = _batch_deleting(store, held, refuse)
     return store
 
 
