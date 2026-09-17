@@ -46,8 +46,10 @@ output "lambda_handler_names" {
     correct_region           = "api-10ulabs-com-correct-region"
     create_carrier           = "api-10ulabs-com-create-carrier"
     create_region            = "api-10ulabs-com-create-region"
+    create_wan_synthesis     = "api-10ulabs-com-create-wan-synthesis"
     delete_carrier           = "api-10ulabs-com-delete-carrier"
     delete_region            = "api-10ulabs-com-delete-region"
+    delete_wan_synthesis     = "api-10ulabs-com-delete-wan-synthesis"
     diagnostics              = "api-10ulabs-com-diagnostics"
     health                   = "api-10ulabs-com-health"
     list_carriers            = "api-10ulabs-com-list-carriers"
@@ -65,7 +67,6 @@ output "lambda_handler_names" {
     sessions                 = "api-10ulabs-com-sessions"
     store_rack_configuration = "api-10ulabs-com-store-rack-configuration"
     wan_syntheses            = "api-10ulabs-com-wan-syntheses"
-    wan_syntheses_writer     = "api-10ulabs-com-wan-syntheses-writer"
   }
 }
 

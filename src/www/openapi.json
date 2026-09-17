@@ -2929,7 +2929,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesWriterHandlerArn}",
+          "uri": "${CreateWanSynthesisHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -3185,7 +3185,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${WanSynthesesWriterHandlerArn}",
+          "uri": "${DeleteWanSynthesisHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }

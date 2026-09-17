@@ -8,9 +8,14 @@ output "lambda_function_name" {
   value       = aws_lambda_function.handler.function_name
 }
 
-output "writer_function_name" {
-  description = "Name of the Lambda that creates and deletes wan syntheses."
-  value       = aws_lambda_function.writer.function_name
+output "lambda_function_arns" {
+  description = "ARN of each verb's Lambda, by verb."
+  value       = { for verb, function in aws_lambda_function.verb : verb => function.arn }
+}
+
+output "lambda_function_names" {
+  description = "Name of each verb's Lambda, by verb."
+  value       = { for verb, function in aws_lambda_function.verb : verb => function.function_name }
 }
 
 output "synthesizer_function_name" {

@@ -26,8 +26,10 @@ locals {
     CorrectRegionHandlerArn          = local.integration.correct_region
     CreateCarrierHandlerArn          = local.integration.create_carrier
     CreateRegionHandlerArn           = local.integration.create_region
+    CreateWanSynthesisHandlerArn     = local.integration.create_wan_synthesis
     DeleteCarrierHandlerArn          = local.integration.delete_carrier
     DeleteRegionHandlerArn           = local.integration.delete_region
+    DeleteWanSynthesisHandlerArn     = local.integration.delete_wan_synthesis
     DiagnosticsHandlerArn            = local.integration.diagnostics
     HealthHandlerArn                 = local.integration.health
     ListCarriersHandlerArn           = local.integration.list_carriers
@@ -45,7 +47,6 @@ locals {
     SessionsHandlerArn               = local.integration.sessions
     StoreRackConfigurationHandlerArn = local.integration.store_rack_configuration
     WanSynthesesHandlerArn           = local.integration.wan_syntheses
-    WanSynthesesWriterHandlerArn     = local.integration.wan_syntheses_writer
   })
   spec_hash = substr(md5(local.openapi_spec), 0, 8)
 }

@@ -129,8 +129,8 @@ jobs:
           dont-search-in: test/lib/python/{package}
           search-in: src test lib/python
           trees: >-
-            src/api/endpoints/wan_syntheses/lambda src/api/endpoints/wan_syntheses/writer
-            src/api/endpoints/wan_syntheses/synthesizer lib/python
+            src/api/endpoints/wan_syntheses/lambda src/api/endpoints/wan_syntheses/synthesizer
+            lib/python
           verbose: "true"
   assert-python-definition-is-used-in-tests:
     runs-on: ubuntu-latest
