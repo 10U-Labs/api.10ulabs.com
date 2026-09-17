@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    advance, assign, conditional, conditioned, delete, member, members, next_id, partition, plain,
-    put, remove, sort_id, typed,
+    BATCH, advance, assign, conditional, conditioned, delete, member, members, next_id, partition,
+    plain, put, remove, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -412,7 +412,7 @@ def _batched(dynamodb: SimpleNamespace) -> List[List[Dict[str, Any]]]:
 
 @pytest.fixture(name="crowded")
 def crowded_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
-    under = [{"PK": {"S": "carriers/1"}, "SK": {"S": f"pops/{n}"}} for n in range(30)]
+    under = [{"PK": {"S": "carriers/1"}, "SK": {"S": f"pops/{n}"}} for n in range(BATCH + 5)]
 
     def query(**request: Any) -> Dict[str, Any]:
         dynamodb.queries.append(request)
@@ -454,7 +454,7 @@ def test_a_removal_of_a_member_with_nothing_under_it_batches_nothing(
 
 def test_a_removal_sends_at_most_twenty_five_deletes_a_batch(crowded: SimpleNamespace) -> None:
     remove("the-table", "carriers", "1")
-    assert [len(batch) for batch in _batched(crowded)] == [25, 5]
+    assert [len(batch) for batch in _batched(crowded)] == [BATCH, 5]
 
 
 def test_a_removal_sends_the_deletes_the_store_left_unprocessed_again(

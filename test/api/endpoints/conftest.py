@@ -29,6 +29,22 @@ def _batch_deleting(
     return batch_write_item
 
 
+def _putting(
+    store: SimpleNamespace,
+    required: Callable[..., Dict[str, Any]],
+    refuse: Callable[..., None],
+) -> Callable[..., Dict[str, Any]]:
+    def put_item(**request: Any) -> Dict[str, Any]:
+        store.puts.append(request)
+        refuse("PutItem")
+        item = request["Item"]
+        if "ConditionExpression" in request:
+            store.items.remove(required({"PK": item["PK"], "SK": item["SK"]}, "PutItem"))
+        store.items.append(item)
+        return {}
+    return put_item
+
+
 @pytest.fixture(name="store")
 def store_fixture() -> SimpleNamespace:
     store = SimpleNamespace(
@@ -105,20 +121,11 @@ def store_fixture() -> SimpleNamespace:
         store.items.remove(item)
         return {"Attributes": item}
 
-    def put_item(**request: Any) -> Dict[str, Any]:
-        store.puts.append(request)
-        refuse("PutItem")
-        item = request["Item"]
-        if "ConditionExpression" in request:
-            store.items.remove(required({"PK": item["PK"], "SK": item["SK"]}, "PutItem"))
-        store.items.append(item)
-        return {}
-
     store.query = query
     store.get_item = get_item
     store.update_item = update_item
     store.delete_item = delete_item
-    store.put_item = put_item
+    store.put_item = _putting(store, required, refuse)
     store.batch_write_item = _batch_deleting(store, held, refuse)
     return store
 
