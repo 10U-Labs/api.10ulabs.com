@@ -1237,7 +1237,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${ListFiberSegmentsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1416,7 +1416,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${AddFiberSegmentHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1536,7 +1536,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${ReadFiberSegmentHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1717,7 +1717,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${CorrectFiberSegmentHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -1791,7 +1791,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${CarriersHandlerArn}",
+          "uri": "${RemoveFiberSegmentHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }

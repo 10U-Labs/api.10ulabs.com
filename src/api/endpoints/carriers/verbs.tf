@@ -50,6 +50,31 @@ locals {
       description = "Removes a PoP of a carrier by its id."
       actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
     }
+    list_fiber_segments = {
+      name        = module.common.lambda_handler_names.list_fiber_segments
+      description = "Lists the fiber segments of a carrier."
+      actions     = ["dynamodb:GetItem", "dynamodb:Query"]
+    }
+    add_fiber_segment = {
+      name        = module.common.lambda_handler_names.add_fiber_segment
+      description = "Adds a fiber segment to a carrier under the next id the carrier holds."
+      actions     = ["dynamodb:UpdateItem", "dynamodb:PutItem"]
+    }
+    read_fiber_segment = {
+      name        = module.common.lambda_handler_names.read_fiber_segment
+      description = "Serves a fiber segment of a carrier by its id."
+      actions     = ["dynamodb:GetItem"]
+    }
+    correct_fiber_segment = {
+      name        = module.common.lambda_handler_names.correct_fiber_segment
+      description = "Corrects a fiber segment of a carrier by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:PutItem"]
+    }
+    remove_fiber_segment = {
+      name        = module.common.lambda_handler_names.remove_fiber_segment
+      description = "Removes a fiber segment of a carrier by its id."
+      actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
+    }
   }
 }
 

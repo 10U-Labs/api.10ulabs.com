@@ -18,11 +18,20 @@ COLLECTION = 'carriers'
 BODY = 'The body must be exactly {"name"}'
 MISSING = 'No such carrier'
 MISSING_POP = 'No such pop'
+MISSING_FIBER_SEGMENT = 'No such fiber segment'
 POPS = 'pops'
+FIBER_SEGMENTS = 'fiber-segments'
 PLACE = ('municipality', 'state', 'country')
 NAMED = ('municipality', 'country')
 COORDINATES = ('latitude', 'longitude')
+ENDS = ('a_municipality', 'a_state', 'z_municipality', 'z_state')
+SPANNED = ('a_municipality', 'z_municipality')
+SUBMARINE = 'submarine'
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
+FIBER_SEGMENT_BODY = (
+    'The body must be exactly '
+    '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
+)
 
 
 def carrier(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -54,6 +63,11 @@ def pop(item: Dict[str, Any]) -> Dict[str, Any]:
         'latitude': float(item['latitude']['N']),
         'longitude': float(item['longitude']['N']),
     }
+
+
+def fiber_segment(item: Dict[str, Any]) -> Dict[str, Any]:
+    ends = {field: item[field]['S'] for field in ENDS}
+    return {'id': sort_id(item), **ends, SUBMARINE: item[SUBMARINE]['BOOL']}
 
 
 Row = Callable[[Dict[str, Any]], Dict[str, Any]]
@@ -95,6 +109,13 @@ def pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     )
 
 
+def fiber_segment_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return parse_valid(
+        event, ENDS + (SUBMARINE,),
+        lambda body: has_strings(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool),
+    )
+
+
 def put_under(
     carrier_id: str, prefix: str, member_id: str, attributes: Dict[str, Any], **request: Any
 ) -> Dict[str, Any]:
@@ -108,6 +129,15 @@ def put_pop(
     return put_under(carrier_id, POPS, pop_id, {
         **{field: {'S': body[field]} for field in PLACE},
         **{field: {'N': str(body[field])} for field in COORDINATES},
+    }, **request)
+
+
+def put_fiber_segment(
+    carrier_id: str, segment_id: str, body: Dict[str, Any], **request: Any
+) -> Dict[str, Any]:
+    return put_under(carrier_id, FIBER_SEGMENTS, segment_id, {
+        **{field: {'S': body[field]} for field in ENDS},
+        SUBMARINE: {'BOOL': body[SUBMARINE]},
     }, **request)
 
 
@@ -130,6 +160,11 @@ class Kind(NamedTuple):
 POP_KIND = Kind(
     POPS, 'pop_id', MISSING_POP, 'next_pop', pop_body, POP_BODY, put_pop, pop,
     'Failed to add the pop',
+)
+FIBER_SEGMENT_KIND = Kind(
+    FIBER_SEGMENTS, 'fiber_segment_id', MISSING_FIBER_SEGMENT, 'next_fiber_segment',
+    fiber_segment_body, FIBER_SEGMENT_BODY, put_fiber_segment, fiber_segment,
+    'Failed to add the fiber segment',
 )
 
 
