@@ -86,6 +86,11 @@ REGION_VERBS = [
     (REGION, "delete", "${DeleteRegionHandlerArn}"),
 ]
 REGIONS_OPERATIONS = [(path, method) for path, method, _ in REGION_VERBS]
+RACK_CONFIGURATIONS = "/rack-configurations"
+RACK_VERBS = [
+    (RACK_CONFIGURATIONS, "post", "${StoreRackConfigurationHandlerArn}"),
+    (RACK_CONFIGURATIONS + "/{id}", "get", "${ReadRackConfigurationHandlerArn}"),
+]
 SYNTHESES = "/wan-syntheses"
 SYNTHESIS = "/wan-syntheses/{id}"
 WAN_POPS = "/wan-syntheses/{id}/wan-pops"
@@ -382,7 +387,7 @@ def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, metho
     assert "content" not in openapi["paths"][path][method]["responses"]["204"]
 
 
-@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS)
+@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS + REGION_VERBS + RACK_VERBS)
 def test_each_verb_is_served_by_its_own_handler(
     openapi: Dict[str, Any], path: str, method: str, uri: str
 ) -> None:

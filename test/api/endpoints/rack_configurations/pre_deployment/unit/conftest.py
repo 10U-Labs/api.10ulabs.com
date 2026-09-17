@@ -1,8 +1,11 @@
+import json
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, Iterable, List
 
 import pytest
 from botocore.exceptions import ClientError
+
+from rack_events import post, submission
 
 
 @pytest.fixture(name="table")
@@ -38,18 +41,35 @@ def distribution_fixture() -> SimpleNamespace:
     return distribution
 
 
-@pytest.fixture
-def rack_handler(
+@pytest.fixture(name="rack")
+def rack_fixture(
     load_handler: Callable[..., ModuleType],
     monkeypatch: pytest.MonkeyPatch,
     table: SimpleNamespace,
     distribution: SimpleNamespace,
-) -> ModuleType:
-    handler = load_handler("api/endpoints/rack_configurations")
-    monkeypatch.setenv("RACK_CONFIGURATIONS_TABLE", "configurations")
-    monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": table}[service])
-    monkeypatch.setattr(handler, "invalidate", distribution.invalidate, raising=False)
-    return handler
+) -> Callable[[str], ModuleType]:
+    def load(verb: str) -> ModuleType:
+        handler = load_handler("api/endpoints/rack_configurations", f"lambda/{verb}")
+        monkeypatch.setenv("RACK_CONFIGURATIONS_TABLE", "configurations")
+        monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": table}[service])
+        monkeypatch.setattr(handler, "invalidate", distribution.invalidate, raising=False)
+        return handler
+    return load
+
+
+@pytest.fixture
+def handler(request: pytest.FixtureRequest, rack: Callable[[str], ModuleType]) -> ModuleType:
+    return rack(request.module.HANDLER)
+
+
+@pytest.fixture
+def stored(rack: Callable[[str], ModuleType]) -> Callable[[Dict[str, Any]], str]:
+    storer = rack("store_rack_configuration")
+
+    def storing(configuration: Dict[str, Any]) -> str:
+        answer = storer.lambda_handler(post(submission(configuration)), None)
+        return str(json.loads(answer["body"])["config_hash"])
+    return storing
 
 
 @pytest.fixture
