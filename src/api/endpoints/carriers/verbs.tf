@@ -76,6 +76,11 @@ locals {
       actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
     }
   }
+  writes = toset([
+    "create_carrier", "rename_carrier", "delete_carrier",
+    "add_pop", "correct_pop", "remove_pop",
+    "add_fiber_segment", "correct_fiber_segment", "remove_fiber_segment",
+  ])
 }
 
 data "archive_file" "verb" {
@@ -98,6 +103,10 @@ data "archive_file" "verb" {
     content  = file("${path.module}/../../../../lib/python/store/__init__.py")
     filename = "store.py"
   }
+  source {
+    content  = file("${path.module}/../../../../lib/python/cache/__init__.py")
+    filename = "cache.py"
+  }
   output_path = "${path.module}/.terraform/lambda_packages/${each.key}.zip"
 }
 
@@ -118,6 +127,7 @@ resource "aws_lambda_function" "verb" {
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT = "true"
+      DISTRIBUTION_ID       = data.terraform_remote_state.routing.outputs.distribution_id
       STORE_TABLE           = data.terraform_remote_state.storage.outputs.table_name
     }
   }
@@ -192,6 +202,22 @@ resource "aws_iam_role_policy" "verb_store" {
       Effect   = "Allow"
       Action   = each.value.actions
       Resource = [data.terraform_remote_state.storage.outputs.table_arn]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "verb_invalidations" {
+  for_each = local.writes
+
+  name = "Invalidations"
+  role = aws_iam_role.verb[each.key].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudfront:CreateInvalidation"]
+      Resource = ["arn:aws:cloudfront::${module.common.aws_account_id}:distribution/${data.terraform_remote_state.routing.outputs.distribution_id}"]
     }]
   })
 }

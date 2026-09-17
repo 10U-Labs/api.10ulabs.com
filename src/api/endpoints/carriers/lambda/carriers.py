@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, NamedTuple, Optional
 
 from botocore.exceptions import ClientError
 
+from cache import invalidate
 from lambda_http import (
     created, error_response, has_numbers, has_strings, json_response, no_content, parse_fields,
     parse_valid, path_id,
@@ -44,6 +45,15 @@ def requested(event: Dict[str, Any]) -> Optional[str]:
 
 def held(collection: str, member_id: str) -> Optional[Dict[str, Any]]:
     return member(os.environ['STORE_TABLE'], collection, member_id)
+
+
+def staled(carrier_id: str, *deeper: str) -> None:
+    invalidate([f'/{COLLECTION}', f'/{COLLECTION}/{carrier_id}', *deeper])
+
+
+def staled_under(carrier_id: str, prefix: str, member_id: str) -> None:
+    listing = f'/{COLLECTION}/{carrier_id}/{prefix}'
+    invalidate([listing, f'{listing}/{member_id}'])
 
 
 def named(event: Dict[str, Any]) -> Optional[str]:
@@ -183,6 +193,7 @@ def add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
         return error_response(500, kind.failure)
     if item is None:
         return error_response(404, MISSING)
+    staled_under(carrier_id, kind.prefix, str(member_id))
     return created(f'/{COLLECTION}/{carrier_id}/{kind.prefix}/{member_id}', kind.row(item))
 
 
@@ -222,6 +233,15 @@ def read_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any
     return on_member(event, kind, partial(stored_under, prefix=kind.prefix), failure)
 
 
+def staling(act: Act, prefix: str) -> Act:
+    def acting(carrier_id: str, member_id: str) -> Optional[Dict[str, Any]]:
+        item = act(carrier_id, member_id)
+        if item is not None:
+            staled_under(carrier_id, prefix, member_id)
+        return item
+    return acting
+
+
 def replace_under(
     carrier_id: str, member_id: str, kind: Kind, body: Dict[str, Any]
 ) -> Optional[Dict[str, Any]]:
@@ -237,7 +257,8 @@ def update_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, A
     body = kind.body(event)
     if body is None:
         return error_response(400, kind.refusal)
-    return on_member(event, kind, partial(replace_under, kind=kind, body=body), failure)
+    replaced = staling(partial(replace_under, kind=kind, body=body), kind.prefix)
+    return on_member(event, kind, replaced, failure)
 
 
 def remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[str, Any]]:
@@ -246,5 +267,5 @@ def remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[
 
 
 def delete_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
-    removed = partial(remove_under, prefix=kind.prefix)
+    removed = staling(partial(remove_under, prefix=kind.prefix), kind.prefix)
     return on_member(event, kind, removed, failure, lambda _gone: no_content())

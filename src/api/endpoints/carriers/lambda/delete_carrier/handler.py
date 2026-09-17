@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from botocore.exceptions import ClientError
 
-from carriers import COLLECTION, MISSING, logger, requested
+from carriers import COLLECTION, MISSING, logger, requested, staled
 from lambda_http import dispatch, error_response, no_content
 from store import remove
 
@@ -19,6 +19,7 @@ def _delete(event: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(500, 'Failed to delete the carrier')
     if not removed:
         return error_response(404, MISSING)
+    staled(carrier_id, f'/{COLLECTION}/{carrier_id}/*')
     return no_content()
 
 

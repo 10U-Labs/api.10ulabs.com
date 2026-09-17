@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
-from carriers import BODY, COLLECTION, MISSING, carrier, logger, named, requested
+from carriers import BODY, COLLECTION, MISSING, carrier, logger, named, requested, staled
 from lambda_http import dispatch, error_response, json_response
 from store import conditioned
 
@@ -33,6 +33,7 @@ def _update(event: Dict[str, Any]) -> Dict[str, Any]:
         return error_response(500, 'Failed to update the carrier')
     if item is None:
         return error_response(404, MISSING)
+    staled(carrier_id)
     return json_response(200, carrier(item))
 
 

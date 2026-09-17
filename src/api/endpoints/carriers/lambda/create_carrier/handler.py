@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from botocore.exceptions import ClientError
 
-from carriers import BODY, COLLECTION, logger, named
+from carriers import BODY, COLLECTION, logger, named, staled
 from lambda_http import created, dispatch, error_response
 from store import next_id, put
 
@@ -21,6 +21,7 @@ def _create(event: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         logger.error('Error creating the carrier: %s', error)
         return error_response(500, 'Failed to create the carrier')
+    staled(str(carrier_id))
     return created(f'/{COLLECTION}/{carrier_id}', {'id': carrier_id, 'name': name})
 
 
