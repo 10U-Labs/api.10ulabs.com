@@ -62,3 +62,10 @@ def test_a_run_killed_under_a_condition_is_reasoned_with_it(
 ) -> None:
     failure_handler.lambda_handler(_killed("RetriesExhausted"), None)
     assert _assigned(store)["reason"] == "synthesizer invocation failed (RetriesExhausted)"
+
+
+def test_a_killed_run_is_invalidated(
+    failure_handler: ModuleType, distribution: SimpleNamespace
+) -> None:
+    failure_handler.lambda_handler(_killed(), None)
+    assert distribution.invalidated == [["/wan-syntheses/1"]]

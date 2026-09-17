@@ -2,6 +2,7 @@ from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, List, cast
 
 import pytest
+from botocore.exceptions import ClientError
 
 from store import plain
 from synthesizer.input_graph import haversine_miles, segment_key
@@ -17,6 +18,7 @@ from synthesizer.model import (
 )
 
 CEILINGS = [{"id": "ashburn-va", "name": "Ashburn, VA", "ceiling": 2, "target": 3}]
+RUN_PATHS = ["/wan-syntheses/1", "/wan-syntheses/1/*"]
 
 
 @pytest.fixture(name="synthesizer")
@@ -306,3 +308,28 @@ def test_a_build_that_is_refused_publishes_nothing(store: SimpleNamespace) -> No
 def test_a_run_that_is_not_there_is_a_lookup_error(synthesizer: ModuleType) -> None:
     with pytest.raises(LookupError):
         synthesizer.lambda_handler({"synthesis": 7}, None)
+
+
+@pytest.mark.usefixtures("synthesized")
+def test_the_run_is_invalidated_once_marked_synthesizing_and_again_once_published(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [RUN_PATHS, RUN_PATHS]
+
+
+@pytest.mark.usefixtures("refused")
+def test_a_refused_run_is_invalidated_once_marked_synthesizing_and_again_once_marked_fail(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [RUN_PATHS, RUN_PATHS]
+
+
+def test_a_store_that_refuses_the_first_mark_invalidates_nothing(
+    synthesizer: ModuleType, store: SimpleNamespace, run: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(run)
+    store.failing = True
+    with pytest.raises(ClientError):
+        synthesizer.lambda_handler({"synthesis": 1}, None)
+    assert distribution.invalidated == []

@@ -81,6 +81,15 @@ def test_a_synthesis_still_running_is_left_whole(
     assert store.deletes == []
 
 
+@pytest.mark.usefixtures("deleted")
+def test_a_deletion_invalidates_the_collection_the_synthesis_and_everything_under_it(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [
+        ["/wan-syntheses", "/wan-syntheses/1", "/wan-syntheses/1/*"]
+    ]
+
+
 def test_deleting_an_unknown_synthesis_answers_404(answer: Handler) -> None:
     assert answer(_delete("3"))["statusCode"] == 404
 

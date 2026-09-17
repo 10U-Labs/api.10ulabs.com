@@ -335,5 +335,20 @@ def test_a_synthesizer_that_cannot_be_started_names_the_error(served: Served) ->
     assert served(_post())["error"] == "Failed to start the synthesis"
 
 
+def test_a_creation_invalidates_the_collection_the_new_synthesis_and_everything_under_it(
+    answer: Handler, distribution: SimpleNamespace
+) -> None:
+    answer(_post())
+    assert distribution.invalidated == [[SYNTHESES, f"{SYNTHESES}/1", f"{SYNTHESES}/1/*"]]
+
+
+def test_a_creation_the_store_refused_invalidates_nothing(
+    answer: Handler, store: SimpleNamespace, distribution: SimpleNamespace
+) -> None:
+    store.failing = True
+    answer(_post())
+    assert distribution.invalidated == []
+
+
 def test_a_get_on_the_collection_answers_404(answer: Handler) -> None:
     assert answer({"resource": SYNTHESES, "httpMethod": "GET"})["statusCode"] == 404
