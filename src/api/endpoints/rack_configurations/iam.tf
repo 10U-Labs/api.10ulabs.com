@@ -38,3 +38,17 @@ resource "aws_iam_role_policy" "configurations" {
     }]
   })
 }
+
+resource "aws_iam_role_policy" "invalidations" {
+  name = "Invalidations"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudfront:CreateInvalidation"]
+      Resource = ["arn:aws:cloudfront::${module.common.aws_account_id}:distribution/${data.terraform_remote_state.routing.outputs.distribution_id}"]
+    }]
+  })
+}

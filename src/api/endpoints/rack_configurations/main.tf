@@ -29,6 +29,10 @@ data "archive_file" "handler" {
     content  = file("${path.module}/../../../../lib/python/lambda_http/__init__.py")
     filename = "lambda_http.py"
   }
+  source {
+    content  = file("${path.module}/../../../../lib/python/cache/__init__.py")
+    filename = "cache.py"
+  }
   output_path = "${path.module}/.terraform/lambda_packages/handler.zip"
 }
 
@@ -47,6 +51,7 @@ resource "aws_lambda_function" "handler" {
   environment {
     variables = {
       AWS_USE_FIPS_ENDPOINT     = "true"
+      DISTRIBUTION_ID           = data.terraform_remote_state.routing.outputs.distribution_id
       RACK_CONFIGURATIONS_TABLE = aws_dynamodb_table.configurations.name
     }
   }

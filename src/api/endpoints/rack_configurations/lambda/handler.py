@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
+from cache import invalidate
 from lambda_http import aws_client, dispatch, json_response, parse_object
 
 logger = logging.getLogger()
@@ -18,6 +19,7 @@ HASH_LENGTH = 9
 RACK_HEIGHT_MAXIMUM = 42
 CONFIGURATION_HASH = re.compile(r'^[0-9A-Z]{9}$')
 CORS_HEADERS = {'Access-Control-Allow-Origin': '*'}
+COLLECTION = '/rack-configurations'
 
 
 def _error(status_code: int, message: str) -> Dict[str, Any]:
@@ -67,6 +69,8 @@ def _store(config_hash: str, configuration: Dict[str, Any], device_id: str) -> N
         if error.response['Error']['Code'] != 'ConditionalCheckFailedException':
             raise
         logger.info('Configuration already stored: %s', config_hash)
+        return
+    invalidate([f'{COLLECTION}/{config_hash}'])
 
 
 def _create(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -113,8 +117,8 @@ def _read(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
     response = dispatch(event, {
-        ('/rack-configurations', 'POST'): _create,
-        ('/rack-configurations/{id}', 'GET'): _read,
+        (COLLECTION, 'POST'): _create,
+        (f'{COLLECTION}/{{id}}', 'GET'): _read,
     })
     response['headers'].update(CORS_HEADERS)
     return response
