@@ -60,7 +60,8 @@ def test_each_call_carries_its_own_caller_reference(cloudfront: SimpleNamespace)
 
 def test_a_refusal_is_not_raised(cloudfront: SimpleNamespace) -> None:
     cloudfront.refusing = True
-    assert invalidate(PATHS) is None
+    invalidate(PATHS)
+    assert len(cloudfront.invalidations) == 1
 
 
 def test_a_refusal_is_logged(cloudfront: SimpleNamespace, caplog: pytest.LogCaptureFixture) -> None:
