@@ -65,17 +65,13 @@ CARRIER_VERBS = [
     (POP, "get", "${ReadPopHandlerArn}"),
     (POP, "put", "${CorrectPopHandlerArn}"),
     (POP, "delete", "${RemovePopHandlerArn}"),
+    (FIBER_SEGMENTS, "get", "${ListFiberSegmentsHandlerArn}"),
+    (FIBER_SEGMENTS, "post", "${AddFiberSegmentHandlerArn}"),
+    (FIBER_SEGMENT, "get", "${ReadFiberSegmentHandlerArn}"),
+    (FIBER_SEGMENT, "put", "${CorrectFiberSegmentHandlerArn}"),
+    (FIBER_SEGMENT, "delete", "${RemoveFiberSegmentHandlerArn}"),
 ]
-FIBER_SEGMENT_OPERATIONS = [
-    (FIBER_SEGMENTS, "get"),
-    (FIBER_SEGMENTS, "post"),
-    (FIBER_SEGMENT, "get"),
-    (FIBER_SEGMENT, "put"),
-    (FIBER_SEGMENT, "delete"),
-]
-CARRIERS_OPERATIONS = [
-    (path, method) for path, method, _ in CARRIER_VERBS
-] + FIBER_SEGMENT_OPERATIONS
+CARRIERS_OPERATIONS = [(path, method) for path, method, _ in CARRIER_VERBS]
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
 REGION = "/hyperscale-cloud-service-provider-regions/{id}"
@@ -384,13 +380,6 @@ def test_each_carrier_verb_is_served_by_its_own_handler(
     openapi: Dict[str, Any], path: str, method: str, uri: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == uri
-
-
-@pytest.mark.parametrize(("path", "method"), FIBER_SEGMENT_OPERATIONS)
-def test_the_fiber_segments_are_served_by_the_carriers_handler(
-    openapi: Dict[str, Any], path: str, method: str
-) -> None:
-    assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
 
 
 @pytest.mark.parametrize(("path", "method"), REGIONS_OPERATIONS)

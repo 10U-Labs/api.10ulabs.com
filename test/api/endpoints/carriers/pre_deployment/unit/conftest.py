@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
+from fiber_segments import get_fiber_segment, get_fiber_segments
 from pops import get_pop, get_pops
 
 
@@ -37,6 +38,24 @@ def pop_read(endpoint: Callable[..., ModuleType]) -> Callable[[], Dict[str, Any]
 
     def reading() -> Dict[str, Any]:
         return dict(reader.lambda_handler(get_pop(), None))
+    return reading
+
+
+@pytest.fixture
+def fiber_segments_listed(endpoint: Callable[..., ModuleType]) -> Callable[[], Any]:
+    lister = endpoint("carriers", "lambda/list_fiber_segments")
+
+    def listing() -> Any:
+        return json.loads(lister.lambda_handler(get_fiber_segments(), None)["body"])
+    return listing
+
+
+@pytest.fixture
+def fiber_segment_read(endpoint: Callable[..., ModuleType]) -> Callable[[], Dict[str, Any]]:
+    reader = endpoint("carriers", "lambda/read_fiber_segment")
+
+    def reading() -> Dict[str, Any]:
+        return dict(reader.lambda_handler(get_fiber_segment(), None))
     return reading
 
 
