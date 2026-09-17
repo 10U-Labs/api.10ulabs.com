@@ -4,35 +4,43 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-CARRIERS = "https://api.10ulabs.com/carriers"
+API_NAME = "api.10ulabs.com"
+COLLECTIONS = ["/carriers", "/hyperscale-cloud-service-provider-regions"]
 HIT = "Hit from cloudfront"
+UNKNOWN = {"Authorization": "Bearer not-the-key"}
 
 
-def _answered(headers: Optional[Dict[str, str]] = None) -> Tuple[int, str]:
+def _answered(collection: str, headers: Optional[Dict[str, str]] = None) -> Tuple[int, str]:
+    request = Request(f"https://{API_NAME}{collection}", headers=headers or {})
     try:
-        with urlopen(Request(CARRIERS, headers=headers or {}), timeout=10) as response:
+        with urlopen(request, timeout=10) as response:
             return int(response.status), str(response.headers.get("X-Cache"))
     except HTTPError as error:
         return error.code, str(error.headers.get("X-Cache"))
 
 
-@pytest.fixture(scope="module", name="read_twice")
-def read_twice_fixture(bearer: Dict[str, str]) -> Tuple[int, str]:
-    _answered(bearer)
-    return _answered(bearer)
+@pytest.fixture(scope="module", name="cached", params=COLLECTIONS)
+def cached_fixture(
+    request: pytest.FixtureRequest, bearer: Dict[str, str]
+) -> Tuple[str, Tuple[int, str]]:
+    collection = str(request.param)
+    _answered(collection, bearer)
+    return collection, _answered(collection, bearer)
 
 
-def test_a_repeated_read_of_the_carriers_is_served_by_the_distribution(
-    read_twice: Tuple[int, str]
+def test_a_repeated_read_of_a_cached_collection_is_served_by_the_distribution(
+    cached: Tuple[str, Tuple[int, str]]
 ) -> None:
-    assert read_twice == (200, HIT)
+    assert cached[1] == (200, HIT)
 
 
-@pytest.mark.usefixtures("read_twice")
-def test_a_read_without_a_token_is_refused_though_the_carriers_are_cached() -> None:
-    assert _answered()[0] == 401
+def test_a_read_without_a_token_is_refused_though_the_collection_is_cached(
+    cached: Tuple[str, Tuple[int, str]]
+) -> None:
+    assert _answered(cached[0])[0] == 401
 
 
-@pytest.mark.usefixtures("read_twice")
-def test_a_read_with_a_token_the_authorizer_does_not_know_is_refused_though_cached() -> None:
-    assert _answered({"Authorization": "Bearer not-the-key"})[0] == 401
+def test_a_read_with_a_token_the_authorizer_does_not_know_is_refused_though_cached(
+    cached: Tuple[str, Tuple[int, str]]
+) -> None:
+    assert _answered(cached[0], UNKNOWN)[0] == 401

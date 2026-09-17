@@ -11,9 +11,11 @@ BEHAVIOR = r"ordered_cache_behavior \{.*?\n  \}"
 READS_POLICY = "aws_cloudfront_cache_policy.reads.id"
 DISABLED_POLICY = "data.aws_cloudfront_cache_policy.disabled.id"
 A_DAY = "86400"
-CARRIERS_READS = [
+REGIONS = "/hyperscale-cloud-service-provider-regions"
+CACHED_READS = [
     "/carriers", "/carriers/1", "/carriers/1/pops", "/carriers/1/pops/1",
     "/carriers/1/fiber-segments", "/carriers/1/fiber-segments/1",
+    REGIONS, f"{REGIONS}/1",
 ]
 EVERY_METHOD = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 
@@ -83,8 +85,8 @@ def test_a_read_is_held_a_day_at_most(reads_policy: str) -> None:
     assert _setting(reads_policy, "max_ttl") == A_DAY
 
 
-@pytest.mark.parametrize("path", CARRIERS_READS)
-def test_every_carriers_read_is_cached_under_the_reads_policy(
+@pytest.mark.parametrize("path", CACHED_READS)
+def test_every_read_that_is_cached_is_cached_under_the_reads_policy(
     cached: Dict[str, str], path: str
 ) -> None:
     assert any(fnmatchcase(path, pattern) for pattern in cached)
