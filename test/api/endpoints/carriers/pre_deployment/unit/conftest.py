@@ -1,3 +1,4 @@
+import json
 from types import ModuleType
 from typing import Any, Callable, Dict, List
 
@@ -7,6 +8,16 @@ import pytest
 @pytest.fixture
 def handler(endpoint: Callable[[str], ModuleType]) -> ModuleType:
     return endpoint("carriers")
+
+
+@pytest.fixture
+def listed(endpoint: Callable[..., ModuleType]) -> Callable[[], Any]:
+    lister = endpoint("carriers", "lambda/list_carriers")
+
+    def listing() -> Any:
+        answer = lister.lambda_handler({"resource": "/carriers", "httpMethod": "GET"}, None)
+        return json.loads(answer["body"])
+    return listing
 
 
 @pytest.fixture(name="carriers")

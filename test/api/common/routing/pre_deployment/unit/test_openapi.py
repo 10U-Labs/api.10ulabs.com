@@ -54,12 +54,14 @@ def test_the_routing_stack_supplies_every_template_variable(
 POP = "/carriers/{id}/pops/{pop_id}"
 FIBER_SEGMENTS = "/carriers/{id}/fiber-segments"
 FIBER_SEGMENT = "/carriers/{id}/fiber-segments/{fiber_segment_id}"
-CARRIERS_OPERATIONS = [
-    ("/carriers", "get"),
-    ("/carriers", "post"),
-    ("/carriers/{id}", "get"),
-    ("/carriers/{id}", "put"),
-    ("/carriers/{id}", "delete"),
+CARRIER_VERBS = [
+    ("/carriers", "get", "${ListCarriersHandlerArn}"),
+    ("/carriers", "post", "${CreateCarrierHandlerArn}"),
+    ("/carriers/{id}", "get", "${ReadCarrierHandlerArn}"),
+    ("/carriers/{id}", "put", "${RenameCarrierHandlerArn}"),
+    ("/carriers/{id}", "delete", "${DeleteCarrierHandlerArn}"),
+]
+SUB_COLLECTION_OPERATIONS = [
     ("/carriers/{id}/pops", "get"),
     ("/carriers/{id}/pops", "post"),
     (POP, "get"),
@@ -71,6 +73,9 @@ CARRIERS_OPERATIONS = [
     (FIBER_SEGMENT, "put"),
     (FIBER_SEGMENT, "delete"),
 ]
+CARRIERS_OPERATIONS = [
+    (path, method) for path, method, _ in CARRIER_VERBS
+] + SUB_COLLECTION_OPERATIONS
 REGIONS = "/hyperscale-cloud-service-provider-regions"
 REGIONS_METHODS = ["get", "post"]
 REGION = "/hyperscale-cloud-service-provider-regions/{id}"
@@ -374,8 +379,15 @@ def test_a_deletion_answers_no_content(openapi: Dict[str, Any], path: str, metho
     assert "content" not in openapi["paths"][path][method]["responses"]["204"]
 
 
-@pytest.mark.parametrize(("path", "method"), CARRIERS_OPERATIONS)
-def test_carriers_is_served_by_the_carriers_handler(
+@pytest.mark.parametrize(("path", "method", "uri"), CARRIER_VERBS)
+def test_each_carrier_verb_is_served_by_its_own_handler(
+    openapi: Dict[str, Any], path: str, method: str, uri: str
+) -> None:
+    assert openapi["paths"][path][method][INTEGRATION]["uri"] == uri
+
+
+@pytest.mark.parametrize(("path", "method"), SUB_COLLECTION_OPERATIONS)
+def test_the_sub_collections_are_served_by_the_carriers_handler(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
     assert openapi["paths"][path][method][INTEGRATION]["uri"] == "${CarriersHandlerArn}"
