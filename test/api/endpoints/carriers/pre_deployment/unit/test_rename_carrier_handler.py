@@ -138,5 +138,14 @@ def test_a_store_that_refuses_the_rename_names_the_error(
     assert error == "Failed to update the carrier"
 
 
+def test_a_rename_invalidates_the_collection_and_the_carrier(
+    answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(carriers)
+    answer(_put({"name": "zayo group"}))
+    assert distribution.invalidated == [["/carriers", "/carriers/2"]]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**_put({"name": "zayo group"}), "httpMethod": "GET"})["statusCode"] == 404

@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 import pytest
 from botocore.exceptions import ClientError
 
+import cache as caching
 import store as library
 from lambda_http import Handler
 
@@ -105,6 +106,18 @@ def store_fixture() -> SimpleNamespace:
     return store
 
 
+@pytest.fixture(name="distribution")
+def distribution_fixture() -> SimpleNamespace:
+    distribution = SimpleNamespace(invalidated=[], failing=False)
+
+    def create_invalidation(**request: Any) -> Dict[str, Any]:
+        if distribution.failing:
+            raise ClientError({"Error": {"Code": "AccessDenied"}}, "CreateInvalidation")
+        distribution.invalidated.append(request["InvalidationBatch"]["Paths"]["Items"])
+        return {}
+
+    distribution.create_invalidation = create_invalidation
+    return distribution
 
 
 @pytest.fixture(name="invoker")
@@ -125,12 +138,14 @@ def endpoint(
     monkeypatch: pytest.MonkeyPatch,
     store: SimpleNamespace,
     invoker: SimpleNamespace,
+    distribution: SimpleNamespace,
 ) -> Callable[..., ModuleType]:
     def load(stack: str, handler_dir: str = "lambda") -> ModuleType:
         handler = load_handler(f"api/endpoints/{stack}", handler_dir)
         monkeypatch.setenv("STORE_TABLE", "store")
-        clients = {"dynamodb": store, "lambda": invoker}
-        for module in (handler, library):
+        monkeypatch.setenv("DISTRIBUTION_ID", "distribution")
+        clients = {"dynamodb": store, "lambda": invoker, "cloudfront": distribution}
+        for module in (handler, library, caching):
             monkeypatch.setattr(
                 module, "aws_client", lambda service: clients[service], raising=False
             )

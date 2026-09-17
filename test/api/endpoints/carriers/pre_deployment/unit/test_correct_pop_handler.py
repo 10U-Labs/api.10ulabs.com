@@ -195,6 +195,15 @@ def test_a_store_that_refuses_the_correction_names_the_error(
     assert served(put_pop(BOISE))["error"] == "Failed to update the pop"
 
 
+def test_a_corrected_pop_invalidates_the_carrier_s_pops_and_its_own_url(
+    answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(carriers)
+    answer(put_pop(BOISE))
+    assert distribution.invalidated == [["/carriers/1/pops", "/carriers/1/pops/3"]]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**put_pop(BOISE), "httpMethod": "POST"})["statusCode"] == 404
 

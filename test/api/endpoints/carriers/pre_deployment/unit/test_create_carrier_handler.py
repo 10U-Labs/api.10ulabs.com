@@ -118,6 +118,28 @@ def test_a_store_that_refuses_the_write_names_the_error(
     assert error == "Failed to create the carrier"
 
 
+def test_a_creation_invalidates_the_collection_and_the_new_carrier(
+    answer: Handler, distribution: SimpleNamespace
+) -> None:
+    answer(_post({"name": "lumen"}))
+    assert distribution.invalidated == [["/carriers", "/carriers/1"]]
+
+
+def test_a_write_the_store_refused_invalidates_nothing(
+    answer: Handler, store: SimpleNamespace, distribution: SimpleNamespace
+) -> None:
+    store.failing = True
+    answer(_post({"name": "lumen"}))
+    assert distribution.invalidated == []
+
+
+def test_an_invalidation_the_distribution_refused_still_answers_201(
+    answer: Handler, distribution: SimpleNamespace
+) -> None:
+    distribution.failing = True
+    assert answer(_post({"name": "lumen"}))["statusCode"] == 201
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**_post({"name": "lumen"}), "httpMethod": "GET"})["statusCode"] == 404
 

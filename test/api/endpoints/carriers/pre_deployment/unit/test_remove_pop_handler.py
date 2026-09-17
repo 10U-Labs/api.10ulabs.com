@@ -143,6 +143,13 @@ def test_a_store_that_refuses_the_removal_names_the_error(
     assert served(delete_pop())["error"] == "Failed to delete the pop"
 
 
+@pytest.mark.usefixtures("removed")
+def test_a_removed_pop_invalidates_the_carrier_s_pops_and_its_own_url(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [["/carriers/1/pops", "/carriers/1/pops/3"]]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**delete_pop(), "httpMethod": "PUT"})["statusCode"] == 404
 

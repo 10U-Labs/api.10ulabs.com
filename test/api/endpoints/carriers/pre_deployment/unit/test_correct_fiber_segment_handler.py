@@ -203,6 +203,17 @@ def test_a_store_that_refuses_the_span_correction_names_the_error(
     assert served(put_fiber_segment(DEN_SLC))["error"] == "Failed to update the fiber segment"
 
 
+def test_a_corrected_fiber_segment_invalidates_the_carrier_s_fiber_segments_and_its_own_url(
+    answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(carriers)
+    answer(put_fiber_segment(DEN_SLC))
+    assert distribution.invalidated == [
+        ["/carriers/1/fiber-segments", "/carriers/1/fiber-segments/3"]
+    ]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**put_fiber_segment(DEN_SLC), "httpMethod": "POST"})["statusCode"] == 404
 

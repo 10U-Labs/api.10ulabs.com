@@ -101,5 +101,12 @@ def test_a_store_that_refuses_the_deletion_names_the_error(
     assert served(_delete())["error"] == "Failed to delete the carrier"
 
 
+@pytest.mark.usefixtures("deleted")
+def test_a_deletion_invalidates_the_collection_the_carrier_and_everything_under_it(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [["/carriers", "/carriers/1", "/carriers/1/*"]]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**_delete(), "httpMethod": "GET"})["statusCode"] == 404

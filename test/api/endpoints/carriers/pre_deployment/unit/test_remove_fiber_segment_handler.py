@@ -155,6 +155,15 @@ def test_a_store_that_refuses_the_span_removal_names_the_error(
     assert served(delete_fiber_segment())["error"] == "Failed to delete the fiber segment"
 
 
+@pytest.mark.usefixtures("span_removed")
+def test_a_removed_fiber_segment_invalidates_the_carrier_s_fiber_segments_and_its_own_url(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [
+        ["/carriers/1/fiber-segments", "/carriers/1/fiber-segments/3"]
+    ]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**delete_fiber_segment(), "httpMethod": "PUT"})["statusCode"] == 404
 

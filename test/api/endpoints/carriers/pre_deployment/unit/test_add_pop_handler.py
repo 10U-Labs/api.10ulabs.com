@@ -167,6 +167,15 @@ def test_a_store_that_refuses_the_pop_names_the_error(
     assert served(post_pop(BOISE))["error"] == "Failed to add the pop"
 
 
+def test_an_added_pop_invalidates_the_carrier_s_pops_and_its_own_url(
+    answer: Handler, store: SimpleNamespace, carriers: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(carriers)
+    answer(post_pop(BOISE))
+    assert distribution.invalidated == [["/carriers/1/pops", "/carriers/1/pops/4"]]
+
+
 def test_another_verb_answers_404(answer: Handler) -> None:
     assert answer({**post_pop(BOISE), "httpMethod": "GET"})["statusCode"] == 404
 
