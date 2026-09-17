@@ -102,15 +102,15 @@ def test_the_distribution_fronts_the_bucket_named_for_the_host(
     assert BUCKET_HOST in origins
 
 
-def test_the_pages_are_held_for_as_little_as_they_ask(cache_policy: Dict[str, Any]) -> None:
+def test_the_files_are_held_for_as_little_as_they_ask(cache_policy: Dict[str, Any]) -> None:
     assert cache_policy["MinTTL"] == 0
 
 
-def test_the_pages_are_held_a_month_when_they_do_not_say(cache_policy: Dict[str, Any]) -> None:
+def test_the_files_are_held_a_month_when_they_do_not_say(cache_policy: Dict[str, Any]) -> None:
     assert cache_policy["DefaultTTL"] == A_MONTH
 
 
-def test_the_pages_are_held_a_year_at_most(cache_policy: Dict[str, Any]) -> None:
+def test_the_files_are_held_a_year_at_most(cache_policy: Dict[str, Any]) -> None:
     assert cache_policy["MaxTTL"] == A_YEAR
 
 
