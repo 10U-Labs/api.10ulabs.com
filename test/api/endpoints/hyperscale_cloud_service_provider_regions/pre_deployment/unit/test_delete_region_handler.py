@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from lambda_http import Handler
-from region_events import COLUMBUS, MISSING, delete
+from region_events import COLUMBUS, MISSING, REGIONS, delete
 
 Served = Callable[[Dict[str, Any]], Any]
 HANDLER = "lambda/delete_region"
@@ -107,6 +107,13 @@ def test_a_store_that_refuses_the_region_removal_names_the_error(
     store.failing = True
     error = served(delete())["error"]
     assert error == "Failed to delete the hyperscale cloud service provider region"
+
+
+@pytest.mark.usefixtures("region_removed")
+def test_a_region_removal_invalidates_the_collection_and_the_region(
+    distribution: SimpleNamespace
+) -> None:
+    assert distribution.invalidated == [[REGIONS, f"{REGIONS}/2"]]
 
 
 def test_another_verb_answers_404(answer: Handler) -> None:

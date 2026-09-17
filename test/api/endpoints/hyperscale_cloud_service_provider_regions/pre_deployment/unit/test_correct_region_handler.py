@@ -5,7 +5,9 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from lambda_http import Handler
-from region_events import COLUMBUS, DUBLIN, MISPLACED, MISSING, PHOENIX, REGION_BODY, put
+from region_events import (
+    COLUMBUS, DUBLIN, MISPLACED, MISSING, PHOENIX, REGION_BODY, REGIONS, put,
+)
 
 Served = Callable[[Dict[str, Any]], Any]
 HANDLER = "lambda/correct_region"
@@ -154,6 +156,15 @@ def test_a_store_that_refuses_the_region_correction_names_the_error(
     store.failing = True
     error = served(put(PHOENIX))["error"]
     assert error == "Failed to update the hyperscale cloud service provider region"
+
+
+def test_a_correction_invalidates_the_collection_and_the_region(
+    answer: Handler, store: SimpleNamespace, regions: List[Dict[str, Any]],
+    distribution: SimpleNamespace,
+) -> None:
+    store.items.extend(regions)
+    answer(put(PHOENIX))
+    assert distribution.invalidated == [[REGIONS, f"{REGIONS}/2"]]
 
 
 def test_another_verb_answers_404(answer: Handler) -> None:

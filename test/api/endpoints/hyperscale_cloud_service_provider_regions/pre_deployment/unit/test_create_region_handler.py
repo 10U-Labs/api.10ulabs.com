@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from lambda_http import Handler
-from region_events import FRANKFURT, MISPLACED, PHOENIX, REGION_BODY, post
+from region_events import FRANKFURT, MISPLACED, PHOENIX, REGION_BODY, REGIONS, post
 
 Served = Callable[[Dict[str, Any]], Any]
 HANDLER = "lambda/create_region"
@@ -112,6 +112,21 @@ def test_a_store_that_refuses_the_region_names_the_error(
     store.failing = True
     error = served(post(PHOENIX))["error"]
     assert error == "Failed to create the hyperscale cloud service provider region"
+
+
+def test_a_creation_invalidates_the_collection_and_the_new_region(
+    answer: Handler, distribution: SimpleNamespace
+) -> None:
+    answer(post(PHOENIX))
+    assert distribution.invalidated == [[REGIONS, f"{REGIONS}/1"]]
+
+
+def test_a_region_the_store_refused_invalidates_nothing(
+    answer: Handler, store: SimpleNamespace, distribution: SimpleNamespace
+) -> None:
+    store.failing = True
+    answer(post(PHOENIX))
+    assert distribution.invalidated == []
 
 
 def test_another_verb_answers_404(answer: Handler) -> None:
