@@ -1876,7 +1876,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "uri": "${ListRegionsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -2033,7 +2033,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "uri": "${CreateRegionHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -2146,7 +2146,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "uri": "${ReadRegionHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -2325,7 +2325,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "uri": "${CorrectRegionHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
@@ -2388,7 +2388,7 @@
           }
         },
         "x-amazon-apigateway-integration": {
-          "uri": "${HyperscaleCloudServiceProviderRegionsHandlerArn}",
+          "uri": "${DeleteRegionHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
