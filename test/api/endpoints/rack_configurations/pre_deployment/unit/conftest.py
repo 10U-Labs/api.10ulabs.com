@@ -48,8 +48,8 @@ def rack_fixture(
     table: SimpleNamespace,
     distribution: SimpleNamespace,
 ) -> Callable[[str], ModuleType]:
-    def load(verb: str) -> ModuleType:
-        module = load_handler("api/endpoints/rack_configurations", f"lambda/{verb}")
+    def load(handler_dir: str) -> ModuleType:
+        module = load_handler("api/endpoints/rack_configurations", handler_dir)
         monkeypatch.setenv("RACK_CONFIGURATIONS_TABLE", "configurations")
         monkeypatch.setattr(module, "aws_client", lambda service: {"dynamodb": table}[service])
         monkeypatch.setattr(module, "invalidate", distribution.invalidate, raising=False)
@@ -64,7 +64,7 @@ def handler(request: pytest.FixtureRequest, rack: Callable[[str], ModuleType]) -
 
 @pytest.fixture
 def stored(rack: Callable[[str], ModuleType]) -> Callable[[Dict[str, Any]], str]:
-    storer = rack("store_rack_configuration")
+    storer = rack("lambda/store_rack_configuration")
 
     def storing(submitted: Dict[str, Any]) -> str:
         answer = storer.lambda_handler(post(submission(submitted)), None)
