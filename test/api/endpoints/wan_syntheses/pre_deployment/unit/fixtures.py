@@ -21,12 +21,11 @@ from synthesizer.model import (
     ValidationReport,
 )
 from synthesizer.graphs import (
-    biconnected_block_membership,
     build_adjacency,
     fiber_segments_along,
 )
 from synthesizer.search_plan import _SearchPlan
-from synthesizer.synthesize import all_pairs_shortest, synthesize_two_tier
+from synthesizer.synthesize import analyze_fiber, synthesize_two_tier
 from synthesizer.overrides import apply_role_overrides
 from synthesizer.stages import dual_home, finalize
 from synthesizer.validation import diverse_circuit_count, validate_synthesis
@@ -424,7 +423,6 @@ def synthesis_inputs_from_fiber(
     places = coords or {}
     pops = [carrier_pop(site_id, *places.get(site_id, (0.0, 0.0))) for site_id in site_ids]
     adjacency = build_adjacency(fiber_segments)
-    paths = all_pairs_shortest(pops, adjacency)
     return SynthesisInputs(
         sites=tenant_sites,
         provider_regions=provider_regions,
@@ -432,8 +430,7 @@ def synthesis_inputs_from_fiber(
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=eligible,
         adjacency=adjacency,
-        paths=paths,
-        carrier_blocks=biconnected_block_membership(adjacency),
+        fiber_analysis=analyze_fiber(pops, adjacency),
     )
 
 

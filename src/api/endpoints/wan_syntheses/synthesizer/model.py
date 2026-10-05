@@ -114,6 +114,10 @@ class ShortestPaths(NamedTuple):
     distances: dict[str, dict[str, float]]
     predecessors: dict[str, dict[str, str]]
 
+class FiberAnalysis(NamedTuple):
+    paths: ShortestPaths
+    blocks: dict[str, frozenset[int]]
+
 @dataclass(frozen=True)
 class SynthesisInputs:
     sites: list[Site]
@@ -122,8 +126,7 @@ class SynthesisInputs:
     fiber_segments: dict[tuple[str, str], FiberSegment]
     eligible_wan_pop_ids: set[str]
     adjacency: dict[str, list[tuple[str, float]]]
-    paths: ShortestPaths
-    carrier_blocks: dict[str, frozenset[int]]
+    fiber_analysis: FiberAnalysis
 
 @dataclass(frozen=True)
 class MeshRequirements:

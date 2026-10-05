@@ -75,5 +75,5 @@ def wan_pop_strength(
 ) -> float:
     diverse = bounds.per_pop.get(pop_id, 0)
     spread = len(segment_sectors(pop_id, inputs.adjacency, pop_by_id, compass_sector_count))
-    straight = pop_straightness(pop_id, pop_by_id, inputs.paths.predecessors[pop_id])
+    straight = pop_straightness(pop_id, pop_by_id, inputs.fiber_analysis.paths.predecessors[pop_id])
     return diverse / bounds.largest + spread / compass_sector_count + straight

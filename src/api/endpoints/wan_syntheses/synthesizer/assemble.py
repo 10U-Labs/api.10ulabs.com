@@ -134,7 +134,7 @@ def wan_pops_physically_biconnectable(
 ) -> bool:
     common: frozenset[int] | None = None
     for wan_pop in wan_pop_ids:
-        blocks = inputs.carrier_blocks.get(wan_pop, frozenset())
+        blocks = inputs.fiber_analysis.blocks.get(wan_pop, frozenset())
         common = blocks if common is None else common & blocks
     return common is not None and bool(common)
 
@@ -144,7 +144,7 @@ def forced_wan_pop_resilience_error(
 ) -> str | None:
     if not required:
         return None
-    blocks_by_id = inputs.carrier_blocks
+    blocks_by_id = inputs.fiber_analysis.blocks
     pop_by_id = {pop.id: pop for pop in inputs.carrier_pops}
     names = ", ".join(sorted(pop_by_id[wan_pop].name for wan_pop in required))
     common = blocks_by_id.get(next(iter(required)), frozenset())
@@ -193,7 +193,9 @@ def synthesis_circuits(
         number_of_diverse_circuits=plan.tuning.backbone_number_of_diverse_circuits,
         forced_pairs=forced_backbone_pairs(wan_pop_set, plan.forced_circuits),
     )
-    return backbone_mesh(wan_pop_ids, inputs.paths.distances, fiber_segments, constraints)
+    return backbone_mesh(
+        wan_pop_ids, inputs.fiber_analysis.paths.distances, fiber_segments, constraints
+    )
 
 
 def build_synthesis_for_wan_pops(

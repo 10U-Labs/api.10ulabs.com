@@ -8,6 +8,7 @@ from dataclasses import replace
 
 from synthesizer.input_graph import FiberSegment, Site
 from synthesizer.model import (
+    FiberAnalysis,
     ShortestPaths,
     Synthesis,
     SynthesisInputs,
@@ -203,6 +204,14 @@ def search_best_synthesis(
     return synthesis
 
 
+def analyze_fiber(
+    carrier_pops: list[Site], adjacency: dict[str, list[tuple[str, float]]]
+) -> FiberAnalysis:
+    return FiberAnalysis(
+        all_pairs_shortest(carrier_pops, adjacency), biconnected_block_membership(adjacency)
+    )
+
+
 def build_synthesis_inputs(
     sites: list[Site],
     fiber_segments: dict[tuple[str, str], FiberSegment],
@@ -220,8 +229,7 @@ def build_synthesis_inputs(
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=set(),
         adjacency=adjacency,
-        paths=all_pairs_shortest(carrier_pops, adjacency),
-        carrier_blocks=biconnected_block_membership(adjacency),
+        fiber_analysis=analyze_fiber(carrier_pops, adjacency),
     )
 
 
