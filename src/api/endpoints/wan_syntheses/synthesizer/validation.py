@@ -6,6 +6,7 @@ from itertools import combinations
 from synthesizer.input_graph import Site, segment_key
 from synthesizer.model import (
     CIRCUIT_FOR_TARGET,
+    HomingCircuit,
     Synthesis,
     SynthesisCircuit,
     MeshRequirements,
@@ -15,16 +16,16 @@ from synthesizer.graphs import (
     articulation_points,
     connected_components,
     survives_any_one_segment_loss,
-    survives_any_one_site_loss,
+    survives_any_one_pop_loss,
     fiber_segments_along,
 )
 
 
-def wan_pop_mesh_target(site: str, targets: MeshRequirements) -> int:
+def wan_pop_mesh_target(wan_pop: str, targets: MeshRequirements) -> int:
     ceilings = targets.ceilings
-    if ceilings is None or site not in ceilings:
+    if ceilings is None or wan_pop not in ceilings:
         return targets.number_of_diverse_circuits
-    return min(targets.number_of_diverse_circuits, ceilings[site])
+    return min(targets.number_of_diverse_circuits, ceilings[wan_pop])
 
 
 def backbone_mesh_deficient(
@@ -53,23 +54,31 @@ def synthesis_site_pairs(synthesis: Synthesis) -> set[tuple[str, str]]:
 
 def included_site_ids(synthesis: Synthesis) -> set[str]:
     ids = set(synthesis.wan_pop_ids) | set(synthesis.transit_ids)
-    ids.update(site_id for key in synthesis.fiber_segment_keys for site_id in key)
+    ids.update(pop_id for key in synthesis.fiber_segment_keys for pop_id in key)
     ids.update(homing_circuit.source for homing_circuit in synthesis.homings.joined())
     ids.update(homing_circuit.target for homing_circuit in synthesis.homings.joined())
     return ids
 
-def homes_by_site(synthesis: Synthesis) -> dict[str, set[str]]:
+def _homes_by_source(homing_circuits: list[HomingCircuit]) -> dict[str, set[str]]:
     homes: dict[str, set[str]] = {}
-    for homing_circuit in synthesis.homings.joined():
+    for homing_circuit in homing_circuits:
         homes.setdefault(homing_circuit.source, set()).add(homing_circuit.target)
     return homes
 
+def homes_by_site(synthesis: Synthesis) -> dict[str, set[str]]:
+    return _homes_by_source(synthesis.homings.tenant)
+
+def homes_by_provider_region(synthesis: Synthesis) -> dict[str, set[str]]:
+    return _homes_by_source(synthesis.homings.provider)
+
+def _below_homing_degree(homes: dict[str, set[str]], degree: int) -> list[str]:
+    return [source for source, targets in sorted(homes.items()) if len(targets) != degree]
+
 def sites_below_homing_degree(synthesis: Synthesis, degree: int) -> list[str]:
-    return [
-        site_id
-        for site_id, targets in sorted(homes_by_site(synthesis).items())
-        if len(targets) != degree
-    ]
+    return _below_homing_degree(homes_by_site(synthesis), degree)
+
+def provider_regions_below_homing_degree(synthesis: Synthesis, degree: int) -> list[str]:
+    return _below_homing_degree(homes_by_provider_region(synthesis), degree)
 
 def backbone_mesh_pairs(synthesis: Synthesis) -> set[tuple[str, str]]:
     return {
@@ -92,14 +101,14 @@ def _backbone_mesh_survives(
     if len(ids) < 2:
         return True
     segments = backbone_mesh_fiber_segments(synthesis)
-    sites = ids | {site for segment in segments for site in segment}
-    return is_resilient(sites, segments)
+    pops = ids | {pop for segment in segments for pop in segment}
+    return is_resilient(pops, segments)
 
 def backbone_mesh_survives_any_one_link_loss(synthesis: Synthesis) -> bool:
     return _backbone_mesh_survives(synthesis, survives_any_one_segment_loss)
 
-def backbone_mesh_survives_any_one_site_loss(synthesis: Synthesis) -> bool:
-    return _backbone_mesh_survives(synthesis, survives_any_one_site_loss)
+def backbone_mesh_survives_any_one_pop_loss(synthesis: Synthesis) -> bool:
+    return _backbone_mesh_survives(synthesis, survives_any_one_pop_loss)
 
 def backbone_mesh_pieces(synthesis: Synthesis) -> list[list[str]]:
     segments = backbone_mesh_fiber_segments(synthesis)
@@ -114,13 +123,13 @@ def backbone_mesh_cut_pops(synthesis: Synthesis) -> list[str]:
     return sorted(articulation_points(pops, segments))
 
 def circuits_out_of(
-    drawn_circuits: list[SynthesisCircuit], site: str
+    drawn_circuits: list[SynthesisCircuit], wan_pop: str
 ) -> list[frozenset[str]]:
     return [
-        frozenset(drawn_circuit.pop_ids) - {site}
+        frozenset(drawn_circuit.pop_ids) - {wan_pop}
         for drawn_circuit in drawn_circuits
         if drawn_circuit.purpose == "backbone_mesh"
-        and site in (drawn_circuit.source, drawn_circuit.target)
+        and wan_pop in (drawn_circuit.source, drawn_circuit.target)
     ]
 
 
@@ -128,8 +137,8 @@ def _all_disjoint(circuits: tuple[frozenset[str], ...]) -> bool:
     return not any(near & far for near, far in combinations(circuits, 2))
 
 
-def diverse_circuit_count(drawn_circuits: list[SynthesisCircuit], site: str) -> int:
-    circuits = circuits_out_of(drawn_circuits, site)
+def diverse_circuit_count(drawn_circuits: list[SynthesisCircuit], wan_pop: str) -> int:
+    circuits = circuits_out_of(drawn_circuits, wan_pop)
     for size in range(len(circuits), 0, -1):
         if any(_all_disjoint(combo) for combo in combinations(circuits, size)):
             return size
@@ -148,8 +157,8 @@ def backbone_mesh_independence_deficient(
             "independent_degree": degree,
         }
         for wan_pop_id, degree in sorted(
-            (site, diverse_circuit_count(synthesis.drawn_circuits, site))
-            for site in synthesis.wan_pop_ids
+            (wan_pop, diverse_circuit_count(synthesis.drawn_circuits, wan_pop))
+            for wan_pop in synthesis.wan_pop_ids
         )
         if degree < wan_pop_mesh_target(wan_pop_id, targets)
         and wan_pop_id not in targets.degree_exempt
@@ -164,9 +173,9 @@ def _ceilings_where(
     if ceilings is None:
         return []
     return [
-        (site, ceilings[site])
-        for site in sorted(wan_pop_ids)
-        if site in ceilings and keep(ceilings[site])
+        (wan_pop, ceilings[wan_pop])
+        for wan_pop in sorted(wan_pop_ids)
+        if wan_pop in ceilings and keep(ceilings[wan_pop])
     ]
 
 
@@ -177,8 +186,8 @@ def _ceiling_rows(
     keep: Callable[[int], bool],
 ) -> list[dict[str, object]]:
     return [
-        {"id": site, "name": sites_by_id[site].name, "ceiling": ceiling}
-        for site, ceiling in _ceilings_where(wan_pop_ids, ceilings, keep)
+        {"id": wan_pop, "name": sites_by_id[wan_pop].name, "ceiling": ceiling}
+        for wan_pop, ceiling in _ceilings_where(wan_pop_ids, ceilings, keep)
     ]
 
 
@@ -206,21 +215,21 @@ def ceiling_limited_wan_pops(
     )
 
 
-def mesh_circuits_out_of(synthesis: Synthesis, site: str) -> list[SynthesisCircuit]:
+def mesh_circuits_out_of(synthesis: Synthesis, wan_pop: str) -> list[SynthesisCircuit]:
     return [
         drawn_circuit
         for drawn_circuit in synthesis.drawn_circuits
         if drawn_circuit.purpose == "backbone_mesh"
-        and site in (drawn_circuit.source, drawn_circuit.target)
+        and wan_pop in (drawn_circuit.source, drawn_circuit.target)
     ]
 
 
-def unrequested_mesh_circuits(synthesis: Synthesis, site: str) -> list[dict[str, object]]:
+def unrequested_mesh_circuits(synthesis: Synthesis, wan_pop: str) -> list[dict[str, object]]:
     unrequested: list[dict[str, object]] = [
         {
             "peer": (
                 drawn_circuit.target
-                if drawn_circuit.source == site
+                if drawn_circuit.source == wan_pop
                 else drawn_circuit.source
             ),
             "reason": (
@@ -229,8 +238,10 @@ def unrequested_mesh_circuits(synthesis: Synthesis, site: str) -> list[dict[str,
                 else drawn_circuit.reason
             ),
         }
-        for drawn_circuit in mesh_circuits_out_of(synthesis, site)
-        if not (drawn_circuit.reason == CIRCUIT_FOR_TARGET and site in drawn_circuit.requested_by)
+        for drawn_circuit in mesh_circuits_out_of(synthesis, wan_pop)
+        if not (
+            drawn_circuit.reason == CIRCUIT_FOR_TARGET and wan_pop in drawn_circuit.requested_by
+        )
     ]
     return sorted(unrequested, key=lambda item: (str(item["peer"]), str(item["reason"])))
 
@@ -242,17 +253,17 @@ def above_target_wan_pops(
 ) -> list[dict[str, object]]:
     asked_for = targets.number_of_diverse_circuits
     rows: list[dict[str, object]] = []
-    for site in sorted(synthesis.wan_pop_ids):
-        circuits = mesh_circuits_out_of(synthesis, site)
+    for wan_pop in sorted(synthesis.wan_pop_ids):
+        circuits = mesh_circuits_out_of(synthesis, wan_pop)
         if len(circuits) <= asked_for:
             continue
         rows.append({
-            "id": site,
-            "name": sites_by_id[site].name,
+            "id": wan_pop,
+            "name": sites_by_id[wan_pop].name,
             "target": asked_for,
             "link_count": len(circuits),
-            "diverse_circuit_count": diverse_circuit_count(synthesis.drawn_circuits, site),
-            "unrequested_links": unrequested_mesh_circuits(synthesis, site),
+            "diverse_circuit_count": diverse_circuit_count(synthesis.drawn_circuits, wan_pop),
+            "unrequested_links": unrequested_mesh_circuits(synthesis, wan_pop),
         })
     return rows
 
@@ -267,6 +278,9 @@ def neighbor_degrees(
             neighbors[right].add(left)
     return {site_id: len(value) for site_id, value in neighbors.items()}
 
+def _named(ids: list[str], by_id: dict[str, Site]) -> list[dict[str, str]]:
+    return [{"id": named_id, "name": by_id[named_id].name} for named_id in ids]
+
 def validate_synthesis(
     sites: list[Site],
     synthesis: Synthesis,
@@ -279,7 +293,6 @@ def validate_synthesis(
     components = connected_components(ids, pairs)
     degrees = neighbor_degrees(ids, pairs)
     articulations = articulation_points(ids, pairs) if len(components) == 1 else set()
-    missing_redundancy = sites_below_homing_degree(synthesis, homing_degree)
     wan_pop_degrees = neighbor_degrees(set(synthesis.wan_pop_ids), backbone_mesh_pairs(synthesis))
     mesh_deficient = backbone_mesh_deficient(
         synthesis.wan_pop_ids, wan_pop_degrees, sites_by_id, targets
@@ -303,11 +316,18 @@ def validate_synthesis(
             {"id": site_id, "name": sites_by_id[site_id].name}
             for site_id in sorted(articulations)
         ],
-        "every_site_meets_homing_degree": not missing_redundancy,
-        "sites_below_homing_degree": [
-            {"id": site_id, "name": sites_by_id[site_id].name}
-            for site_id in missing_redundancy
-        ],
+        "every_site_meets_homing_degree": not sites_below_homing_degree(
+            synthesis, homing_degree
+        ),
+        "sites_below_homing_degree": _named(
+            sites_below_homing_degree(synthesis, homing_degree), sites_by_id
+        ),
+        "every_provider_region_meets_homing_degree": not provider_regions_below_homing_degree(
+            synthesis, homing_degree
+        ),
+        "provider_regions_below_homing_degree": _named(
+            provider_regions_below_homing_degree(synthesis, homing_degree), sites_by_id
+        ),
         "backbone_meets_mesh_link_target": not mesh_deficient,
         "backbone_diverse_circuits_deficient": mesh_deficient,
         "backbone_meets_independent_mesh_link_target": not independence_deficient,
@@ -327,8 +347,8 @@ def validate_synthesis(
         ),
         "backbone_mesh_survives_any_one_link_loss":
             backbone_mesh_survives_any_one_link_loss(synthesis),
-        "backbone_mesh_survives_any_one_site_loss":
-            backbone_mesh_survives_any_one_site_loss(synthesis),
+        "backbone_mesh_survives_any_one_pop_loss":
+            backbone_mesh_survives_any_one_pop_loss(synthesis),
         "backbone_mesh_is_one_piece": len(backbone_mesh_pieces(synthesis)) <= 1,
         "backbone_mesh_pieces": [
             [{"id": pop, "name": sites_by_id[pop].name} for pop in piece]

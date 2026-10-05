@@ -183,7 +183,7 @@ def survives_any_one_segment_loss(
         return False
     return not bridges(site_ids, fiber_segment_keys)
 
-def survives_any_one_site_loss(
+def survives_any_one_pop_loss(
     site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> bool:
     if len(connected_components(site_ids, fiber_segment_keys)) != 1:

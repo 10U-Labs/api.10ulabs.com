@@ -66,19 +66,19 @@ def load_off_net(rows: list[dict[str, Any]]) -> list[Site]:
 
 
 def load_merged_carriers(
-    site_rows: list[dict[str, Any]], segment_rows: list[dict[str, Any]]
+    pop_rows: list[dict[str, Any]], segment_rows: list[dict[str, Any]]
 ) -> tuple[list[Site], dict[tuple[str, str], FiberSegment]]:
     used: set[str] = set()
     pops: list[Site] = []
     by_city: dict[tuple[str, str], Site] = {}
-    for row in site_rows:
+    for row in pop_rows:
         city = (row["municipality"], row["state"])
         if city in by_city:
             continue
         name = _city(row)
-        site = _site(row, _unique(_slug(name), used), name, CARRIER_KIND)
-        pops.append(site)
-        by_city[city] = site
+        pop = _site(row, _unique(_slug(name), used), name, CARRIER_KIND)
+        pops.append(pop)
+        by_city[city] = pop
     fiber_segments: dict[tuple[str, str], FiberSegment] = {}
     owners_by_key: dict[tuple[str, str], set[str]] = {}
     connected: set[str] = set()
@@ -98,5 +98,5 @@ def load_merged_carriers(
             ),
         )
         connected.update(key)
-    pops = [site for site in by_city.values() if site.id in connected]
+    pops = [pop for pop in by_city.values() if pop.id in connected]
     return pops, fiber_segments

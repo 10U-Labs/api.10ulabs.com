@@ -8,7 +8,6 @@ from dataclasses import replace
 
 from synthesizer.input_graph import FiberSegment, Site
 from synthesizer.model import (
-    HomingSites,
     ShortestPaths,
     Synthesis,
     SynthesisInputs,
@@ -82,12 +81,12 @@ def validate_pop_graph(
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> None:
     pop_ids = {pop.id for pop in carrier_pops}
-    physical_site_ids = {site_id for key in fiber_segments for site_id in key}
-    if not pop_ids.issuperset(physical_site_ids):
+    physical_pop_ids = {pop_id for key in fiber_segments for pop_id in key}
+    if not pop_ids.issuperset(physical_pop_ids):
         raise ValueError("The fiber segments reference unknown Carrier PoP IDs")
     missing_pops = sorted(pop_ids - set(adjacency))
     if missing_pops:
-        names = ", ".join(site.name for site in carrier_pops if site.id in missing_pops)
+        names = ", ".join(pop.name for pop in carrier_pops if pop.id in missing_pops)
         raise ValueError(f"Carrier PoPs with no fiber segment: {names}")
 
 
@@ -185,8 +184,10 @@ def search_best_synthesis(
         if sets == 0:
             continue
         logger.info(
-            "Synthesizing %d demand sites; %d WAN PoPs, %d required; %d sets (limit %d)",
-            len(inputs.homing_sites.joined()), size, len(plan.required_wan_pops), sets, limit,
+            "Synthesizing %d sites and %d provider regions; %d WAN PoPs, %d required;"
+            " %d sets (limit %d)",
+            len(inputs.sites), len(inputs.provider_regions), size,
+            len(plan.required_wan_pops), sets, limit,
         )
         base = best_wan_pops_at_size(inputs, plan, size)
         if base is not None:
@@ -207,14 +208,14 @@ def build_synthesis_inputs(
     fiber_segments: dict[tuple[str, str], FiberSegment],
 ) -> SynthesisInputs:
     carrier_pops = [site for site in sites if is_carrier_pop(site)]
-    homing_sites = [site for site in sites if not is_carrier_pop(site)]
     adjacency = build_adjacency(fiber_segments)
     validate_pop_graph(carrier_pops, fiber_segments, adjacency)
     return SynthesisInputs(
-        homing_sites=HomingSites(
-            [site for site in homing_sites if site.kind != PROVIDER_KIND],
-            [site for site in homing_sites if site.kind == PROVIDER_KIND],
-        ),
+        sites=[
+            site for site in sites
+            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+        ],
+        provider_regions=[site for site in sites if site.kind == PROVIDER_KIND],
         carrier_pops=carrier_pops,
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=set(),

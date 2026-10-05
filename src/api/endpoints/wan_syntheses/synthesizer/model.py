@@ -26,15 +26,7 @@ class Homings:
         return self.tenant + self.provider
 
 
-@dataclass(frozen=True)
-class HomingSites:
-    tenant: list[Site]
-    provider: list[Site]
-
-    def joined(self) -> list[Site]:
-        return self.tenant + self.provider
-
-CIRCUIT_FOR_TARGET = "site_target"
+CIRCUIT_FOR_TARGET = "wan_pop_target"
 CIRCUIT_FOR_PIN = "operator_pin"
 CIRCUIT_FOR_RELIEF = "pop_loss_relief"
 
@@ -124,7 +116,8 @@ class ShortestPaths(NamedTuple):
 
 @dataclass(frozen=True)
 class SynthesisInputs:
-    homing_sites: HomingSites
+    sites: list[Site]
+    provider_regions: list[Site]
     carrier_pops: list[Site]
     fiber_segments: dict[tuple[str, str], FiberSegment]
     eligible_wan_pop_ids: set[str]
@@ -148,6 +141,8 @@ class ValidationReport(TypedDict):
     articulation_points: list[dict[str, str]]
     every_site_meets_homing_degree: bool
     sites_below_homing_degree: list[dict[str, str]]
+    every_provider_region_meets_homing_degree: bool
+    provider_regions_below_homing_degree: list[dict[str, str]]
     backbone_meets_mesh_link_target: bool
     backbone_diverse_circuits_deficient: list[dict[str, object]]
     backbone_meets_independent_mesh_link_target: bool
@@ -157,7 +152,7 @@ class ValidationReport(TypedDict):
     backbone_diverse_circuits_ceiling_limited: list[dict[str, object]]
     backbone_diverse_circuits_above_target: list[dict[str, object]]
     backbone_mesh_survives_any_one_link_loss: bool
-    backbone_mesh_survives_any_one_site_loss: bool
+    backbone_mesh_survives_any_one_pop_loss: bool
     backbone_mesh_is_one_piece: bool
     backbone_mesh_pieces: list[list[dict[str, str]]]
     backbone_mesh_has_no_cut_pop: bool

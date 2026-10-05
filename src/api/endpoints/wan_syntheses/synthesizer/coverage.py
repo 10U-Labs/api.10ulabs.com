@@ -16,46 +16,71 @@ class CoverageReport(TypedDict):
     target_miles: float
     worst_haul_miles: float
     sites_above_target: int
+    provider_regions_above_target: int
     met: bool
 
 
 def hauls(
     wan_pop_ids: tuple[str, ...],
-    sites: list[Site],
+    homed: list[Site],
     pop_by_id: dict[str, Site],
 ) -> list[float]:
-    wan_pop_sites = [pop_by_id[wan_pop_id] for wan_pop_id in wan_pop_ids]
+    wan_pops = [pop_by_id[wan_pop_id] for wan_pop_id in wan_pop_ids]
     return [
-        min(haversine_miles(site, wan_pop_site) for wan_pop_site in wan_pop_sites)
-        for site in sites
+        min(haversine_miles(member, wan_pop) for wan_pop in wan_pops)
+        for member in homed
     ]
+
+
+def _covered_hauls(
+    wan_pop_ids: tuple[str, ...],
+    homed: list[Site],
+    pop_by_id: dict[str, Site],
+) -> list[float]:
+    covered = [member for member in homed if not member.exempt_from_distance_constraint]
+    return hauls(wan_pop_ids, covered, pop_by_id)
 
 
 def coverage_haul_profile(
     wan_pop_ids: tuple[str, ...],
     sites: list[Site],
+    provider_regions: list[Site],
     pop_by_id: dict[str, Site],
 ) -> tuple[float, ...]:
-    covered = [site for site in sites if not site.exempt_from_distance_constraint]
-    return tuple(sorted(hauls(wan_pop_ids, covered, pop_by_id), reverse=True))
+    return tuple(sorted(
+        _covered_hauls(wan_pop_ids, sites, pop_by_id)
+        + _covered_hauls(wan_pop_ids, provider_regions, pop_by_id),
+        reverse=True,
+    ))
 
 
 def coverage_worst_haul(profile: tuple[float, ...]) -> float:
     return max(profile, default=0.0)
 
 
+def _above_target(hauls_measured: list[float], target_miles: float) -> int:
+    return sum(1 for haul in hauls_measured if haul > target_miles)
+
+
 def coverage_report(
     wan_pop_ids: tuple[str, ...],
     sites: list[Site],
+    provider_regions: list[Site],
     pop_by_id: dict[str, Site],
     target_miles: float,
 ) -> CoverageReport:
-    profile = coverage_haul_profile(wan_pop_ids, sites, pop_by_id)
-    worst = coverage_worst_haul(profile)
+    worst = coverage_worst_haul(
+        coverage_haul_profile(wan_pop_ids, sites, provider_regions, pop_by_id)
+    )
     return {
         "target_miles": target_miles,
         "worst_haul_miles": round(worst, 1),
-        "sites_above_target": sum(1 for haul in profile if haul > target_miles),
+        "sites_above_target": _above_target(
+            _covered_hauls(wan_pop_ids, sites, pop_by_id), target_miles
+        ),
+        "provider_regions_above_target": _above_target(
+            _covered_hauls(wan_pop_ids, provider_regions, pop_by_id), target_miles
+        ),
         "met": worst <= target_miles,
     }
 
@@ -72,7 +97,9 @@ def coverage_candidate_hauls(
         candidate_set = tuple(sorted((*wan_pop_ids, candidate_id)))
         if evaluate_wan_pops(candidate_set, inputs, plan) is None:
             continue
-        profile = coverage_haul_profile(candidate_set, inputs.homing_sites.joined(), pop_by_id)
+        profile = coverage_haul_profile(
+            candidate_set, inputs.sites, inputs.provider_regions, pop_by_id
+        )
         scored.append((profile, candidate_id))
     return scored
 
@@ -126,7 +153,9 @@ def grow_wan_pops_for_coverage(
         if params.max_wan_pop_count is not None and len(wan_pop_ids) >= params.max_wan_pop_count:
             logger.info("Coverage growth stopped at the %d-PoP cap", len(wan_pop_ids))
             break
-        profile = coverage_haul_profile(wan_pop_ids, inputs.homing_sites.joined(), pop_by_id)
+        profile = coverage_haul_profile(
+            wan_pop_ids, inputs.sites, inputs.provider_regions, pop_by_id
+        )
         worst = coverage_worst_haul(profile)
         if worst <= target_miles:
             logger.info("Coverage met at %d WAN PoPs (worst haul %.0f mi)", len(wan_pop_ids), worst)

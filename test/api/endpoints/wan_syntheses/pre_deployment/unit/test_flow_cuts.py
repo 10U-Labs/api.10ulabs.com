@@ -5,13 +5,13 @@ from collections.abc import Mapping
 from synthesizer.flow_cuts import Separation, SeparationQuestion, weakest_separation
 from synthesizer.input_graph import segment_key
 
-_SITE = "a"
+_WAN_POP = "a"
 _ONE_PEER = frozenset({"b"})
 _TWO_PEERS = frozenset({"b", "c"})
 _NOTHING_SPARED: frozenset[str] = frozenset()
 _NOTHING_BARRED: frozenset[tuple[str, str]] = frozenset()
 _ARRIVING_AT_THE_PEER = frozenset({("a", "b")})
-_ARRIVING_AT_THE_SITE = frozenset({("b", "a")})
+_ARRIVING_AT_THE_WAN_POP = frozenset({("b", "a")})
 
 _NOTHING_TO_SELECT = Separation(frozenset(), frozenset())
 _ONLY_THE_SEGMENT = Separation(frozenset(), frozenset({("a", "b")}))
@@ -31,7 +31,7 @@ def _asked(
     barred: frozenset[tuple[str, str]] = _NOTHING_BARRED,
 ) -> Separation | None:
     return weakest_separation(
-        SeparationQuestion(_SITE, peers, spared, held, barred), required
+        SeparationQuestion(_WAN_POP, peers, spared, held, barred), required
     )
 
 
@@ -108,4 +108,4 @@ def test_an_arc_the_question_bars_carries_nothing_and_is_no_segment_to_select() 
 
 
 def test_barring_the_arc_the_other_way_leaves_the_circuit_carried() -> None:
-    assert _asked(_DIRECT, 1, barred=_ARRIVING_AT_THE_SITE) is None
+    assert _asked(_DIRECT, 1, barred=_ARRIVING_AT_THE_WAN_POP) is None

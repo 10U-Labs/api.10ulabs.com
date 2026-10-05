@@ -22,16 +22,16 @@ def _add_capacity(residual: _Residual, miles: _Miles, arc: _NewArc) -> None:
     miles.setdefault(head, {})[tail] = -distance
 
 
-def _unit_site_network(
-    site: str,
+def _unit_wan_pop_network(
+    wan_pop: str,
     wan_pop_ids: tuple[str, ...],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> tuple[_Residual, _Miles, list[_Arc]]:
-    peers = {peer for peer in wan_pop_ids if peer != site and peer in adjacency}
+    peers = {peer for peer in wan_pop_ids if peer != wan_pop and peer in adjacency}
     new_arcs: list[_NewArc] = [
         (("in", city), ("out", city), 0.0, 1)
         for city in adjacency
-        if city != site and city not in peers
+        if city != wan_pop and city not in peers
     ]
     new_arcs += [
         (("out", city), ("in", neighbor), weight, 1)
@@ -115,12 +115,12 @@ def _circuits_through(spent: dict[_Node, list[_Node]], source: _Node) -> list[tu
 
 
 def _proved_circuits(
-    site: str,
+    wan_pop: str,
     wan_pop_ids: tuple[str, ...],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> list[tuple[str, ...]]:
-    residual, miles, arcs = _unit_site_network(site, wan_pop_ids, adjacency)
-    source: _Node = ("out", site)
+    residual, miles, arcs = _unit_wan_pop_network(wan_pop, wan_pop_ids, adjacency)
+    source: _Node = ("out", wan_pop)
     potential: dict[_Node, float] = {end: 0.0 for end in (source, *residual)}
     while True:
         path = _augmenting_path(residual, miles, potential, source)
@@ -140,9 +140,9 @@ class CircuitProofInputs:
 
 
 def _without_crossings_home(
-    site: str, inputs: CircuitProofInputs, adjacency: dict[str, list[tuple[str, float]]]
+    wan_pop: str, inputs: CircuitProofInputs, adjacency: dict[str, list[tuple[str, float]]]
 ) -> dict[str, list[tuple[str, float]]]:
-    home = reachable_over(inputs.terrestrial).get(site, frozenset())
+    home = reachable_over(inputs.terrestrial).get(wan_pop, frozenset())
     on_land = {
         city: {neighbor for neighbor, _weight in neighbors}
         for city, neighbors in inputs.terrestrial.items()
@@ -158,19 +158,19 @@ def _without_crossings_home(
     return {city: neighbors for city, neighbors in kept.items() if neighbors}
 
 
-def diverse_circuits(site: str, inputs: CircuitProofInputs) -> list[tuple[str, ...]]:
+def diverse_circuits(wan_pop: str, inputs: CircuitProofInputs) -> list[tuple[str, ...]]:
     return _proved_circuits(
-        site, inputs.wan_pop_ids, _without_crossings_home(site, inputs, inputs.adjacency)
+        wan_pop, inputs.wan_pop_ids, _without_crossings_home(wan_pop, inputs, inputs.adjacency)
     )
 
 
-def diverse_circuit_ceiling(site: str, inputs: CircuitProofInputs) -> int:
-    return len(diverse_circuits(site, inputs))
+def diverse_circuit_ceiling(wan_pop: str, inputs: CircuitProofInputs) -> int:
+    return len(diverse_circuits(wan_pop, inputs))
 
 
 def diverse_circuit_ceilings(inputs: CircuitProofInputs) -> dict[str, int]:
     return {
-        site: diverse_circuit_ceiling(site, inputs)
-        for site in inputs.wan_pop_ids
-        if site in inputs.adjacency
+        wan_pop: diverse_circuit_ceiling(wan_pop, inputs)
+        for wan_pop in inputs.wan_pop_ids
+        if wan_pop in inputs.adjacency
     }

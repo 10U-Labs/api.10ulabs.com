@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Set as AbstractSet
 
+from synthesizer.codec import PROVIDER_KIND
 from synthesizer.input_graph import FiberSegment, Site, segment_key
 from synthesizer.model import (
     SynthesisParams,
@@ -79,13 +80,17 @@ def _wan_pop_pair(
 def _forced_home_pair(
     home: NamedCircuit,
     site_id_by_name: dict[str, str],
+    provider_region_id_by_name: dict[str, str],
     name_to_id: dict[str, str],
     forced_wan_pops: set[str],
 ) -> tuple[str, str]:
-    if home.source not in site_id_by_name:
-        raise ValueError(f"forced-home site not found: {home.source}")
+    source = site_id_by_name.get(home.source, provider_region_id_by_name.get(home.source))
+    if source is None:
+        raise ValueError(
+            f"forced-home source is neither a site nor a provider region: {home.source}"
+        )
     wan_pop = _forced_wan_pop_endpoint(home.target, name_to_id, forced_wan_pops, "forced-home")
-    return site_id_by_name[home.source], wan_pop
+    return source, wan_pop
 
 
 def _excluded_wan_pop_endpoint(name: str, name_to_id: dict[str, str]) -> str:
@@ -114,7 +119,11 @@ def resolve_forced_circuits(
 ) -> ForcedCircuits:
     name_to_id = pop_id_by_name([site for site in sites if is_carrier_pop(site)])
     site_id_by_name = {
-        site.name: site.id for site in sites if not is_carrier_pop(site)
+        site.name: site.id for site in sites
+        if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+    }
+    provider_region_id_by_name = {
+        site.name: site.id for site in sites if site.kind == PROVIDER_KIND
     }
     return ForcedCircuits(
         backbone=frozenset(
@@ -122,7 +131,9 @@ def resolve_forced_circuits(
             for circuit in circuits.backbone
         ),
         homes=frozenset(
-            _forced_home_pair(home, site_id_by_name, name_to_id, forced_wan_pops)
+            _forced_home_pair(
+                home, site_id_by_name, provider_region_id_by_name, name_to_id, forced_wan_pops
+            )
             for home in circuits.homes
         ),
         removed_backbone=_removed_backbone_circuits(circuits.removed_backbone, name_to_id),

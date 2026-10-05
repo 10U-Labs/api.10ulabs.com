@@ -35,21 +35,21 @@ def realize_off_net_pops(
     augmented_sites = list(sites)
     augmented_fiber_segments = dict(fiber_segments)
     off_net_ids: set[str] = set()
-    for site in sorted(off_net_roster, key=lambda site: site.id):
-        if site.name not in forced_names:
+    for off_net_pop in sorted(off_net_roster, key=lambda off_net_pop: off_net_pop.id):
+        if off_net_pop.name not in forced_names:
             continue
-        if site.name in carrier_names:
+        if off_net_pop.name in carrier_names:
             raise ValueError(
-                f"forced off-net PoP is already a carrier PoP: {site.name}"
+                f"forced off-net PoP is already a carrier PoP: {off_net_pop.name}"
             )
-        twin_id = unique_twin_id(f"{OFF_NET_ID_PREFIX}{site.id}", used_ids)
+        twin_id = unique_twin_id(f"{OFF_NET_ID_PREFIX}{off_net_pop.id}", used_ids)
         built = build_local_fiber_twin(
-            site, twin_id, carrier_pops,
+            off_net_pop, twin_id, carrier_pops,
             LocalFiberTwinSettings(note=OFF_NET_SEGMENT_NOTE),
         )
         if built is None:
             raise ValueError(
-                f"off-net PoP {site.name} has fewer than {LOCAL_FIBER_MIN_HOMING_DEGREE} "
+                f"off-net PoP {off_net_pop.name} has fewer than {LOCAL_FIBER_MIN_HOMING_DEGREE} "
                 f"carrier PoPs within {LOCAL_FIBER_RADIUS_MILES:.0f} mi; "
                 "cannot select it as a WAN PoP"
             )

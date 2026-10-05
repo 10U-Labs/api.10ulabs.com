@@ -81,10 +81,10 @@ def _pieces_without_each(
     circuits: list[SynthesisCircuit], wan_pop_ids: tuple[str, ...]
 ) -> dict[str, int]:
     cities, segments = _fiber_of(circuits)
-    sites = cities | set(wan_pop_ids)
+    pops = cities | set(wan_pop_ids)
     return {
-        lost: len(connected_components(sites - {lost}, segments))
-        for lost in sorted(sites)
+        lost: len(connected_components(pops - {lost}, segments))
+        for lost in sorted(pops)
     }
 
 
@@ -104,7 +104,7 @@ def _pinned_circuit(
 
 
 def _proved_over(
-    site: str,
+    wan_pop: str,
     fiber: dict[tuple[str, str], FiberSegment],
     drawn: _DrawnFiber,
 ) -> list[tuple[str, ...]]:
@@ -112,16 +112,16 @@ def _proved_over(
     peers = tuple(
         peer
         for peer in drawn.wan_pop_ids
-        if peer == site or segment_key(site, peer) not in constraints.removed_pairs
+        if peer == wan_pop or segment_key(wan_pop, peer) not in constraints.removed_pairs
     )
     return sorted(
-        diverse_circuits(site, CircuitProofInputs(peers, build_adjacency(fiber))),
+        diverse_circuits(wan_pop, CircuitProofInputs(peers, build_adjacency(fiber))),
         key=lambda pop_ids: (miles_along(pop_ids, fiber), pop_ids),
     )[: max(constraints.number_of_diverse_circuits, CIRCUITS_SHARING_NO_POP)]
 
 
-def _diverse_circuits_of(site: str, drawn: _DrawnFiber) -> list[tuple[str, ...]]:
-    return _proved_over(site, drawn.selected, drawn)
+def _diverse_circuits_of(wan_pop: str, drawn: _DrawnFiber) -> list[tuple[str, ...]]:
+    return _proved_over(wan_pop, drawn.selected, drawn)
 
 
 def _laid(drawn: _DrawnFiber, pinned: list[SynthesisCircuit]) -> list[SynthesisCircuit]:
@@ -129,18 +129,18 @@ def _laid(drawn: _DrawnFiber, pinned: list[SynthesisCircuit]) -> list[SynthesisC
         min(drawn_circuit.pop_ids, drawn_circuit.pop_ids[::-1]): drawn_circuit
         for drawn_circuit in pinned
     }
-    for site in sorted(drawn.wan_pop_ids):
-        for pop_ids in _diverse_circuits_of(site, drawn):
+    for wan_pop in sorted(drawn.wan_pop_ids):
+        for pop_ids in _diverse_circuits_of(wan_pop, drawn):
             key = min(pop_ids, pop_ids[::-1])
             held = laid.get(key)
             if held is None:
                 laid[key] = SynthesisCircuit(
                     "backbone_mesh", pop_ids[0], pop_ids[-1], pop_ids,
-                    miles_along(pop_ids, drawn.whole), CIRCUIT_FOR_TARGET, (site,),
+                    miles_along(pop_ids, drawn.whole), CIRCUIT_FOR_TARGET, (wan_pop,),
                 )
-            elif held.reason == CIRCUIT_FOR_TARGET and site not in held.requested_by:
+            elif held.reason == CIRCUIT_FOR_TARGET and wan_pop not in held.requested_by:
                 laid[key] = replace(
-                    held, requested_by=tuple(sorted((*held.requested_by, site)))
+                    held, requested_by=tuple(sorted((*held.requested_by, wan_pop)))
                 )
     return [laid[key] for key in sorted(laid)]
 
@@ -149,16 +149,16 @@ def _pairs_across(
     city: str, circuits: list[SynthesisCircuit], drawn: _DrawnFiber
 ) -> list[tuple[str, str]]:
     cities, segments = _fiber_of(circuits)
-    sites = cities | set(drawn.wan_pop_ids)
+    pops = cities | set(drawn.wan_pop_ids)
     apart = {
-        site: index
-        for index, piece in enumerate(connected_components(sites - {city}, segments))
-        for site in piece
+        pop: index
+        for index, piece in enumerate(connected_components(pops - {city}, segments))
+        for pop in piece
     }
     sides: dict[int, list[str]] = {}
-    for site in sorted(set(drawn.wan_pop_ids) - {city}):
-        sides.setdefault(apart[site], []).append(site)
-    split = sorted({apart[near] for near in undirected_adjacency(sites, segments)[city]})
+    for wan_pop in sorted(set(drawn.wan_pop_ids) - {city}):
+        sides.setdefault(apart[wan_pop], []).append(wan_pop)
+    split = sorted({apart[near] for near in undirected_adjacency(pops, segments)[city]})
     pairs = [
         (near, far)
         for left, right in combinations(split, 2)
@@ -212,7 +212,7 @@ def _needed(
     circuits: list[SynthesisCircuit], wan_pop_ids: tuple[str, ...], target: int
 ) -> list[SynthesisCircuit]:
     kept = list(circuits)
-    held = {site: min(target, diverse_circuit_count(kept, site)) for site in wan_pop_ids}
+    held = {wan_pop: min(target, diverse_circuit_count(kept, wan_pop)) for wan_pop in wan_pop_ids}
     apart = _pieces_without_each(kept, wan_pop_ids)
     for spare in sorted(
         circuits, key=lambda drawn_circuit: (-drawn_circuit.distance_miles, drawn_circuit.pop_ids)
@@ -221,7 +221,8 @@ def _needed(
             continue
         left = [drawn_circuit for drawn_circuit in kept if drawn_circuit is not spare]
         if any(
-            min(target, diverse_circuit_count(left, site)) < held[site] for site in wan_pop_ids
+            min(target, diverse_circuit_count(left, wan_pop)) < held[wan_pop]
+            for wan_pop in wan_pop_ids
         ):
             continue
         if not _one_network(left, wan_pop_ids):

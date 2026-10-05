@@ -17,7 +17,7 @@ _TOLERANCE = 1e-6
 
 @dataclass(frozen=True)
 class SeparationQuestion:
-    site: str
+    wan_pop: str
     peers: frozenset[str]
     spared: frozenset[str]
     held: Mapping[tuple[str, str], float]
@@ -45,7 +45,7 @@ def _admits(question: SeparationQuestion, tail: str, head: str) -> bool:
 
 
 def _residual_network(question: SeparationQuestion) -> _Residual:
-    spared = question.spared | {question.site}
+    spared = question.spared | {question.wan_pop}
     residual: _Residual = {}
     cities = {city for segment in question.held for city in segment}
     for city in sorted(cities - spared - question.peers):
@@ -100,7 +100,7 @@ def _crossed(
 
 
 def _read_separation(question: SeparationQuestion, reached: dict[_Half, _Half]) -> Separation:
-    spared = question.spared | {question.site}
+    spared = question.spared | {question.wan_pop}
     lost = frozenset(
         city
         for side, city in reached
@@ -117,7 +117,7 @@ def _read_separation(question: SeparationQuestion, reached: dict[_Half, _Half]) 
 
 def weakest_separation(question: SeparationQuestion, required: int) -> Separation | None:
     residual = _residual_network(question)
-    source: _Half = ("out", question.site)
+    source: _Half = ("out", question.wan_pop)
     carried = 0.0
     reached = _walk(residual, source)
     while carried + _TOLERANCE < required and _SINK in reached:

@@ -32,7 +32,7 @@ def segment_sectors(
         for neighbor, _weight in adjacency[pop_id]
     }
 
-def site_straightness(
+def pop_straightness(
     pop_id: str,
     pop_by_id: dict[str, Site],
     predecessors: dict[str, str],
@@ -52,7 +52,7 @@ def site_straightness(
 
 @dataclass(frozen=True)
 class DiverseCircuitBounds:
-    per_site: Mapping[str, int]
+    per_pop: Mapping[str, int]
     largest: int
 
 
@@ -60,10 +60,10 @@ def diverse_circuit_bounds(
     candidate_ids: set[str],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> DiverseCircuitBounds:
-    per_site = diverse_circuit_ceilings(
+    per_pop = diverse_circuit_ceilings(
         CircuitProofInputs(tuple(sorted(candidate_ids)), adjacency)
     )
-    return DiverseCircuitBounds(per_site, max((*per_site.values(), 1)))
+    return DiverseCircuitBounds(per_pop, max((*per_pop.values(), 1)))
 
 
 def wan_pop_strength(
@@ -73,7 +73,7 @@ def wan_pop_strength(
     bounds: DiverseCircuitBounds,
     compass_sector_count: int,
 ) -> float:
-    diverse = bounds.per_site.get(pop_id, 0)
+    diverse = bounds.per_pop.get(pop_id, 0)
     spread = len(segment_sectors(pop_id, inputs.adjacency, pop_by_id, compass_sector_count))
-    straight = site_straightness(pop_id, pop_by_id, inputs.paths.predecessors[pop_id])
+    straight = pop_straightness(pop_id, pop_by_id, inputs.paths.predecessors[pop_id])
     return diverse / bounds.largest + spread / compass_sector_count + straight

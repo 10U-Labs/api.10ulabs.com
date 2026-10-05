@@ -31,7 +31,7 @@ class FiberSelection:
 
 @dataclass(frozen=True)
 class _Requirement:
-    site: str
+    wan_pop: str
     peers: frozenset[str]
     spared: frozenset[str]
     required: int
@@ -59,7 +59,7 @@ def _question(
     requirement: _Requirement, held: Mapping[tuple[str, str], float]
 ) -> SeparationQuestion:
     return SeparationQuestion(
-        requirement.site,
+        requirement.wan_pop,
         requirement.peers,
         requirement.spared,
         held,
@@ -81,8 +81,8 @@ def _lowered(
     return [row for row in carried if row.required]
 
 
-def _shore_of(site: str, writing: _Writing) -> frozenset[str]:
-    return writing.shores.get(site, frozenset({site}))
+def _shore_of(wan_pop: str, writing: _Writing) -> frozenset[str]:
+    return writing.shores.get(wan_pop, frozenset({wan_pop}))
 
 
 def _arriving_on(shore: frozenset[str], writing: _Writing) -> frozenset[tuple[str, str]]:
@@ -94,16 +94,16 @@ def _arriving_on(shore: frozenset[str], writing: _Writing) -> frozenset[tuple[st
     )
 
 
-def _diverse_circuits_out_of(site: str, writing: _Writing) -> list[_Requirement]:
-    peers = frozenset(writing.inputs.wan_pop_ids) - {site}
+def _diverse_circuits_out_of(wan_pop: str, writing: _Writing) -> list[_Requirement]:
+    peers = frozenset(writing.inputs.wan_pop_ids) - {wan_pop}
     return _lowered(
         [
             _Requirement(
-                site,
+                wan_pop,
                 peers,
-                frozenset({site}),
+                frozenset({wan_pop}),
                 max(writing.inputs.number_of_diverse_circuits, CIRCUITS_SHARING_NO_POP),
-                _arriving_on(_shore_of(site, writing), writing),
+                _arriving_on(_shore_of(wan_pop, writing), writing),
             )
         ],
         writing.whole,
@@ -233,8 +233,8 @@ def _search_over(
 def _answered_by_every_wan(writing: _Writing) -> list[_Requirement]:
     asked = [
         row
-        for site in writing.inputs.wan_pop_ids
-        for row in _diverse_circuits_out_of(site, writing)
+        for wan_pop in writing.inputs.wan_pop_ids
+        for row in _diverse_circuits_out_of(wan_pop, writing)
     ]
     return asked + _two_circuits_sharing_no_pop(writing)
 

@@ -36,12 +36,12 @@ def nearest_carrier_pops(
 
 
 def unique_twin_id(base: str, used_ids: set[str]) -> str:
-    site_id = base
+    twin_id = base
     suffix = 2
-    while site_id in used_ids:
-        site_id = f"{base}_{suffix}"
+    while twin_id in used_ids:
+        twin_id = f"{base}_{suffix}"
         suffix += 1
-    return site_id
+    return twin_id
 
 
 def build_local_fiber_twin(

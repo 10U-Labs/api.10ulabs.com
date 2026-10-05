@@ -7,7 +7,13 @@ from typing import Any, NamedTuple
 from cache import invalidate
 from store import assign, member, members, partition, plain, put, sort_id, typed
 from synthesizer import collections as published
-from synthesizer.codec import load_merged_carriers, load_off_net, load_regions, load_sites
+from synthesizer.codec import (
+    PROVIDER_KIND,
+    load_merged_carriers,
+    load_off_net,
+    load_regions,
+    load_sites,
+)
 from synthesizer.config import LIST_INPUTS, AppConfig, app_config_from_record
 from synthesizer.coverage import coverage_report
 from synthesizer.input_graph import FiberSegment, Site
@@ -88,13 +94,17 @@ def _delivered(artifacts: SynthesisArtifacts, params: SynthesisParams) -> dict[s
     synthesis = artifacts.synthesis
     coverage = coverage_report(
         synthesis.wan_pop_ids,
-        [site for site in artifacts.sites if not is_carrier_pop(site)],
+        [
+            site for site in artifacts.sites
+            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+        ],
+        [site for site in artifacts.sites if site.kind == PROVIDER_KIND],
         {site.id: site for site in artifacts.sites},
         params.tuning.backbone_coverage_target_miles,
     )
     logger.info("Coverage delivered: %s", coverage)
     short = artifacts.validation["backbone_mesh_independence_deficient"]
-    logger.info("Sites short of their diverse-circuit target: %s", short)
+    logger.info("WAN PoPs short of their diverse-circuit target: %s", short)
     return {
         "coverage": coverage,
         "fiber_miles": round(synthesis.metrics.physical_miles, 3),
@@ -157,12 +167,12 @@ def _homing_circuits(
     ]
 
 
-def _end(site: Site, end: str) -> dict[str, Any]:
+def _end(pop: Site, end: str) -> dict[str, Any]:
     return {
-        f"{end}_municipality": site.info.municipality,
-        f"{end}_state": site.info.state,
-        f"{end}_latitude": site.lat,
-        f"{end}_longitude": site.lon,
+        f"{end}_municipality": pop.info.municipality,
+        f"{end}_state": pop.info.state,
+        f"{end}_latitude": pop.lat,
+        f"{end}_longitude": pop.lon,
     }
 
 
@@ -218,6 +228,10 @@ def _load(table: str, synthesis_id: int) -> Loaded:
     carrier_pops, fiber_segments = load_merged_carriers(pop_rows, segment_rows)
     sites = load_sites(inputs["sites"])
     regions = load_regions(inputs["hyperscale_cloud_service_provider_regions"])
+    logger.info(
+        "Loaded %d carrier PoPs, %d sites and %d provider regions over %d fiber segments",
+        len(carrier_pops), len(sites), len(regions), len(fiber_segments),
+    )
     return Loaded(
         carrier_pops + sites + regions,
         fiber_segments,
@@ -230,9 +244,7 @@ def _load(table: str, synthesis_id: int) -> Loaded:
 
 def _synthesize(loaded: Loaded) -> SynthesisArtifacts:
     params = loaded.config.params
-    logger.info(
-        "Dual-homing %d sites over %d fiber segments", len(loaded.graph), len(loaded.fiber_segments)
-    )
+    logger.info("Dual-homing the sites and the provider regions")
     homed = dual_home(loaded.graph, loaded.fiber_segments, params, loaded.off_net)
     graph, fiber_segments, overrides = apply_role_overrides(
         homed.sites, homed.fiber_segments, params, loaded.config.operator_circuits

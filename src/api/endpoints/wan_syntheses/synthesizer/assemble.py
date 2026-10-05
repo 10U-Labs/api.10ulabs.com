@@ -43,9 +43,9 @@ def finalize_synthesis(
         fiber_segments[key].distance_miles for key in fiber_segment_keys
     )
     carrier_on_circuits = {
-        site_id
+        pop_id
         for drawn_circuit in draft.drawn_circuits
-        for site_id in drawn_circuit.pop_ids
+        for pop_id in drawn_circuit.pop_ids
     }
     transit_ids = tuple(sorted(carrier_on_circuits - set(wan_pop_ids)))
     return Synthesis(
@@ -67,33 +67,51 @@ def homing_miles(homing_circuits: list[HomingCircuit]) -> float:
     return sum(homing_circuit.distance_miles for homing_circuit in homing_circuits)
 
 
-def home_sites(
-    sites: list[Site],
+def _home_to_nearest_wan_pops(
+    homed: list[Site],
     wan_pop_set: set[str],
     plan: _SearchPlan,
     pop_by_id: dict[str, Site],
 ) -> list[HomingCircuit]:
     homing_degree = plan.tuning.homing_degree
     homing_circuits: list[HomingCircuit] = []
-    for site in sites:
+    for member in homed:
         completed = [
             wan_pop_id
             for _distance, wan_pop_id in sorted(
-                (haversine_miles(site, pop_by_id[wan_pop_id]), wan_pop_id)
+                (haversine_miles(member, pop_by_id[wan_pop_id]), wan_pop_id)
                 for wan_pop_id in wan_pop_set
             )
         ][:homing_degree]
         completed = apply_forced_homes(
-            site, completed, plan.forced_circuits, pop_by_id, homing_degree
+            member, completed, plan.forced_circuits, pop_by_id, homing_degree
         )
         homing_circuits.extend(
             HomingCircuit(
-                site.id, wan_pop_id,
-                haversine_miles(site, pop_by_id[wan_pop_id]),
+                member.id, wan_pop_id,
+                haversine_miles(member, pop_by_id[wan_pop_id]),
             )
             for wan_pop_id in completed
         )
     return homing_circuits
+
+
+def home_sites(
+    sites: list[Site],
+    wan_pop_set: set[str],
+    plan: _SearchPlan,
+    pop_by_id: dict[str, Site],
+) -> list[HomingCircuit]:
+    return _home_to_nearest_wan_pops(sites, wan_pop_set, plan, pop_by_id)
+
+
+def home_provider_regions(
+    provider_regions: list[Site],
+    wan_pop_set: set[str],
+    plan: _SearchPlan,
+    pop_by_id: dict[str, Site],
+) -> list[HomingCircuit]:
+    return _home_to_nearest_wan_pops(provider_regions, wan_pop_set, plan, pop_by_id)
 
 
 def assign_homes(
@@ -106,8 +124,8 @@ def assign_homes(
         return None
     pop_by_id = {pop.id: pop for pop in inputs.carrier_pops}
     return Homings(
-        home_sites(inputs.homing_sites.tenant, wan_pop_set, plan, pop_by_id),
-        home_sites(inputs.homing_sites.provider, wan_pop_set, plan, pop_by_id),
+        home_sites(inputs.sites, wan_pop_set, plan, pop_by_id),
+        home_provider_regions(inputs.provider_regions, wan_pop_set, plan, pop_by_id),
     )
 
 
@@ -115,8 +133,8 @@ def wan_pops_physically_biconnectable(
     wan_pop_ids: tuple[str, ...], inputs: SynthesisInputs
 ) -> bool:
     common: frozenset[int] | None = None
-    for site in wan_pop_ids:
-        blocks = inputs.carrier_blocks.get(site, frozenset())
+    for wan_pop in wan_pop_ids:
+        blocks = inputs.carrier_blocks.get(wan_pop, frozenset())
         common = blocks if common is None else common & blocks
     return common is not None and bool(common)
 
@@ -128,10 +146,10 @@ def forced_wan_pop_resilience_error(
         return None
     blocks_by_id = inputs.carrier_blocks
     pop_by_id = {pop.id: pop for pop in inputs.carrier_pops}
-    names = ", ".join(sorted(pop_by_id[site].name for site in required))
+    names = ", ".join(sorted(pop_by_id[wan_pop].name for wan_pop in required))
     common = blocks_by_id.get(next(iter(required)), frozenset())
-    for site in required:
-        common &= blocks_by_id.get(site, frozenset())
+    for wan_pop in required:
+        common &= blocks_by_id.get(wan_pop, frozenset())
     if not common:
         return (
             "Forced WAN PoPs share no common biconnected block of the carrier fiber "
@@ -140,8 +158,8 @@ def forced_wan_pop_resilience_error(
     best = max(
         sum(
             1
-            for site in inputs.eligible_wan_pop_ids
-            if block in blocks_by_id.get(site, frozenset())
+            for wan_pop in inputs.eligible_wan_pop_ids
+            if block in blocks_by_id.get(wan_pop, frozenset())
         )
         for block in common
     )
