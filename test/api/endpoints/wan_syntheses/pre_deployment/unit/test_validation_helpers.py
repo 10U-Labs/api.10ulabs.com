@@ -115,8 +115,15 @@ def test_diverse_circuit_count_of_a_wan_pop_with_no_circuits_is_zero() -> None:
     assert diverse_circuit_count(meshed_synthesis([], ("a",)).drawn_circuits, "a") == 0
 
 
-def test_diverse_circuit_count_counts_two_circuits_to_the_only_peer_as_two() -> None:
+def test_diverse_circuit_count_counts_two_circuits_to_the_only_peer_as_one() -> None:
     synthesis = meshed_synthesis([("a", "x", "b"), ("a", "y", "b")], ("a", "b"))
+    assert diverse_circuit_count(synthesis.drawn_circuits, "a") == 1
+
+
+def test_diverse_circuit_count_credits_a_second_circuit_to_one_peer_nothing() -> None:
+    synthesis = meshed_synthesis(
+        [("a", "x", "b"), ("a", "y", "b"), ("a", "z", "c")], ("a", "b", "c")
+    )
     assert diverse_circuit_count(synthesis.drawn_circuits, "a") == 2
 
 

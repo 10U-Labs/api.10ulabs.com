@@ -86,3 +86,4 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 ### Issues
 
 - [issues-have-no-house-style](issues-have-no-house-style.md) — no conventions on how an issue is written; a shape the existing issues share is not a rule, and a new issue is written however suits it
+- [a-decision-rewrites-the-issue](a-decision-rewrites-the-issue.md) — a person's decision is written into the issue's title and body, with `needs decision` removed; never posted as a comment

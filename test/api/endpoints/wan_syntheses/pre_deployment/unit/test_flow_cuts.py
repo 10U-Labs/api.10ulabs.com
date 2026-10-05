@@ -16,6 +16,7 @@ _ARRIVING_AT_THE_SITE = frozenset({("b", "a")})
 _NOTHING_TO_SELECT = Separation(frozenset(), frozenset())
 _ONLY_THE_SEGMENT = Separation(frozenset(), frozenset({("a", "b")}))
 _ONLY_THE_CITY = Separation(frozenset({"x"}), frozenset())
+_ONLY_THE_PEER = Separation(frozenset({"b"}), frozenset())
 
 
 def _whole(*segments: tuple[str, str]) -> dict[tuple[str, str], float]:
@@ -44,6 +45,8 @@ _ELSEWHERE = _whole(("y", "z"))
 _ROUND_ONE_CITY = _whole(("a", "x"), ("a", "p"), ("p", "x"), ("b", "x"), ("c", "x"))
 
 _TWO_WAYS_TO_ONE_PEER = _whole(("a", "p"), ("p", "b"), ("a", "q"), ("q", "b"), ("b", "c"))
+
+_ACROSS_THE_PEER = _whole(("a", "b"), ("a", "q"), ("q", "b"), ("b", "c"))
 
 
 def test_fiber_already_carrying_what_was_asked_reports_no_separation() -> None:
@@ -82,8 +85,16 @@ def test_a_peer_the_fiber_does_not_carry_is_left_out_of_the_count() -> None:
     assert _asked(_DIRECT, 1, peers=frozenset({"nowhere"})) == _NOTHING_TO_SELECT
 
 
-def test_two_circuits_ending_at_one_peer_carry_two_ways_out() -> None:
-    assert _asked(_TWO_WAYS_TO_ONE_PEER, 2, peers=_TWO_PEERS) is None
+def test_two_circuits_ending_at_one_peer_carry_one_way_out() -> None:
+    assert _asked(_TWO_WAYS_TO_ONE_PEER, 2, peers=_TWO_PEERS) == _ONLY_THE_PEER
+
+
+def test_a_spared_peer_takes_every_circuit_arriving_at_it() -> None:
+    assert _asked(_TWO_WAYS_TO_ONE_PEER, 2, spared=_ONE_PEER) is None
+
+
+def test_a_circuit_crossing_one_peer_to_reach_another_is_no_way_out() -> None:
+    assert _asked(_ACROSS_THE_PEER, 2, peers=_TWO_PEERS) == _ONLY_THE_PEER
 
 
 def test_a_circuit_ending_at_a_peer_and_one_crossing_it_carry_one_way_out() -> None:

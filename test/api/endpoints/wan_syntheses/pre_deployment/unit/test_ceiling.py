@@ -53,26 +53,17 @@ _TWIN_CIRCUITS = build_adjacency(physical({
 }))
 
 
-def test_two_circuits_to_one_peer_sharing_no_pop_between_count_twice() -> None:
+def test_two_circuits_to_one_peer_sharing_no_pop_between_count_once() -> None:
     assert diverse_circuit_ceiling(
         "s", CircuitProofInputs(("s", "t", "u"), _TWIN_CIRCUITS)
-    ) == 2
+    ) == 1
 
 
 _ONE_PEER = ("s", "t")
 
 
-def test_a_site_with_one_peer_holds_both_circuits_its_fiber_carries() -> None:
-    assert diverse_circuit_ceiling("s", CircuitProofInputs(_ONE_PEER, _TWIN_CIRCUITS)) == 2
-
-
-def test_the_circuits_to_one_peer_share_no_city_but_that_peer() -> None:
-    inner = [
-        city
-        for pop_ids in diverse_circuits("s", CircuitProofInputs(_ONE_PEER, _TWIN_CIRCUITS))
-        for city in pop_ids[1:-1]
-    ]
-    assert sorted(inner) == sorted(set(inner))
+def test_a_site_with_one_peer_has_a_ceiling_of_one_however_much_fiber_joins_them() -> None:
+    assert diverse_circuit_ceiling("s", CircuitProofInputs(_ONE_PEER, _TWIN_CIRCUITS)) == 1
 
 
 _THREE_CIRCUITS = build_adjacency(physical({
@@ -82,8 +73,10 @@ _THREE_CIRCUITS = build_adjacency(physical({
 }))
 
 
-def test_every_circuit_to_one_peer_the_fiber_carries_is_proved() -> None:
-    assert diverse_circuit_ceiling("s", CircuitProofInputs(_ONE_PEER, _THREE_CIRCUITS)) == 3
+def test_only_the_shortest_circuit_to_one_peer_is_proved() -> None:
+    assert diverse_circuits("s", CircuitProofInputs(_ONE_PEER, _THREE_CIRCUITS)) == [
+        ("s", "near", "t")
+    ]
 
 
 _TWO_WAYS_TO_ONE_PEER = build_adjacency(physical(fixtures.TWO_WAYS_TO_ONE_PEER_SEGMENTS))
@@ -92,7 +85,7 @@ _TWO_WAYS_TO_ONE_PEER = build_adjacency(physical(fixtures.TWO_WAYS_TO_ONE_PEER_S
 def test_the_ceiling_credits_a_wan_pop_what_the_grader_credits_it_over_the_same_fiber() -> None:
     assert diverse_circuit_ceiling(
         "a", CircuitProofInputs(fixtures.TWO_WAYS_TO_ONE_PEER_WAN_POPS, _TWO_WAYS_TO_ONE_PEER)
-    ) == fixtures.two_ways_to_one_peer_credited() == 2
+    ) == fixtures.two_ways_to_one_peer_credited() == 1
 
 
 def test_an_unreachable_wan_pop_has_no_ceiling_at_all() -> None:
@@ -137,9 +130,25 @@ def test_the_two_shortest_circuits_proved_are_the_shortest_pair_there_is() -> No
     )[:2] == [2.0, 2.0]
 
 
-def test_a_second_circuit_to_each_peer_is_proved_however_far_it_runs() -> None:
+def test_a_second_circuit_to_a_peer_is_never_proved() -> None:
     inputs = CircuitProofInputs(_EXPRESS_BACKBONE, _EXPRESS_SEGMENTS)
-    assert diverse_circuit_ceiling("sea", inputs) == 4
+    assert diverse_circuit_ceiling("sea", inputs) == 2
+
+
+_NEARER_TWICE = build_adjacency(physical({
+    ("min", "max"): 1.0, ("max", "gtf"): 1.0,
+    ("min", "ray"): 1.0, ("ray", "gtf"): 1.0,
+    ("min", "bis"): 10.0, ("bis", "chy"): 10.0,
+}))
+
+
+def test_a_farther_distinct_peer_is_proved_before_a_nearer_peer_twice() -> None:
+    assert sorted(
+        pop_ids[-1]
+        for pop_ids in diverse_circuits(
+            "min", CircuitProofInputs(("chy", "gtf", "min"), _NEARER_TWICE)
+        )
+    ) == ["chy", "gtf"]
 
 
 _PACIFIC_ADJACENCY = build_adjacency(physical(fixtures.CROSSING_SEGMENTS))
@@ -156,13 +165,13 @@ _CHANGES_HANDS = fixtures.carrier_fiber_segments({
     ("s", "x"): (1.0, ("lumen",)),
     ("x", "t"): (1.0, ("zayo",)),
     ("s", "y"): (1.0, ("lumen",)),
-    ("y", "t"): (1.0, ("zayo",)),
+    ("y", "u"): (1.0, ("zayo",)),
 })
 _ONE_COMPANY_EACH = fixtures.carrier_fiber_segments({
     ("s", "x"): (1.0, ("lumen",)),
     ("x", "t"): (1.0, ("lumen",)),
     ("s", "y"): (1.0, ("zayo",)),
-    ("y", "t"): (1.0, ("zayo",)),
+    ("y", "u"): (1.0, ("zayo",)),
 })
 
 
@@ -170,22 +179,26 @@ def _owned_proof(fiber: dict[tuple[str, str], FiberSegment]) -> CircuitProofInpu
     return CircuitProofInputs(("s", "t"), build_adjacency(fiber))
 
 
+def _two_peer_proof(fiber: dict[tuple[str, str], FiberSegment]) -> CircuitProofInputs:
+    return CircuitProofInputs(("s", "t", "u"), build_adjacency(fiber))
+
+
 def test_the_diverse_circuits_proved_may_each_change_hands() -> None:
-    assert sorted(diverse_circuits("s", _owned_proof(_CHANGES_HANDS))) == [
-        ("s", "x", "t"), ("s", "y", "t"),
+    assert sorted(diverse_circuits("s", _two_peer_proof(_CHANGES_HANDS))) == [
+        ("s", "x", "t"), ("s", "y", "u"),
     ]
 
 
 def test_diverse_circuits_may_come_from_different_carriers() -> None:
-    assert sorted(diverse_circuits("s", _owned_proof(_ONE_COMPANY_EACH))) == [
-        ("s", "x", "t"), ("s", "y", "t"),
+    assert sorted(diverse_circuits("s", _two_peer_proof(_ONE_COMPANY_EACH))) == [
+        ("s", "x", "t"), ("s", "y", "u"),
     ]
 
 
 def test_the_same_fiber_joins_the_pair_when_nobody_owns_it() -> None:
-    assert sorted(diverse_circuits("s", CircuitProofInputs(("s", "t"), build_adjacency(
-        physical({("s", "x"): 1.0, ("x", "t"): 1.0, ("s", "y"): 1.0, ("y", "t"): 1.0}),
-    )))) == [("s", "x", "t"), ("s", "y", "t")]
+    assert sorted(diverse_circuits("s", CircuitProofInputs(("s", "t", "u"), build_adjacency(
+        physical({("s", "x"): 1.0, ("x", "t"): 1.0, ("s", "y"): 1.0, ("y", "u"): 1.0}),
+    )))) == [("s", "x", "t"), ("s", "y", "u")]
 
 
 _BOTH_HAVE_IT = fixtures.carrier_fiber_segments({("s", "t"): (1.0, ("lumen", "zayo"))})
@@ -267,14 +280,17 @@ _TWO_SHORES_BACKBONE = ("mol", "nyc", "tpa")
 
 
 def test_a_site_joined_over_land_to_one_peer_is_proved_a_crossing_to_another() -> None:
-    assert sorted(diverse_circuits(
-        "nyc",
-        CircuitProofInputs(
-            _TWO_SHORES_BACKBONE,
-            build_adjacency(_TWO_SHORES),
-            terrestrial=_on_land(_TWO_SHORES),
-        ),
-    )) == [("nyc", "atl", "tpa"), ("nyc", "lon", "mol"), ("nyc", "phl", "tpa")]
+    assert sorted(
+        pop_ids[-1]
+        for pop_ids in diverse_circuits(
+            "nyc",
+            CircuitProofInputs(
+                _TWO_SHORES_BACKBONE,
+                build_adjacency(_TWO_SHORES),
+                terrestrial=_on_land(_TWO_SHORES),
+            ),
+        )
+    ) == ["mol", "tpa"]
 
 
 _ALREADY_NEEDED_PROOF = CircuitProofInputs(

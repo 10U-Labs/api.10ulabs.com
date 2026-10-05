@@ -475,4 +475,4 @@ def test_the_fiber_selected_carries_as_many_ways_out_as_the_grader_credits() -> 
         build_adjacency({
             segment: _TWO_WAYS_TO_ONE_PEER[segment] for segment in _TWO_WAYS_SELECTION.segments
         }),
-    ))["a"] == fixtures.two_ways_to_one_peer_credited() == 2
+    ))["a"] == fixtures.two_ways_to_one_peer_credited() == 1
