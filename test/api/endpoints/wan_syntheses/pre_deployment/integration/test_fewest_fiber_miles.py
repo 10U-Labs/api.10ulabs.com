@@ -122,7 +122,7 @@ def test_the_delivered_synthesis_holds_only_fiber_selected_for_it() -> None:
 
 
 SHARED_TRANSIT_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    fixtures.SHARED_TRANSIT_WAN_POPS,
+    fixtures.SHARED_TRANSIT_FIBER_WAN_POPS,
     fixtures.SHARED_TRANSIT_SEGMENTS,
     _ASKED_FOR,
     fixtures.SHARED_TRANSIT_TRANSIT,
@@ -131,7 +131,7 @@ SHARED_TRANSIT_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
 
 def _fiber_selected_where_two_carriers_share_a_pop() -> frozenset[tuple[str, str]]:
     return select_fiber(FiberInputs(
-        fixtures.SHARED_TRANSIT_WAN_POPS, fixtures.SHARED_TRANSIT_FIBER, _ASKED_FOR
+        fixtures.SHARED_TRANSIT_FIBER_WAN_POPS, fixtures.SHARED_TRANSIT_FIBER, _ASKED_FOR
     )).segments
 
 

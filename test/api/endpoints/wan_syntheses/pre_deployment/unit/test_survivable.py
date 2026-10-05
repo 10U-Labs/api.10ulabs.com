@@ -274,7 +274,7 @@ def test_the_floor_is_measured_over_the_requirements_the_build_is_held_to() -> N
 
 
 _SHARED_TRANSIT_SELECTION = _selected(
-    fixtures.SHARED_TRANSIT_FIBER, fixtures.SHARED_TRANSIT_WAN_POPS
+    fixtures.SHARED_TRANSIT_FIBER, fixtures.SHARED_TRANSIT_FIBER_WAN_POPS
 )
 
 
@@ -283,7 +283,7 @@ def test_the_fiber_selected_where_two_carriers_share_a_pop_carries_two_ways_shar
         SeparationQuestion(
             "a",
             frozenset({"b"}),
-            frozenset(fixtures.SHARED_TRANSIT_WAN_POPS),
+            frozenset(fixtures.SHARED_TRANSIT_FIBER_WAN_POPS),
             {segment: 1.0 for segment in _SHARED_TRANSIT_SELECTION.segments},
         ),
         2,

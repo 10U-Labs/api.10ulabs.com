@@ -684,7 +684,7 @@ OFFERED_WAYS_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
 }
 OFFERED_WAYS_FIBER = carrier_fiber_segments(OFFERED_WAYS_SEGMENTS)
 
-SHARED_TRANSIT_WAN_POPS = ("a", "b")
+SHARED_TRANSIT_FIBER_WAN_POPS = ("a", "b")
 SHARED_TRANSIT_TRANSIT = ("m", "x", "y")
 SHARED_TRANSIT_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("a", "m"): (10.0, ("lumen", "zayo")),
