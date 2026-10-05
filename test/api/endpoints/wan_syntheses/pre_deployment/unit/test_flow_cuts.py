@@ -57,11 +57,11 @@ def test_asking_for_nothing_ends_before_any_searching() -> None:
     assert _asked(_DIRECT, 0) is None
 
 
-def test_a_site_the_fiber_does_not_reach_has_nothing_to_buy() -> None:
+def test_a_wan_pop_the_fiber_does_not_reach_has_nothing_to_buy() -> None:
     assert _asked(_ELSEWHERE, 1) == _NOTHING_TO_SELECT
 
 
-def test_two_sites_joined_by_one_segment_are_separated_by_that_segment() -> None:
+def test_two_wan_pops_joined_by_one_segment_are_separated_by_that_segment() -> None:
     assert _asked(_DIRECT, 2) == _ONLY_THE_SEGMENT
 
 

@@ -11,18 +11,18 @@ _TWO_SEATS = SynthesisParams(
     tuning=Tuning(backbone_number_of_diverse_circuits=2),
 )
 ARTIFACTS = fixtures.run_synthesis(
-    fixtures.funnel_sites(), fixtures.FUNNEL_FIBER, _TWO_SEATS
+    fixtures.funnel_pops(), fixtures.FUNNEL_FIBER, _TWO_SEATS
 )
 
 
-def test_the_synthesis_selects_two_wan_pop_sites() -> None:
+def test_the_synthesis_selects_two_wan_pops() -> None:
     assert len(ARTIFACTS.synthesis.wan_pop_ids) == 2
 
 
-def test_the_backbone_holds_the_site_whose_fiber_carries_the_most_circuits() -> None:
+def test_the_backbone_holds_the_wan_pop_whose_fiber_carries_the_most_circuits() -> None:
     assert "spread" in ARTIFACTS.synthesis.wan_pop_ids
 
 
-def test_the_backbone_leaves_one_of_the_funnelled_sites_out() -> None:
+def test_the_backbone_leaves_one_of_the_funnelled_pops_out() -> None:
     selected = set(ARTIFACTS.synthesis.wan_pop_ids)
     assert not {"funnel", "second_funnel"} <= selected

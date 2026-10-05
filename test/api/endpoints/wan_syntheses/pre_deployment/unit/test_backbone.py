@@ -38,20 +38,20 @@ def _distances(
 
 
 def _drawn(
-    sites: tuple[str, ...],
+    wan_pops: tuple[str, ...],
     fiber: dict[tuple[str, str], FiberSegment],
     constraints: WanPopConstraints,
 ) -> BackboneMesh:
-    return backbone_mesh(sites, _distances(fiber), fiber, constraints)
+    return backbone_mesh(wan_pops, _distances(fiber), fiber, constraints)
 
 
 def _selected(
     fiber: dict[tuple[str, str], FiberSegment],
-    sites: tuple[str, ...],
+    wan_pops: tuple[str, ...],
     constraints: WanPopConstraints,
 ) -> frozenset[tuple[str, str]]:
     return select_fiber(FiberInputs(
-        sites, fiber, constraints.number_of_diverse_circuits
+        wan_pops, fiber, constraints.number_of_diverse_circuits
     )).segments
 
 
@@ -87,13 +87,13 @@ def _joining(mesh: BackboneMesh, left: str, right: str) -> SynthesisCircuit:
     )
 
 
-_SQUARE_SITES = ("w", "x", "y", "z")
+_SQUARE_WAN_POPS = ("w", "x", "y", "z")
 _SQUARE_FIBER = physical({
     ("w", "x"): 100.0, ("x", "y"): 100.0, ("y", "z"): 100.0, ("z", "w"): 100.0,
     ("w", "y"): 250.0, ("x", "z"): 250.0,
 })
 _TWO_DIVERSE_CIRCUITS = WanPopConstraints(number_of_diverse_circuits=2)
-_SQUARE = _drawn(_SQUARE_SITES, _SQUARE_FIBER, _TWO_DIVERSE_CIRCUITS)
+_SQUARE = _drawn(_SQUARE_WAN_POPS, _SQUARE_FIBER, _TWO_DIVERSE_CIRCUITS)
 
 
 def test_the_square_is_drawn_with_one_circuit_a_pair_round_the_ring() -> None:
@@ -122,24 +122,24 @@ def test_the_square_runs_no_further_than_twice_the_floor() -> None:
     assert _mesh_miles(_SQUARE) <= 2 * _SQUARE.lower_bound_miles
 
 
-def test_every_circuit_the_square_draws_says_a_site_reached_for_it() -> None:
+def test_every_circuit_the_square_draws_says_a_wan_pop_reached_for_it() -> None:
     assert {drawn_circuit.reason for drawn_circuit in _SQUARE.circuits} == {CIRCUIT_FOR_TARGET}
 
 
-def test_a_circuit_names_both_of_the_sites_that_reached_for_it() -> None:
+def test_a_circuit_names_both_of_the_wan_pops_that_reached_for_it() -> None:
     assert _joining(_SQUARE, "w", "x").requested_by == ("w", "x")
 
 
 def test_no_circuit_the_square_holds_could_be_taken_back_out() -> None:
-    assert _needed(_SQUARE.circuits, _SQUARE_SITES, 2) == _SQUARE.circuits
+    assert _needed(_SQUARE.circuits, _SQUARE_WAN_POPS, 2) == _SQUARE.circuits
 
 
-_EGRESS_SITES = ("hub", "p", "q")
+_EGRESS_WAN_POPS = ("hub", "p", "q")
 _EGRESS_FIBER = physical({
     ("hub", "m"): 10.0, ("m", "p"): 10.0, ("m", "q"): 10.0,
     ("hub", "n"): 11.0, ("n", "q"): 11.0, ("p", "q"): 10.0,
 })
-_EGRESS = _drawn(_EGRESS_SITES, _EGRESS_FIBER, _TWO_DIVERSE_CIRCUITS)
+_EGRESS = _drawn(_EGRESS_WAN_POPS, _EGRESS_FIBER, _TWO_DIVERSE_CIRCUITS)
 
 
 def test_the_longer_circuit_round_a_shared_city_is_the_one_drawn() -> None:
@@ -163,10 +163,10 @@ def test_the_shared_egress_synthesis_runs_the_miles_its_five_segments_cost() -> 
 
 
 def test_no_circuit_the_shared_egress_synthesis_holds_could_be_taken_back_out() -> None:
-    assert _needed(_EGRESS.circuits, _EGRESS_SITES, 2) == _EGRESS.circuits
+    assert _needed(_EGRESS.circuits, _EGRESS_WAN_POPS, 2) == _EGRESS.circuits
 
 
-_LOBE_SITES = ("a", "b", "c", "d")
+_LOBE_WAN_POPS = ("a", "b", "c", "d")
 _LOBE_LOBES: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("a", "b"): (10.0, ("lumen",)),
     ("a", "mid"): (15.0, ("lumen",)),
@@ -178,10 +178,10 @@ _LOBE_LOBES: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
 _LOBE_FIBER = fixtures.carrier_fiber_segments({
     **_LOBE_LOBES, ("b", "w"): (20.0, ("zayo",)), ("w", "c"): (20.0, ("zayo",)),
 })
-_TWO_LOBES = _drawn(_LOBE_SITES, _LOBE_FIBER, _asking())
+_TWO_LOBES = _drawn(_LOBE_WAN_POPS, _LOBE_FIBER, _asking())
 _BOWTIE_FIBER = fixtures.carrier_fiber_segments(_LOBE_LOBES)
-_BOWTIE = _drawn(_LOBE_SITES, _BOWTIE_FIBER, _asking())
-_ONE_WAY_OUT_LOBES = _drawn(_LOBE_SITES, _LOBE_FIBER, _asking(1))
+_BOWTIE = _drawn(_LOBE_WAN_POPS, _BOWTIE_FIBER, _asking())
+_ONE_WAY_OUT_LOBES = _drawn(_LOBE_WAN_POPS, _LOBE_FIBER, _asking(1))
 
 
 def test_a_city_every_drawn_circuit_crosses_is_given_a_circuit_round_it() -> None:
@@ -196,7 +196,7 @@ def test_the_circuit_drawn_round_that_city_runs_over_the_fiber_that_goes_round_i
     ] == [("b", "w", "c")]
 
 
-def test_the_circuit_drawn_round_that_city_is_a_diverse_circuit_of_the_sites_it_joins() -> None:
+def test_the_circuit_drawn_round_that_city_is_a_diverse_circuit_of_the_wan_pops_it_joins() -> None:
     assert [
         (drawn_circuit.reason, drawn_circuit.requested_by)
         for drawn_circuit in _TWO_LOBES.circuits
@@ -204,13 +204,13 @@ def test_the_circuit_drawn_round_that_city_is_a_diverse_circuit_of_the_sites_it_
     ] == [(CIRCUIT_FOR_TARGET, ("b", "c"))]
 
 
-_HUB_SITES = ("a", "b", "c", "d")
+_HUB_WAN_POPS = ("a", "b", "c", "d")
 _HUB_FIBER = physical({
     ("a", "b"): 10.0, ("c", "d"): 10.0,
     ("a", "x"): 1.0, ("b", "x"): 1.0, ("c", "x"): 1.0, ("d", "x"): 1.0,
     ("b", "c"): 30.0, ("d", "a"): 30.0,
 })
-_HUB = _drawn(_HUB_SITES, _HUB_FIBER, _asking())
+_HUB = _drawn(_HUB_WAN_POPS, _HUB_FIBER, _asking())
 
 
 def _round_the_hub(mesh: BackboneMesh) -> list[SynthesisCircuit]:
@@ -222,12 +222,12 @@ def _round_the_hub(mesh: BackboneMesh) -> list[SynthesisCircuit]:
     ]
 
 
-def test_the_hub_every_sites_shortest_circuits_cross_is_given_a_circuit_round_it() -> None:
+def test_the_hub_every_wan_pops_shortest_circuits_cross_is_given_a_circuit_round_it() -> None:
     assert _cut(_HUB) == set()
 
 
 def test_a_backbone_asked_for_one_circuit_is_given_the_circuit_round_the_hub_all_the_same() -> None:
-    assert _cut(_drawn(_HUB_SITES, _HUB_FIBER, _asking(1))) == set()
+    assert _cut(_drawn(_HUB_WAN_POPS, _HUB_FIBER, _asking(1))) == set()
 
 
 def test_the_circuit_drawn_round_the_hub_says_the_split_is_what_put_it_there() -> None:
@@ -236,7 +236,7 @@ def test_the_circuit_drawn_round_the_hub_says_the_split_is_what_put_it_there() -
     ]
 
 
-def test_the_circuit_drawn_round_the_hub_is_in_no_sites_own_requirement() -> None:
+def test_the_circuit_drawn_round_the_hub_is_in_no_wan_pops_own_requirement() -> None:
     assert [drawn_circuit.requested_by for drawn_circuit in _round_the_hub(_HUB)] == [()]
 
 
@@ -245,7 +245,7 @@ def test_a_city_no_fiber_goes_round_still_leaves_every_wan_pop_its_circuits() ->
         end
         for drawn_circuit in _BOWTIE.circuits
         for end in (drawn_circuit.source, drawn_circuit.target)
-    } == set(_LOBE_SITES)
+    } == set(_LOBE_WAN_POPS)
 
 
 def test_a_tenant_that_asked_for_one_circuit_is_given_the_circuit_round_the_city_too() -> None:
@@ -257,7 +257,7 @@ def test_a_tenant_that_asked_for_one_circuit_is_given_the_circuit_round_the_city
 
 
 _OFFERED_MESH = _drawn(
-    fixtures.OFFERED_WAYS_SITES, fixtures.OFFERED_WAYS_FIBER, _TWO_DIVERSE_CIRCUITS
+    fixtures.OFFERED_WAYS_WAN_POPS, fixtures.OFFERED_WAYS_FIBER, _TWO_DIVERSE_CIRCUITS
 )
 
 
@@ -269,19 +269,19 @@ def _run_over(mesh: BackboneMesh) -> set[tuple[str, str]]:
     }
 
 
-def test_a_site_is_drawn_over_the_fiber_selected_for_it() -> None:
+def test_a_wan_pop_is_drawn_over_the_fiber_selected_for_it() -> None:
     assert _run_over(_OFFERED_MESH) <= _selected(
-        fixtures.OFFERED_WAYS_FIBER, fixtures.OFFERED_WAYS_SITES, _TWO_DIVERSE_CIRCUITS
+        fixtures.OFFERED_WAYS_FIBER, fixtures.OFFERED_WAYS_WAN_POPS, _TWO_DIVERSE_CIRCUITS
     )
 
 
-_PRUNED = _drawn(_SQUARE_SITES, _SQUARE_FIBER, WanPopConstraints(
+_PRUNED = _drawn(_SQUARE_WAN_POPS, _SQUARE_FIBER, WanPopConstraints(
     removed_pairs=frozenset({segment_key("w", "x")}), number_of_diverse_circuits=2,
 ))
-_PINNED_CHORD = _drawn(_SQUARE_SITES, _SQUARE_FIBER, WanPopConstraints(
+_PINNED_CHORD = _drawn(_SQUARE_WAN_POPS, _SQUARE_FIBER, WanPopConstraints(
     number_of_diverse_circuits=2, forced_pairs=frozenset({segment_key("w", "y")}),
 ))
-_PINNED_SEGMENT = _drawn(_SQUARE_SITES, _SQUARE_FIBER, WanPopConstraints(
+_PINNED_SEGMENT = _drawn(_SQUARE_WAN_POPS, _SQUARE_FIBER, WanPopConstraints(
     number_of_diverse_circuits=2, forced_pairs=frozenset({segment_key("w", "x")}),
 ))
 
@@ -324,7 +324,7 @@ def test_a_backbone_the_fiber_never_joins_is_floored_at_nothing() -> None:
     assert _ISLAND_PIN.lower_bound_miles == 0.0
 
 
-def test_a_site_the_fiber_does_not_carry_leaves_the_others_their_circuits() -> None:
+def test_a_wan_pop_the_fiber_does_not_carry_leaves_the_others_their_circuits() -> None:
     fiber = physical({("a", "b"): 1.0})
     mesh = _drawn(("a", "b", "zed"), fiber, WanPopConstraints(number_of_diverse_circuits=1))
     assert _pairs(mesh) == {segment_key("a", "b")}
@@ -358,11 +358,11 @@ _CHAIN = [
 
 
 def test_a_circuit_nobody_needs_is_taken_back_out() -> None:
-    assert _needed(_RING_PLUS_CHORD, _SQUARE_SITES, 2) == _RING_PLUS_CHORD[:4]
+    assert _needed(_RING_PLUS_CHORD, _SQUARE_WAN_POPS, 2) == _RING_PLUS_CHORD[:4]
 
 
-def test_a_circuit_a_site_would_lose_a_diverse_circuit_by_is_kept() -> None:
-    assert _needed(_RING_PLUS_CHORD[:4], _SQUARE_SITES, 2) == _RING_PLUS_CHORD[:4]
+def test_a_circuit_a_wan_pop_would_lose_a_diverse_circuit_by_is_kept() -> None:
+    assert _needed(_RING_PLUS_CHORD[:4], _SQUARE_WAN_POPS, 2) == _RING_PLUS_CHORD[:4]
 
 
 def test_a_circuit_whose_loss_would_leave_a_city_carrying_the_network_is_kept() -> None:
@@ -400,7 +400,7 @@ def test_a_pin_is_drawn_over_the_shortest_way_though_that_way_changes_hands() ->
     ]
 
 
-_STUB_SITES = ("a", "f", "g", "m", "s")
+_STUB_WAN_POPS = ("a", "f", "g", "m", "s")
 _STUB_AND_CHORD = [
     _use("a", "g", ("a", "p", "g"), 200.0),
     _use("a", "g", ("a", "q", "g"), 150.0),
@@ -414,8 +414,8 @@ _STUB_AND_CHORD = [
 
 
 def test_a_circuit_that_stops_a_pop_cutting_the_wan_further_is_kept() -> None:
-    assert _STUB_AND_CHORD[2] in _needed(_STUB_AND_CHORD, _STUB_SITES, 2)
+    assert _STUB_AND_CHORD[2] in _needed(_STUB_AND_CHORD, _STUB_WAN_POPS, 2)
 
 
 def test_a_spare_circuit_beside_an_irreparable_cut_is_still_taken_back_out() -> None:
-    assert _STUB_AND_CHORD[7] not in _needed(_STUB_AND_CHORD, _STUB_SITES, 2)
+    assert _STUB_AND_CHORD[7] not in _needed(_STUB_AND_CHORD, _STUB_WAN_POPS, 2)

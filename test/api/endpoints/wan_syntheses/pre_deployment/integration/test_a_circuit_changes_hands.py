@@ -5,9 +5,9 @@ from synthesizer.input_graph import segment_key
 from synthesizer.model import SynthesisCircuit
 
 _SHORTCUT_CITY = "t"
-_SITES = ("a", "c")
+_WAN_POPS = ("a", "c")
 ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    _SITES,
+    _WAN_POPS,
     {
         ("a", "b"): (100.0, ("lumen",)),
         ("b", "c"): (100.0, ("lumen",)),
@@ -23,11 +23,11 @@ _MESH = fixtures.mesh_circuits(ARTIFACTS)
 _THE_SHORT_WAY = ("a", _SHORTCUT_CITY, "c")
 
 
-def _circuits_at(site: str) -> list[SynthesisCircuit]:
+def _circuits_at(wan_pop: str) -> list[SynthesisCircuit]:
     return [
         drawn_circuit
         for drawn_circuit in _MESH
-        if site in (drawn_circuit.source, drawn_circuit.target)
+        if wan_pop in (drawn_circuit.source, drawn_circuit.target)
     ]
 
 
@@ -50,11 +50,11 @@ def test_every_drawn_circuit_runs_over_segments_each_of_which_a_carrier_owns() -
     assert all(owners for drawn_circuit in _MESH for owners in _owners_along(drawn_circuit.pop_ids))
 
 
-def test_every_site_still_holds_the_circuits_its_tenant_asked_for() -> None:
-    assert all(len(_circuits_at(site)) == 2 for site in _SITES)
+def test_every_wan_pop_still_holds_the_circuits_its_tenant_asked_for() -> None:
+    assert all(len(_circuits_at(wan_pop)) == 2 for wan_pop in _WAN_POPS)
 
 
-def test_the_ceiling_credits_each_site_one_circuit_to_its_only_peer() -> None:
+def test_the_ceiling_credits_each_wan_pop_one_circuit_to_its_only_peer() -> None:
     assert {
         str(row["id"]): row["ceiling"]
         for row in ARTIFACTS.validation["backbone_diverse_circuits_ceilings"]

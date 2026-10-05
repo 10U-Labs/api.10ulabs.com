@@ -11,7 +11,7 @@ from synthesizer.synthesize import synthesize_two_tier
 def _logged(caplog: pytest.LogCaptureFixture) -> list[str]:
     with caplog.at_level("INFO"):
         synthesize_two_tier(
-            fixtures.ring_sites(), fixtures.ring_fiber_segments(), fixtures.ring_params()
+            fixtures.ring_pops(), fixtures.ring_fiber_segments(), fixtures.ring_params()
         )
     return [record.getMessage() for record in caplog.records]
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import fixtures
 
-_SITES = ("a", "b", "c", "d")
+_WAN_POPS = ("a", "b", "c", "d")
 _ASKED_FOR = 2
 _SEGMENTS = {
     ("a", "b"): 10.0, ("a", "mid"): 15.0, ("b", "mid"): 5.0,
@@ -10,8 +10,8 @@ _SEGMENTS = {
     ("b", "w"): 20.0, ("w", "c"): 20.0,
 }
 _TRANSIT = ("mid", "w")
-ARTIFACTS = fixtures.synthesis_over_segments(_SITES, _SEGMENTS, _ASKED_FOR, _TRANSIT)
-_ASKED_FOR_ONE = fixtures.synthesis_over_segments(_SITES, _SEGMENTS, 1, _TRANSIT)
+ARTIFACTS = fixtures.synthesis_over_segments(_WAN_POPS, _SEGMENTS, _ASKED_FOR, _TRANSIT)
+_ASKED_FOR_ONE = fixtures.synthesis_over_segments(_WAN_POPS, _SEGMENTS, 1, _TRANSIT)
 
 
 def test_the_published_backbone_survives_the_loss_of_any_one_city() -> None:

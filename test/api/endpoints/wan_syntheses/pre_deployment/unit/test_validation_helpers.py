@@ -98,7 +98,7 @@ _SHARED_EGRESS = meshed_synthesis(
 _DIVERSE_EGRESS = meshed_synthesis(
     fixtures.DIVERSE_TRANSIT_CIRCUITS, fixtures.SHARED_TRANSIT_WAN_POPS
 )
-_MESH_SITES = fixtures.carrier_pops_by_id("abcxy")
+_MESH_POPS = fixtures.carrier_pops_by_id("abcxy")
 
 
 @pytest.mark.parametrize("degree", [2, 3, 4])
@@ -144,36 +144,36 @@ _MESH_WAN_POPS = ("a", "b", "c", "d")
 
 
 def test_mesh_deficient_names_the_wan_pop_below_the_degree() -> None:
-    sites = fixtures.carrier_pops_by_id("abcd")
-    assert backbone_mesh_deficient(_MESH_WAN_POPS, _MESH_DEGREES, sites, MeshRequirements(2)) == [
+    pops = fixtures.carrier_pops_by_id("abcd")
+    assert backbone_mesh_deficient(_MESH_WAN_POPS, _MESH_DEGREES, pops, MeshRequirements(2)) == [
         {"id": "a", "name": "a", "degree": 1}
     ]
 
 
 def test_mesh_deficient_leaves_out_an_exempt_node() -> None:
-    sites = fixtures.carrier_pops_by_id("abcd")
+    pops = fixtures.carrier_pops_by_id("abcd")
     assert backbone_mesh_deficient(
-        _MESH_WAN_POPS, _MESH_DEGREES, sites, MeshRequirements(2, frozenset({"a"}))
+        _MESH_WAN_POPS, _MESH_DEGREES, pops, MeshRequirements(2, frozenset({"a"}))
     ) == []
 
 
 def test_mesh_deficient_still_names_a_wan_pop_that_is_not_exempt() -> None:
-    sites = fixtures.carrier_pops_by_id("abcd")
+    pops = fixtures.carrier_pops_by_id("abcd")
     assert backbone_mesh_deficient(
-        _MESH_WAN_POPS, _MESH_DEGREES, sites, MeshRequirements(2, frozenset({"b"}))
+        _MESH_WAN_POPS, _MESH_DEGREES, pops, MeshRequirements(2, frozenset({"b"}))
     ) == [{"id": "a", "name": "a", "degree": 1}]
 
 
 def test_mesh_deficient_holds_a_capped_wan_pop_to_its_ceiling() -> None:
-    sites = fixtures.carrier_pops_by_id("abcd")
+    pops = fixtures.carrier_pops_by_id("abcd")
     assert backbone_mesh_deficient(
-        _MESH_WAN_POPS, _MESH_DEGREES, sites, MeshRequirements(2, ceilings={"a": 1})
+        _MESH_WAN_POPS, _MESH_DEGREES, pops, MeshRequirements(2, ceilings={"a": 1})
     ) == []
 
 
 def test_independence_deficient_names_the_wan_pop_below_the_degree() -> None:
     assert backbone_mesh_independence_deficient(
-        _SHARED_EGRESS, _MESH_SITES, MeshRequirements(2)
+        _SHARED_EGRESS, _MESH_POPS, MeshRequirements(2)
     ) == [
         {"id": "a", "name": "a", "independent_degree": 1}
     ]
@@ -181,31 +181,31 @@ def test_independence_deficient_names_the_wan_pop_below_the_degree() -> None:
 
 def test_independence_deficient_leaves_out_an_exempt_node() -> None:
     assert backbone_mesh_independence_deficient(
-        _SHARED_EGRESS, _MESH_SITES, MeshRequirements(2, frozenset({"a"}))
+        _SHARED_EGRESS, _MESH_POPS, MeshRequirements(2, frozenset({"a"}))
     ) == []
 
 
 def test_independence_deficient_still_names_a_wan_pop_that_is_not_exempt() -> None:
     assert backbone_mesh_independence_deficient(
-        _SHARED_EGRESS, _MESH_SITES, MeshRequirements(2, frozenset({"b"}))
+        _SHARED_EGRESS, _MESH_POPS, MeshRequirements(2, frozenset({"b"}))
     ) == [{"id": "a", "name": "a", "independent_degree": 1}]
 
 
 def test_independence_deficient_passes_a_diversely_drawn_mesh() -> None:
     assert backbone_mesh_independence_deficient(
-        _DIVERSE_EGRESS, _MESH_SITES, MeshRequirements(2)
+        _DIVERSE_EGRESS, _MESH_POPS, MeshRequirements(2)
     ) == []
 
 
 def test_independence_deficient_holds_a_capped_wan_pop_to_its_ceiling() -> None:
     assert backbone_mesh_independence_deficient(
-        _SHARED_EGRESS, _MESH_SITES, MeshRequirements(2, ceilings={"a": 1})
+        _SHARED_EGRESS, _MESH_POPS, MeshRequirements(2, ceilings={"a": 1})
     ) == []
 
 
 def test_independence_deficient_still_names_a_wan_pop_under_its_own_ceiling() -> None:
     assert backbone_mesh_independence_deficient(
-        _SHARED_EGRESS, _MESH_SITES, MeshRequirements(2, ceilings={"a": 2})
+        _SHARED_EGRESS, _MESH_POPS, MeshRequirements(2, ceilings={"a": 2})
     ) == [{"id": "a", "name": "a", "independent_degree": 1}]
 
 
@@ -215,10 +215,10 @@ def test_independence_deficient_still_asks_a_backbone_no_larger_than_the_degree(
 ) -> None:
     backbone = "abcd"[:degree]
     synthesis = meshed_synthesis([], tuple(backbone))
-    sites = fixtures.carrier_pops_by_id(backbone)
+    pops = fixtures.carrier_pops_by_id(backbone)
     assert [
         row["id"]
         for row in backbone_mesh_independence_deficient(
-            synthesis, sites, MeshRequirements(degree)
+            synthesis, pops, MeshRequirements(degree)
         )
     ] == list(backbone)

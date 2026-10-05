@@ -16,7 +16,7 @@ from synthesizer.model import (
 )
 from synthesizer.validation import validate_synthesis
 
-_SITES = ("a", "b", "c", "d")
+_WAN_POPS = ("a", "b", "c", "d")
 _TARGET = 2
 
 
@@ -32,7 +32,7 @@ _ASKED_FOR = [
 
 def _above_target(*extra: SynthesisCircuit) -> list[dict[str, object]]:
     synthesis = Synthesis(
-        wan_pop_ids=_SITES,
+        wan_pop_ids=_WAN_POPS,
         transit_ids=(),
         homings=Homings([], []),
         fiber_segment_keys=set(),
@@ -40,14 +40,14 @@ def _above_target(*extra: SynthesisCircuit) -> list[dict[str, object]]:
         metrics=fixtures.no_miles(),
     )
     report = validate_synthesis(
-        [fixtures.carrier_pop(site) for site in _SITES],
+        [fixtures.carrier_pop(wan_pop) for wan_pop in _WAN_POPS],
         synthesis,
         targets=MeshRequirements(_TARGET),
     )
     return report["backbone_diverse_circuits_above_target"]
 
 
-def test_a_site_holding_exactly_what_it_asked_for_is_not_reported() -> None:
+def test_a_wan_pop_holding_exactly_what_it_asked_for_is_not_reported() -> None:
     assert not _above_target()
 
 
@@ -66,7 +66,7 @@ def test_a_circuit_past_the_target_names_the_requirement_that_put_it_there(
     assert rows[0]["unrequested_links"] == [{"peer": "d", "reason": reported}]
 
 
-def test_the_report_names_the_site_that_went_over() -> None:
+def test_the_report_names_the_wan_pop_that_went_over() -> None:
     rows = _above_target(_circuit("d", CIRCUIT_FOR_PIN))
     assert [row["id"] for row in rows] == ["a"]
 
@@ -76,7 +76,7 @@ def test_the_report_shows_the_arithmetic_it_is_claiming() -> None:
     assert (rows[0]["target"], rows[0]["link_count"]) == (_TARGET, 3)
 
 
-def test_a_sites_own_circuits_are_not_reported_as_unrequested() -> None:
+def test_a_wan_pops_own_circuits_are_not_reported_as_unrequested() -> None:
     rows = _above_target(_circuit("d", CIRCUIT_FOR_PIN))
     unrequested = cast(list[dict[str, object]], rows[0]["unrequested_links"])
     assert [item["peer"] for item in unrequested] == ["d"]

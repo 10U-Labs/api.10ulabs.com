@@ -35,7 +35,7 @@ def _artifacts(
 @pytest.fixture(name="crossing", scope="module")
 def _crossing() -> SynthesisArtifacts:
     return _artifacts(
-        fixtures.crossing_sites(),
+        fixtures.crossing_pops(),
         fixtures.CROSSING_FIBER,
         fixtures.crossing_transit_names(),
     )
@@ -44,7 +44,7 @@ def _crossing() -> SynthesisArtifacts:
 @pytest.fixture(name="distant_peer", scope="module")
 def _distant_peer() -> SynthesisArtifacts:
     return _artifacts(
-        fixtures.distant_peer_sites(),
+        fixtures.distant_peer_pops(),
         fixtures.DISTANT_PEER_FIBER,
         fixtures.distant_peer_transit_names(),
     )
@@ -53,7 +53,7 @@ def _distant_peer() -> SynthesisArtifacts:
 @pytest.fixture(name="express", scope="module")
 def _express() -> SynthesisArtifacts:
     return _artifacts(
-        fixtures.express_sites(),
+        fixtures.express_pops(),
         fixtures.EXPRESS_FIBER,
         fixtures.express_transit_names(),
     )
@@ -75,7 +75,7 @@ def _mesh_miles(artifacts: SynthesisArtifacts) -> float:
     )
 
 
-def test_a_crossing_is_taken_where_it_is_a_sites_second_diverse_circuit(
+def test_a_crossing_is_taken_where_it_is_a_wan_pops_second_diverse_circuit(
     crossing: SynthesisArtifacts,
 ) -> None:
     assert "tok" in _cities_crossed(crossing)
@@ -85,25 +85,25 @@ def test_a_wan_a_crossing_would_answer_but_a_circuit_over_land_holds_off_is_refu
 ) -> None:
     with pytest.raises(ValueError, match="splits the WAN at: pdx"):
         _artifacts(
-            fixtures.crossing_sites(),
+            fixtures.crossing_pops(),
             fixtures.CROSSING_SUBMARINE_FIBER,
             fixtures.crossing_transit_names(),
         )
 
 
-def test_the_synthesis_wires_every_site_into_one_backbone(
+def test_the_synthesis_wires_every_wan_pop_into_one_backbone(
     crossing: SynthesisArtifacts,
 ) -> None:
     assert crossing.validation["connected"]
 
 
-def test_no_site_is_credited_with_a_diverse_circuit_its_fiber_does_not_carry(
+def test_no_wan_pop_is_credited_with_a_diverse_circuit_its_fiber_does_not_carry(
     crossing: SynthesisArtifacts,
 ) -> None:
     assert crossing.validation["backbone_diverse_circuits_ceiling_limited"] == []
 
 
-def test_no_site_is_asked_for_a_circuit_its_fiber_cannot_lay(
+def test_no_wan_pop_is_asked_for_a_circuit_its_fiber_cannot_lay(
     distant_peer: SynthesisArtifacts,
 ) -> None:
     assert distant_peer.validation["backbone_mesh_independence_deficient"] == []
@@ -115,13 +115,13 @@ def test_the_finished_synthesis_runs_the_fewest_fiber_miles_it_can_be_wired_with
     assert _mesh_miles(express) == 6.0
 
 
-def test_the_ring_synthesis_holds_every_site_to_the_two_circuits_its_fiber_carries(
+def test_the_ring_synthesis_holds_every_wan_pop_to_the_two_circuits_its_fiber_carries(
     express: SynthesisArtifacts,
 ) -> None:
     assert express.validation["backbone_mesh_independence_deficient"] == []
 
 
-_TWO_WAYS_SITES = ("a", "b")
+_TWO_WAYS_WAN_POPS = ("a", "b")
 _TWO_WAYS_TRANSIT = ("p", "q")
 _TWO_WAYS_FIBER = fixtures.fiber_segments_from({
     ("a", "p"): 1.0, ("p", "b"): 1.0, ("a", "q"): 1.0, ("q", "b"): 1.0,
@@ -134,13 +134,13 @@ def _two_ways_to_one_peer() -> SynthesisArtifacts:
     return fixtures.run_synthesis(
         [
             fixtures.carrier_pop(city, 38.0, -115.0 + 2.0 * index)
-            for index, city in enumerate(_TWO_WAYS_SITES + _TWO_WAYS_TRANSIT)
+            for index, city in enumerate(_TWO_WAYS_WAN_POPS + _TWO_WAYS_TRANSIT)
         ],
         _TWO_WAYS_FIBER,
         SynthesisParams(
-            min_wan_pop_count=len(_TWO_WAYS_SITES),
+            min_wan_pop_count=len(_TWO_WAYS_WAN_POPS),
             max_wan_pop_count=_WAN_POPS_THE_CONFIG_ALLOWS,
-            forced_wan_pop_names=_TWO_WAYS_SITES,
+            forced_wan_pop_names=_TWO_WAYS_WAN_POPS,
             exclusions=RoleExclusions(prohibited_wan_pop_names=_TWO_WAYS_TRANSIT),
             promote_high_degree_convergences=False,
             tuning=Tuning(backbone_number_of_diverse_circuits=2),

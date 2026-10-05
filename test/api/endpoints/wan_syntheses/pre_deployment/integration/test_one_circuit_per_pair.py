@@ -17,15 +17,15 @@ def _circuits_per_pair() -> dict[tuple[str, str], int]:
     return drawn
 
 
-def test_the_backbone_is_the_four_sites() -> None:
+def test_the_backbone_is_the_four_wan_pops() -> None:
     assert sorted(ARTIFACTS.synthesis.wan_pop_ids) == ["a", "b", "c", "d"]
 
 
-def test_no_pair_of_sites_is_joined_more_than_once() -> None:
+def test_no_pair_of_wan_pops_is_joined_more_than_once() -> None:
     assert max(_circuits_per_pair().values()) == 1
 
 
-def test_the_synthesis_joins_each_site_to_the_two_peers_it_reaches() -> None:
+def test_the_synthesis_joins_each_wan_pop_to_the_two_peers_it_reaches() -> None:
     assert len(_MESH) == 4
 
 
@@ -33,7 +33,7 @@ def test_the_synthesis_runs_the_fewest_fiber_miles_its_requirements_allow() -> N
     assert sum(drawn_circuit.distance_miles for drawn_circuit in _MESH) == 1600.0
 
 
-def test_every_site_still_holds_the_circuits_its_tenant_asked_for() -> None:
+def test_every_wan_pop_still_holds_the_circuits_its_tenant_asked_for() -> None:
     assert ARTIFACTS.validation["backbone_mesh_independence_deficient"] == []
 
 

@@ -62,7 +62,7 @@ def test_two_circuits_to_one_peer_sharing_no_pop_between_count_once() -> None:
 _ONE_PEER = ("s", "t")
 
 
-def test_a_site_with_one_peer_has_a_ceiling_of_one_however_much_fiber_joins_them() -> None:
+def test_a_wan_pop_with_one_peer_has_a_ceiling_of_one_however_much_fiber_joins_them() -> None:
     assert diverse_circuit_ceiling("s", CircuitProofInputs(_ONE_PEER, _TWIN_CIRCUITS)) == 1
 
 
@@ -236,7 +236,7 @@ def _on_land(
     })
 
 
-def test_a_circuit_under_water_is_no_diverse_circuit_where_the_site_has_one_over_land() -> None:
+def test_a_circuit_under_water_is_no_diverse_circuit_where_the_wan_pop_has_one_over_land() -> None:
     assert diverse_circuits(
         "sea",
         CircuitProofInputs(
@@ -257,7 +257,7 @@ _ISLAND = fixtures.fiber_segments_under_water(
 _ISLAND_BACKBONE = ("hil", "sea", "syd")
 
 
-def test_a_site_reachable_only_over_water_keeps_the_diverse_circuits_it_has() -> None:
+def test_a_wan_pop_reachable_only_over_water_keeps_the_diverse_circuits_it_has() -> None:
     assert sorted(diverse_circuits(
         "syd",
         CircuitProofInputs(
@@ -279,7 +279,7 @@ _TWO_SHORES = fixtures.fiber_segments_under_water(
 _TWO_SHORES_BACKBONE = ("mol", "nyc", "tpa")
 
 
-def test_a_site_joined_over_land_to_one_peer_is_proved_a_crossing_to_another() -> None:
+def test_a_wan_pop_joined_over_land_to_one_peer_is_proved_a_crossing_to_another() -> None:
     assert sorted(
         pop_ids[-1]
         for pop_ids in diverse_circuits(
@@ -294,7 +294,7 @@ def test_a_site_joined_over_land_to_one_peer_is_proved_a_crossing_to_another() -
 
 
 _ALREADY_NEEDED_PROOF = CircuitProofInputs(
-    fixtures.ALREADY_NEEDED_SITES, build_adjacency(fixtures.ALREADY_NEEDED_FIBER)
+    fixtures.ALREADY_NEEDED_WAN_POPS, build_adjacency(fixtures.ALREADY_NEEDED_FIBER)
 )
 
 
@@ -306,6 +306,6 @@ def test_a_wan_pop_is_proved_a_circuit_that_changes_hands() -> None:
 
 def test_every_diverse_circuit_a_wan_pops_fiber_carries_is_proved() -> None:
     assert diverse_circuit_ceiling("b", CircuitProofInputs(
-        fixtures.FLOORED_ABOVE_SITES,
+        fixtures.FLOORED_ABOVE_WAN_POPS,
         build_adjacency(fixtures.carrier_fiber_segments(fixtures.FLOORED_ABOVE_SEGMENTS)),
     )) == 3

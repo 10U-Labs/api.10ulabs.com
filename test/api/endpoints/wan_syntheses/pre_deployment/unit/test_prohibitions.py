@@ -27,7 +27,7 @@ def test_apply_role_overrides_rejects_an_unknown_prohibited_name() -> None:
 
 def test_synthesize_bars_a_prohibited_pop_from_the_backbone() -> None:
     synthesis = synthesize_two_tier(
-        fixtures.ring_sites(),
+        fixtures.ring_pops(),
         fixtures.ring_fiber_segments(),
         SynthesisParams(
             min_wan_pop_count=2),

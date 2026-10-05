@@ -111,14 +111,14 @@ def test_not_enough_eligible_pops_is_rejected() -> None:
 
 def test_synthesizes_ring_to_a_feasible_synthesis() -> None:
     synthesis = synthesize_two_tier(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(), fixtures.ring_params()
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(), fixtures.ring_params()
     )
     assert len(synthesis.wan_pop_ids) >= 2
 
 
 def test_min_wan_pop_count_is_the_floor_when_feasible() -> None:
     synthesis = synthesize_two_tier(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(),
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(),
         SynthesisParams(min_wan_pop_count=3),
     )
     assert len(synthesis.wan_pop_ids) == 3
@@ -126,7 +126,7 @@ def test_min_wan_pop_count_is_the_floor_when_feasible() -> None:
 
 def test_backbone_grows_past_the_floor_to_select_more_forced_wan_pops() -> None:
     synthesis = synthesize_two_tier(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(),
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(),
         SynthesisParams(min_wan_pop_count=2),
         RoleOverrides(forced_wan_pop_ids=frozenset({"P1", "P3", "P5"})),
     )
@@ -145,7 +145,7 @@ def test_no_feasible_synthesis_is_rejected() -> None:
 
 def test_honors_a_forced_wan_pop_override() -> None:
     synthesis = synthesize_two_tier(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(),
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(),
         SynthesisParams(min_wan_pop_count=2),
         RoleOverrides(forced_wan_pop_ids=frozenset({"P3"})),
     )

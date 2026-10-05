@@ -17,8 +17,8 @@ from synthesizer.graphs import (
 from synthesizer.input_graph import Site, segment_key, haversine_miles
 
 
-def make_site(site_id: str, lat: float, lon: float) -> Site:
-    return Site(id=site_id, name=site_id, kind="PoP", coords=(lat, lon))
+def make_pop(pop_id: str, lat: float, lon: float) -> Site:
+    return Site(id=pop_id, name=pop_id, kind="PoP", coords=(lat, lon))
 
 
 def _adjacency(pairs: list[tuple[str, str]]) -> dict[str, list[tuple[str, float]]]:
@@ -48,13 +48,13 @@ def test_segment_key_rejects_self_loop() -> None:
 
 
 def test_haversine_zero_distance() -> None:
-    site = make_site("x", 40.0, -100.0)
-    assert haversine_miles(site, site) == pytest.approx(0.0)
+    pop = make_pop("x", 40.0, -100.0)
+    assert haversine_miles(pop, pop) == pytest.approx(0.0)
 
 
 def test_haversine_known_distance() -> None:
-    new_york = make_site("ny", 40.7128, -74.006)
-    los_angeles = make_site("la", 34.0522, -118.2437)
+    new_york = make_pop("ny", 40.7128, -74.006)
+    los_angeles = make_pop("la", 34.0522, -118.2437)
     assert haversine_miles(new_york, los_angeles) == pytest.approx(2450.0, abs=30.0)
 
 
@@ -116,7 +116,7 @@ def test_reconstruct_path_broken_chain_returns_empty() -> None:
     assert not reconstruct_path("a", "c", {"c": "b"})
 
 
-def test_fiber_segments_along_a_three_site_circuit() -> None:
+def test_fiber_segments_along_a_three_pop_circuit() -> None:
     assert fiber_segments_along(("a", "b", "c")) == {segment_key("a", "b"), segment_key("b", "c")}
 
 

@@ -7,13 +7,13 @@ from synthesizer import linear_program
 from synthesizer.model import SynthesisArtifacts
 from synthesizer.survivable import FiberInputs, select_fiber
 
-_SITES = ("w", "x", "y", "z")
+_WAN_POPS = ("w", "x", "y", "z")
 _ASKED_FOR = 2
 _SEGMENTS = {
     ("w", "x"): 100.0, ("x", "y"): 100.0, ("y", "z"): 100.0, ("z", "w"): 100.0,
     ("w", "y"): 250.0, ("x", "z"): 250.0,
 }
-ARTIFACTS = fixtures.synthesis_over_segments(_SITES, _SEGMENTS, _ASKED_FOR)
+ARTIFACTS = fixtures.synthesis_over_segments(_WAN_POPS, _SEGMENTS, _ASKED_FOR)
 _MESH = fixtures.mesh_circuits(ARTIFACTS)
 
 
@@ -36,13 +36,13 @@ def test_the_delivered_synthesis_runs_no_further_than_twice_that_floor() -> None
     )
 
 
-def test_every_site_still_holds_the_two_diverse_circuits_it_was_owed() -> None:
+def test_every_wan_pop_still_holds_the_two_diverse_circuits_it_was_owed() -> None:
     assert ARTIFACTS.validation["backbone_mesh_independence_deficient"] == []
 
 
 def _many_pass_artifacts() -> SynthesisArtifacts:
     return fixtures.synthesis_over_segments(
-        fixtures.MANY_PASS_SITES,
+        fixtures.MANY_PASS_WAN_POPS,
         fixtures.MANY_PASS_SEGMENTS,
         _ASKED_FOR,
         transit_ids=fixtures.MANY_PASS_TRANSIT,
@@ -73,7 +73,7 @@ def test_that_synthesis_is_the_same_synthesis_when_every_pass_of_its_search_give
     assert _many_pass_artifacts().synthesis.metrics.physical_miles == fixtures.MANY_PASS_MILES
 
 
-_SPLIT_SITES = ("w", "x")
+_SPLIT_WAN_POPS = ("w", "x")
 _SPLIT_TRANSIT = ("p", "q")
 _SPLIT_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("w", "p"): (100.0, ("lumen",)),
@@ -82,7 +82,7 @@ _SPLIT_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("q", "x"): (150.0, ("lumen",)),
 }
 SPLIT_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    _SPLIT_SITES, _SPLIT_SEGMENTS, _ASKED_FOR, _SPLIT_TRANSIT
+    _SPLIT_WAN_POPS, _SPLIT_SEGMENTS, _ASKED_FOR, _SPLIT_TRANSIT
 )
 _SLACK = 1e-6
 
@@ -93,18 +93,18 @@ def test_no_synthesis_runs_fewer_miles_than_the_floor_it_publishes() -> None:
     )
 
 
-def test_a_site_whose_second_circuit_changes_hands_is_drawn_that_circuit() -> None:
+def test_a_wan_pop_whose_second_circuit_changes_hands_is_drawn_that_circuit() -> None:
     assert ("w", "q", "x") in {
         drawn_circuit.pop_ids for drawn_circuit in fixtures.mesh_circuits(SPLIT_ARTIFACTS)
     }
 
 
-def test_a_site_whose_second_circuit_changes_hands_is_floored_at_both_circuits() -> None:
+def test_a_wan_pop_whose_second_circuit_changes_hands_is_floored_at_both_circuits() -> None:
     assert SPLIT_ARTIFACTS.synthesis.metrics.backbone_lower_bound_miles == pytest.approx(500.0)
 
 
 OFFERED_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    fixtures.OFFERED_WAYS_SITES,
+    fixtures.OFFERED_WAYS_WAN_POPS,
     fixtures.OFFERED_WAYS_SEGMENTS,
     _ASKED_FOR,
     fixtures.OFFERED_WAYS_TRANSIT,
@@ -113,7 +113,7 @@ OFFERED_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
 
 def _fiber_the_selection_holds() -> frozenset[tuple[str, str]]:
     return select_fiber(FiberInputs(
-        fixtures.OFFERED_WAYS_SITES, fixtures.OFFERED_WAYS_FIBER, _ASKED_FOR
+        fixtures.OFFERED_WAYS_WAN_POPS, fixtures.OFFERED_WAYS_FIBER, _ASKED_FOR
     )).segments
 
 
@@ -122,7 +122,7 @@ def test_the_delivered_synthesis_holds_only_fiber_selected_for_it() -> None:
 
 
 SHARED_TRANSIT_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    fixtures.SHARED_TRANSIT_SITES,
+    fixtures.SHARED_TRANSIT_WAN_POPS,
     fixtures.SHARED_TRANSIT_SEGMENTS,
     _ASKED_FOR,
     fixtures.SHARED_TRANSIT_TRANSIT,
@@ -131,7 +131,7 @@ SHARED_TRANSIT_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
 
 def _fiber_selected_where_two_carriers_share_a_pop() -> frozenset[tuple[str, str]]:
     return select_fiber(FiberInputs(
-        fixtures.SHARED_TRANSIT_SITES, fixtures.SHARED_TRANSIT_FIBER, _ASKED_FOR
+        fixtures.SHARED_TRANSIT_WAN_POPS, fixtures.SHARED_TRANSIT_FIBER, _ASKED_FOR
     )).segments
 
 
@@ -148,7 +148,7 @@ def test_that_synthesis_runs_no_further_than_a_tenth_past_the_floor_it_publishes
 
 
 SHORT_AND_LONG_ARTIFACTS = fixtures.synthesis_over_segments(
-    fixtures.SHORT_AND_LONG_SITES,
+    fixtures.SHORT_AND_LONG_WAN_POPS,
     fixtures.SHORT_AND_LONG_SEGMENTS,
     _ASKED_FOR,
     fixtures.SHORT_AND_LONG_TRANSIT,
@@ -161,7 +161,7 @@ def test_the_delivered_synthesis_holds_the_shorter_of_two_circuits() -> None:
     ) & fixtures.THE_LONG_CIRCUIT
 
 
-_PAIRED_SITES = ("a", "b", "c", "d")
+_PAIRED_WAN_POPS = ("a", "b", "c", "d")
 _PAIRED_TRANSIT = ("t0", "t1", "t2")
 _PAIRED_SEGMENTS = {
     ("a", "c"): 100.0, ("a", "t1"): 80.0,
@@ -171,7 +171,7 @@ _PAIRED_SEGMENTS = {
     ("t0", "t1"): 100.0, ("t1", "t2"): 110.0,
 }
 PAIRED_ARTIFACTS = fixtures.synthesis_over_segments(
-    _PAIRED_SITES, _PAIRED_SEGMENTS, _ASKED_FOR, _PAIRED_TRANSIT
+    _PAIRED_WAN_POPS, _PAIRED_SEGMENTS, _ASKED_FOR, _PAIRED_TRANSIT
 )
 
 
@@ -190,7 +190,7 @@ def test_no_pop_that_synthesis_runs_through_splits_it_by_being_lost() -> None:
 
 
 FLOORED_ABOVE_ARTIFACTS = fixtures.synthesis_over_owned_fiber(
-    fixtures.FLOORED_ABOVE_SITES,
+    fixtures.FLOORED_ABOVE_WAN_POPS,
     fixtures.FLOORED_ABOVE_SEGMENTS,
     _ASKED_FOR,
     fixtures.FLOORED_ABOVE_TRANSIT,
@@ -214,7 +214,7 @@ def test_every_wan_pop_on_that_synthesis_still_holds_the_diverse_circuits_it_was
 
 
 NEARER_PEER_ARTIFACTS = fixtures.synthesis_over_segments(
-    fixtures.NEARER_PEER_SITES, fixtures.NEARER_PEER_SEGMENTS, fixtures.NEARER_PEER_CIRCUITS
+    fixtures.NEARER_PEER_WAN_POPS, fixtures.NEARER_PEER_SEGMENTS, fixtures.NEARER_PEER_CIRCUITS
 )
 
 
@@ -234,7 +234,7 @@ def test_every_wan_pop_on_that_synthesis_holds_the_three_diverse_circuits_it_was
     assert NEARER_PEER_ARTIFACTS.validation["backbone_mesh_independence_deficient"] == []
 
 
-_ON_ONE_POP_SITES = ("a", "b", "c", "d")
+_ON_ONE_POP_WAN_POPS = ("a", "b", "c", "d")
 _ON_ONE_POP_TRANSIT = ("p",)
 _ON_ONE_POP_SEGMENTS = {
     ("a", "b"): 10.0, ("a", "p"): 10.0, ("b", "p"): 10.0,
@@ -242,7 +242,7 @@ _ON_ONE_POP_SEGMENTS = {
     ("a", "c"): 200.0,
 }
 PAST_ONE_POP_ARTIFACTS = fixtures.synthesis_over_segments(
-    _ON_ONE_POP_SITES, _ON_ONE_POP_SEGMENTS, _ASKED_FOR, _ON_ONE_POP_TRANSIT
+    _ON_ONE_POP_WAN_POPS, _ON_ONE_POP_SEGMENTS, _ASKED_FOR, _ON_ONE_POP_TRANSIT
 )
 
 

@@ -52,8 +52,8 @@ SINGLE_HOMED = build_synthesis(
     physical_pairs=[("B1", "B2")],
 )
 
-GOOD_SITES = [make_pop(name) for name in ("A", "X", "Y", "B1", "B2")]
-SINGLE_SITES = [make_pop(name) for name in ("A", "B1", "B2")]
+GOOD_SITES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("X", "Y", "B1", "B2")]]
+SINGLE_SITES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("B1", "B2")]]
 
 
 def test_good_synthesis_homes_demand_with_redundancy() -> None:
@@ -77,7 +77,7 @@ TRIPLE_HOMED = build_synthesis(
     homing_circuits=[HomingCircuit("s", target, 1.0) for target in ("B1", "B2", "B3")],
     physical_pairs=[("B1", "B2")],
 )
-TRIPLE_HOMED_SITES = [make_pop(name) for name in ("s", "B1", "B2", "B3")]
+TRIPLE_HOMED_SITES = [fixtures.tenant_site("s"), *[make_pop(name) for name in ("B1", "B2", "B3")]]
 
 
 def test_homing_passes_at_the_configured_count() -> None:
@@ -102,7 +102,7 @@ SHORT_REGION = dataclasses.replace(
     GOOD,
     homings=Homings(GOOD.homings.tenant, [HomingCircuit("R", "B1", 1.0)]),
 )
-SHORT_REGION_PLACES = [*GOOD_SITES, make_pop("R")]
+SHORT_REGION_PLACES = [*GOOD_SITES, fixtures.provider_region("R")]
 
 
 def test_a_provider_region_short_of_the_homing_degree_leaves_every_site_meeting_it() -> None:

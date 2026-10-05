@@ -56,14 +56,14 @@ def no_miles() -> SynthesisMetrics:
     return SynthesisMetrics(tenant_homing_miles=0.0, provider_homing_miles=0.0, physical_miles=0.0)
 
 
-def carrier_pop(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
+def carrier_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
     return Site(
-        id=site_id,
-        name=site_id,
+        id=pop_id,
+        name=pop_id,
         kind="PoP",
         coords=(lat, lon),
         info=SiteInfo(
-            municipality=site_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
+            municipality=pop_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
         ),
     )
 
@@ -72,23 +72,23 @@ def tenant_site(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
     return Site(id=site_id, name=site_id, kind=SITE_KIND, coords=(lat, lon))
 
 
-def provider_region(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
-    return Site(id=site_id, name=site_id, kind=PROVIDER_KIND, coords=(lat, lon))
+def provider_region(region_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
+    return Site(id=region_id, name=region_id, kind=PROVIDER_KIND, coords=(lat, lon))
 
 
-def off_net_pop(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
+def off_net_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
     return Site(
-        id=site_id,
-        name=site_id,
+        id=pop_id,
+        name=pop_id,
         kind=OFF_NET_KIND,
         coords=(lat, lon),
         info=SiteInfo(
-            municipality=site_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
+            municipality=pop_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
         ),
     )
 
 
-def ring_sites() -> list[Site]:
+def ring_pops() -> list[Site]:
     pops = [carrier_pop(n, lat, lon) for n, (lat, lon) in RING_COORDS.items()]
     pops += [carrier_pop(n, lat, lon) for n, (lat, lon) in SPUR_COORDS.items()]
     return pops
@@ -161,8 +161,8 @@ def carrier_pops_in_a_column() -> list[Site]:
     ]
 
 
-def carrier_pops_by_id(site_ids: str) -> dict[str, Site]:
-    return {site_id: carrier_pop(site_id) for site_id in site_ids}
+def carrier_pops_by_id(pop_ids: str) -> dict[str, Site]:
+    return {pop_id: carrier_pop(pop_id) for pop_id in pop_ids}
 
 
 def fiber_segments_from(
@@ -203,19 +203,19 @@ def ring_params() -> SynthesisParams:
 
 
 def forced_off_net_case() -> tuple[Site, SynthesisParams]:
-    site = off_net_pop("Dulles Hub", 40.5, -100.0)
+    pop = off_net_pop("Dulles Hub", 40.5, -100.0)
     params = SynthesisParams(
         min_wan_pop_count=2,
         forced_wan_pop_names=("Dulles Hub",),
     )
-    return site, params
+    return pop, params
 
 
 RingInputs = tuple[list[Site], dict[tuple[str, str], FiberSegment]]
 
 
 def _ring_inputs() -> RingInputs:
-    return ring_sites(), ring_fiber_segments()
+    return ring_pops(), ring_fiber_segments()
 
 
 def run_synthesis(
@@ -254,37 +254,38 @@ def reasons_past_the_number(validation: ValidationReport) -> set[str]:
 
 
 def synthesis_over_segments(
-    site_ids: tuple[str, ...],
+    wan_pop_ids: tuple[str, ...],
     segments: dict[tuple[str, str], float],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
     **limits: int,
 ) -> SynthesisArtifacts:
     return synthesis_over_fiber(
-        site_ids, fiber_segments_from(segments), number_of_diverse_circuits, transit_ids, **limits
+        wan_pop_ids, fiber_segments_from(segments), number_of_diverse_circuits, transit_ids,
+        **limits,
     )
 
 
 def synthesis_over_owned_fiber(
-    site_ids: tuple[str, ...],
+    wan_pop_ids: tuple[str, ...],
     segments: dict[tuple[str, str], tuple[float, tuple[str, ...]]],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
 ) -> SynthesisArtifacts:
     return synthesis_over_fiber(
-        site_ids, carrier_fiber_segments(segments), number_of_diverse_circuits, transit_ids,
+        wan_pop_ids, carrier_fiber_segments(segments), number_of_diverse_circuits, transit_ids,
     )
 
 
 def synthesis_over_fiber(
-    site_ids: tuple[str, ...],
+    wan_pop_ids: tuple[str, ...],
     fiber: dict[tuple[str, str], FiberSegment],
     number_of_diverse_circuits: int,
     transit_ids: tuple[str, ...] = (),
     **limits: int,
 ) -> SynthesisArtifacts:
-    cities = site_ids + transit_ids
-    fewest = limits.get("min_wan_pop_count", len(site_ids))
+    cities = wan_pop_ids + transit_ids
+    fewest = limits.get("min_wan_pop_count", len(wan_pop_ids))
     return run_synthesis(
         [
             carrier_pop(city, 38.0, -115.0 + 2.0 * index)
@@ -293,8 +294,8 @@ def synthesis_over_fiber(
         fiber,
         SynthesisParams(
             min_wan_pop_count=fewest,
-            max_wan_pop_count=len(site_ids),
-            forced_wan_pop_names=site_ids,
+            max_wan_pop_count=len(wan_pop_ids),
+            forced_wan_pop_names=wan_pop_ids,
             promote_high_degree_convergences=False,
             tuning=Tuning(
                 backbone_number_of_diverse_circuits=number_of_diverse_circuits,
@@ -305,20 +306,20 @@ def synthesis_over_fiber(
 
 
 def ring_artifacts() -> SynthesisArtifacts:
-    sites, fiber = _ring_inputs()
-    synthesis = synthesize_two_tier(sites, fiber, ring_params())
+    pops, fiber = _ring_inputs()
+    synthesis = synthesize_two_tier(pops, fiber, ring_params())
     return SynthesisArtifacts(
-        sites, fiber, synthesis, validate_synthesis(sites, synthesis), frozenset()
+        pops, fiber, synthesis, validate_synthesis(pops, synthesis), frozenset()
     )
 
 
 def ring_inputs_with_roadm(roadm_id: str) -> RingInputs:
-    sites, fiber = _ring_inputs()
-    sites = [
-        dataclasses.replace(site, kind=KIND_ROADM) if site.id == roadm_id else site
-        for site in sites
+    pops, fiber = _ring_inputs()
+    pops = [
+        dataclasses.replace(pop, kind=KIND_ROADM) if pop.id == roadm_id else pop
+        for pop in pops
     ]
-    return sites, fiber
+    return pops, fiber
 
 
 def _forced_artifacts(
@@ -398,22 +399,22 @@ def convergence_hub_artifacts(
     max_wan_pop_count: int | None = None,
     promote_convergences: bool = True,
 ) -> SynthesisArtifacts:
-    sites, fiber = convergence_hub_inputs()
+    pops, fiber = convergence_hub_inputs()
     params = SynthesisParams(
         min_wan_pop_count=2,
         max_wan_pop_count=max_wan_pop_count,
         forced_wan_pop_names=_HUB_CORNERS,
         promote_high_degree_convergences=promote_convergences,
     )
-    sites, fiber, overrides = apply_role_overrides(sites, fiber, params)
-    synthesis = synthesize_two_tier(sites, fiber, params, overrides)
+    pops, fiber, overrides = apply_role_overrides(pops, fiber, params)
+    synthesis = synthesize_two_tier(pops, fiber, params, overrides)
     return SynthesisArtifacts(
-        sites, fiber, synthesis, validate_synthesis(sites, synthesis), frozenset()
+        pops, fiber, synthesis, validate_synthesis(pops, synthesis), frozenset()
     )
 
 
 def synthesis_inputs_from_fiber(
-    site_ids: list[str],
+    pop_ids: list[str],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     eligible: set[str],
     *homed: list[Site],
@@ -421,7 +422,7 @@ def synthesis_inputs_from_fiber(
 ) -> SynthesisInputs:
     tenant_sites, provider_regions = (list(homed) + [[], []])[:2]
     places = coords or {}
-    pops = [carrier_pop(site_id, *places.get(site_id, (0.0, 0.0))) for site_id in site_ids]
+    pops = [carrier_pop(pop_id, *places.get(pop_id, (0.0, 0.0))) for pop_id in pop_ids]
     adjacency = build_adjacency(fiber_segments)
     return SynthesisInputs(
         sites=tenant_sites,
@@ -502,8 +503,8 @@ FUNNEL_COORDS = {
 }
 
 
-def funnel_sites() -> list[Site]:
-    return [carrier_pop(site_id, *FUNNEL_COORDS[site_id]) for site_id in FUNNEL_IDS]
+def funnel_pops() -> list[Site]:
+    return [carrier_pop(pop_id, *FUNNEL_COORDS[pop_id]) for pop_id in FUNNEL_IDS]
 
 
 def funnel_transit_names() -> tuple[str, ...]:
@@ -529,8 +530,8 @@ CROSSING_COORDS = {
 }
 
 
-def crossing_sites() -> list[Site]:
-    return [carrier_pop(site_id, *CROSSING_COORDS[site_id]) for site_id in CROSSING_IDS]
+def crossing_pops() -> list[Site]:
+    return [carrier_pop(pop_id, *CROSSING_COORDS[pop_id]) for pop_id in CROSSING_IDS]
 
 
 def crossing_transit_names() -> tuple[str, ...]:
@@ -547,29 +548,29 @@ SHARED_HUB_PEER_FIBER = fiber_segments_from({
     ("b", "d1"): 100.0, ("d1", "d"): 300.0,
     ("c", "d2"): 100.0, ("d2", "d"): 300.0,
 })
-SHARED_HUB_PEER_SITES = ("a", "b", "c", "d")
+SHARED_HUB_PEER_WAN_POPS = ("a", "b", "c", "d")
 SHARED_HUB_PEER_IDS = ("a", "b", "c", "d", "h1", "h2", "h3", "d1", "d2")
 
 
-def shared_hub_peer_sites() -> list[Site]:
+def shared_hub_peer_pops() -> list[Site]:
     return [
-        carrier_pop(site_id, 38.0, -115.0 + 2.0 * index)
-        for index, site_id in enumerate(SHARED_HUB_PEER_IDS)
+        carrier_pop(pop_id, 38.0, -115.0 + 2.0 * index)
+        for index, pop_id in enumerate(SHARED_HUB_PEER_IDS)
     ]
 
 
 def shared_hub_peer_transit_names() -> tuple[str, ...]:
-    return tuple(sorted(set(SHARED_HUB_PEER_IDS) - set(SHARED_HUB_PEER_SITES)))
+    return tuple(sorted(set(SHARED_HUB_PEER_IDS) - set(SHARED_HUB_PEER_WAN_POPS)))
 
 
 def shared_hub_peer_artifacts(asked_for: int = 2) -> SynthesisArtifacts:
     return run_synthesis(
-        shared_hub_peer_sites(),
+        shared_hub_peer_pops(),
         SHARED_HUB_PEER_FIBER,
         SynthesisParams(
-            min_wan_pop_count=len(SHARED_HUB_PEER_SITES),
-            max_wan_pop_count=len(SHARED_HUB_PEER_SITES),
-            forced_wan_pop_names=SHARED_HUB_PEER_SITES,
+            min_wan_pop_count=len(SHARED_HUB_PEER_WAN_POPS),
+            max_wan_pop_count=len(SHARED_HUB_PEER_WAN_POPS),
+            forced_wan_pop_names=SHARED_HUB_PEER_WAN_POPS,
             exclusions=RoleExclusions(
                 prohibited_wan_pop_names=shared_hub_peer_transit_names()
             ),
@@ -598,10 +599,10 @@ DISTANT_PEER_COORDS = {
 }
 
 
-def distant_peer_sites() -> list[Site]:
+def distant_peer_pops() -> list[Site]:
     return [
-        carrier_pop(site_id, *DISTANT_PEER_COORDS[site_id])
-        for site_id in DISTANT_PEER_IDS
+        carrier_pop(pop_id, *DISTANT_PEER_COORDS[pop_id])
+        for pop_id in DISTANT_PEER_IDS
     ]
 
 
@@ -632,8 +633,8 @@ EXPRESS_COORDS = {
 }
 
 
-def express_sites() -> list[Site]:
-    return [carrier_pop(site_id, *EXPRESS_COORDS[site_id]) for site_id in EXPRESS_IDS]
+def express_pops() -> list[Site]:
+    return [carrier_pop(pop_id, *EXPRESS_COORDS[pop_id]) for pop_id in EXPRESS_IDS]
 
 
 def express_transit_names() -> tuple[str, ...]:
@@ -666,12 +667,12 @@ MANY_PASS_SEGMENTS = {
     ("j", "k"): 16.0, ("j", "l"): 32.0,
     ("k", "l"): 18.0,
 }
-MANY_PASS_SITES = ("c", "d", "j", "k", "l")
+MANY_PASS_WAN_POPS = ("c", "d", "j", "k", "l")
 MANY_PASS_TRANSIT = ("a", "b", "e", "f", "g", "h", "i")
 MANY_PASS_MILES = 159.0
 
 
-OFFERED_WAYS_SITES = ("a", "b")
+OFFERED_WAYS_WAN_POPS = ("a", "b")
 OFFERED_WAYS_TRANSIT = ("p", "q", "r")
 OFFERED_WAYS_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("a", "p"): (1.0, ("zayo",)),
@@ -683,7 +684,7 @@ OFFERED_WAYS_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
 }
 OFFERED_WAYS_FIBER = carrier_fiber_segments(OFFERED_WAYS_SEGMENTS)
 
-SHARED_TRANSIT_SITES = ("a", "b")
+SHARED_TRANSIT_WAN_POPS = ("a", "b")
 SHARED_TRANSIT_TRANSIT = ("m", "x", "y")
 SHARED_TRANSIT_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("a", "m"): (10.0, ("lumen", "zayo")),
@@ -696,7 +697,7 @@ SHARED_TRANSIT_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = 
 SHARED_TRANSIT_FIBER = carrier_fiber_segments(SHARED_TRANSIT_SEGMENTS)
 SHARED_TRANSIT_MILES = 120.0
 
-ALREADY_NEEDED_SITES = ("b", "d", "f")
+ALREADY_NEEDED_WAN_POPS = ("b", "d", "f")
 ALREADY_NEEDED_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("b", "c"): (16.0, ("cogent", "zayo")),
     ("b", "e"): (37.0, ("lumen", "zayo")),
@@ -708,7 +709,7 @@ ALREADY_NEEDED_FIBER = carrier_fiber_segments(ALREADY_NEEDED_SEGMENTS)
 ALREADY_NEEDED_MILES = 137.0
 THE_SEGMENT_ONLY_A_SECOND_CIRCUIT_NEEDS = frozenset({("c", "f")})
 
-FLOORED_ABOVE_SITES = ("b", "d", "e", "f")
+FLOORED_ABOVE_WAN_POPS = ("b", "d", "e", "f")
 FLOORED_ABOVE_TRANSIT = ("a", "c")
 FLOORED_ABOVE_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
     ("a", "d"): (56.0, ("lumen", "zayo")),
@@ -722,7 +723,7 @@ FLOORED_ABOVE_SEGMENTS: dict[tuple[str, str], tuple[float, tuple[str, ...]]] = {
 }
 FLOORED_ABOVE_MILES = 84.0
 
-NEARER_PEER_SITES = ("s", "a", "b", "c", "d", "e")
+NEARER_PEER_WAN_POPS = ("s", "a", "b", "c", "d", "e")
 NEARER_PEER_SEGMENTS = {
     ("s", "a"): 100.0, ("s", "b"): 100.0, ("s", "c"): 120.0, ("s", "d"): 130.0,
     ("a", "c"): 10.0, ("a", "d"): 10.0, ("a", "e"): 10.0,
@@ -749,7 +750,7 @@ def two_ways_to_one_peer_credited() -> int:
     )
 
 
-SHORT_AND_LONG_SITES = ("s", "t", "u")
+SHORT_AND_LONG_WAN_POPS = ("s", "t", "u")
 SHORT_AND_LONG_TRANSIT = ("far", "near")
 SHORT_AND_LONG_SEGMENTS = {
     ("s", "t"): 10.0,

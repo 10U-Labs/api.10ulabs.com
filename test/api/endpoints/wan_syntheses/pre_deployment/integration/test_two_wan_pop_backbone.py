@@ -3,7 +3,7 @@ from __future__ import annotations
 import fixtures
 from synthesizer.model import CIRCUIT_FOR_RELIEF, CIRCUIT_FOR_TARGET
 
-_SITES = ("a", "b")
+_WAN_POPS = ("a", "b")
 _ASKED_FOR = 2
 _SEGMENTS = {
     ("a", "north"): 100.0, ("north", "b"): 100.0,
@@ -11,11 +11,11 @@ _SEGMENTS = {
     ("a", "long"): 900.0, ("long", "b"): 900.0,
 }
 _TRANSIT = ("north", "south", "long")
-ARTIFACTS = fixtures.synthesis_over_segments(_SITES, _SEGMENTS, _ASKED_FOR, _TRANSIT)
+ARTIFACTS = fixtures.synthesis_over_segments(_WAN_POPS, _SEGMENTS, _ASKED_FOR, _TRANSIT)
 _MESH = fixtures.mesh_circuits(ARTIFACTS)
 
 
-def test_the_backbone_is_the_two_sites() -> None:
+def test_the_backbone_is_the_two_wan_pops() -> None:
     assert sorted(ARTIFACTS.synthesis.wan_pop_ids) == ["a", "b"]
 
 
@@ -27,7 +27,7 @@ def test_the_circuits_drawn_are_the_shortest_of_the_ones_open_to_it() -> None:
     assert sorted(drawn_circuit.pop_ids[1] for drawn_circuit in _MESH) == ["north", "south"]
 
 
-def test_the_two_circuits_share_no_city_but_the_two_sites() -> None:
+def test_the_two_circuits_share_no_city_but_the_two_wan_pops() -> None:
     transit = [city for drawn_circuit in _MESH for city in drawn_circuit.pop_ids[1:-1]]
     assert sorted(transit) == sorted(set(transit))
 
@@ -38,5 +38,5 @@ def test_one_circuit_is_reached_for_and_the_other_relieves_the_city_it_crosses()
     ])
 
 
-def test_each_site_is_credited_with_the_circuits_it_holds() -> None:
+def test_each_wan_pop_is_credited_with_the_circuits_it_holds() -> None:
     assert ARTIFACTS.validation["backbone_mesh_independence_deficient"] == []

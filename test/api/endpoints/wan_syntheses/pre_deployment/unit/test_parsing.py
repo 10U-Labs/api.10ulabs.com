@@ -12,7 +12,7 @@ from synthesizer.codec import (
 )
 from synthesizer.model import is_carrier_pop
 
-_MERGED_CARRIER_SITES = [
+_MERGED_CARRIER_POPS = [
     {"carrier": "lumen", "municipality": "Denver", "state": "CO",
      "country": "United States", "latitude": 39.7392, "longitude": -104.9903},
     {"carrier": "lumen", "municipality": "Kansas City", "state": "MO",
@@ -35,34 +35,34 @@ def test_slug_empty_falls_back() -> None:
 
 
 def test_merged_carriers_name_a_pop_by_its_city() -> None:
-    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _MERGED_CARRIER_SEGMENT_ROWS)
+    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert pops[0].name == "Denver, CO"
 
 
 def test_merged_carrier_points_are_carrier_pops() -> None:
-    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _MERGED_CARRIER_SEGMENT_ROWS)
+    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert all(is_carrier_pop(pop) for pop in pops)
 
 
 def test_merged_carriers_collapse_a_city_across_carriers() -> None:
-    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _MERGED_CARRIER_SEGMENT_ROWS)
+    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert {pop.id for pop in pops} == {"denver-co", "kansas-city-mo"}
 
 
 def test_merged_carriers_resolve_a_segment_by_city() -> None:
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _MERGED_CARRIER_SEGMENT_ROWS)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert list(fiber) == [("denver-co", "kansas-city-mo")]
 
 
 def test_merged_carriers_skip_a_segment_to_an_unserved_city() -> None:
     dangling = [{"carrier": "lumen", "a_municipality": "Denver", "a_state": "CO",
                  "z_municipality": "Nowhere", "z_state": "ZZ"}]
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, dangling)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, dangling)
     assert not fiber
 
 
 def test_merged_carriers_compute_segment_distance() -> None:
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _MERGED_CARRIER_SEGMENT_ROWS)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert round(next(iter(fiber.values())).distance_miles) == 557
 
 
@@ -72,7 +72,7 @@ _UNDER_WATER_SEGMENT_ROWS: list[dict[str, Any]] = [
 
 
 def test_merged_carriers_mark_a_segment_the_row_says_runs_under_water() -> None:
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _UNDER_WATER_SEGMENT_ROWS)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _UNDER_WATER_SEGMENT_ROWS)
     assert next(iter(fiber.values())).submarine
 
 
@@ -85,19 +85,19 @@ _TWO_OWNERS = [
 
 
 def test_merged_carriers_name_every_carrier_with_fiber_on_a_segment() -> None:
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, _TWO_OWNERS)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _TWO_OWNERS)
     assert next(iter(fiber.values())).carriers == frozenset({"lumen", "zayo"})
 
 
 def test_merged_carriers_name_no_carrier_where_a_row_carries_none() -> None:
     rows = [{key: value for key, value in row.items() if key != "carrier"}
             for row in _MERGED_CARRIER_SEGMENT_ROWS]
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, rows)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, rows)
     assert next(iter(fiber.values())).carriers == frozenset()
 
 
 def test_merged_carriers_drop_an_isolated_point() -> None:
-    extra = _MERGED_CARRIER_SITES + [
+    extra = _MERGED_CARRIER_POPS + [
         {"carrier": "lumen", "municipality": "Boise", "state": "ID",
          "country": "United States", "latitude": 43.6, "longitude": -116.2},
     ]
@@ -108,7 +108,7 @@ def test_merged_carriers_drop_an_isolated_point() -> None:
 def test_merged_carriers_skip_an_intra_city_self_loop() -> None:
     loop = [{"carrier": "lumen", "a_municipality": "Denver", "a_state": "CO",
              "z_municipality": "Denver", "z_state": "CO"}]
-    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_SITES, loop)
+    _pops, fiber = load_merged_carriers(_MERGED_CARRIER_POPS, loop)
     assert not fiber
 
 

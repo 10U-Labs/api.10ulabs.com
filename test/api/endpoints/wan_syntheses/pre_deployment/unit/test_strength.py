@@ -61,31 +61,31 @@ _FUNNEL_INPUTS = fixtures.funnel_inputs()
 _FUNNEL_BOUNDS = diverse_circuit_bounds(set(fixtures.FUNNEL_ELIGIBLE), _FUNNEL_INPUTS.adjacency)
 
 
-def _funnel_strength(site: str) -> float:
+def _funnel_strength(pop: str) -> float:
     pop_by_id = {pop.id: pop for pop in _FUNNEL_INPUTS.carrier_pops}
-    return wan_pop_strength(site, _FUNNEL_INPUTS, pop_by_id, _FUNNEL_BOUNDS, 8)
+    return wan_pop_strength(pop, _FUNNEL_INPUTS, pop_by_id, _FUNNEL_BOUNDS, 8)
 
 
-def test_the_funnelled_site_has_the_most_fiber_segments() -> None:
-    segments = {site: len(_FUNNEL_INPUTS.adjacency[site]) for site in ("funnel", "spread")}
+def test_the_funnelled_pop_has_the_most_fiber_segments() -> None:
+    segments = {pop: len(_FUNNEL_INPUTS.adjacency[pop]) for pop in ("funnel", "spread")}
     assert (segments["funnel"], segments["spread"]) == (5, 3)
 
 
-def test_the_funnelled_site_is_held_to_its_two_failure_points() -> None:
+def test_the_funnelled_pop_is_held_to_its_two_failure_points() -> None:
     assert _FUNNEL_BOUNDS.per_pop["funnel"] == 2
 
 
-def test_the_bound_ranks_the_spread_site_above_the_funnelled_one() -> None:
+def test_the_bound_ranks_the_spread_pop_above_the_funnelled_one() -> None:
     assert _FUNNEL_BOUNDS.per_pop["spread"] > _FUNNEL_BOUNDS.per_pop["funnel"]
 
 
-def test_strength_ranks_the_spread_site_above_the_funnelled_one() -> None:
+def test_strength_ranks_the_spread_pop_above_the_funnelled_one() -> None:
     assert _funnel_strength("spread") > _funnel_strength("funnel")
 
 
-def test_a_site_with_no_fiber_cannot_divide_the_score_by_zero() -> None:
+def test_a_pop_with_no_fiber_cannot_divide_the_score_by_zero() -> None:
     assert diverse_circuit_bounds({"lonely"}, {}).largest == 1
 
 
-def test_a_site_with_no_fiber_is_not_listed_among_the_bounds() -> None:
+def test_a_pop_with_no_fiber_is_not_listed_among_the_bounds() -> None:
     assert diverse_circuit_bounds({"lonely"}, {}).per_pop == {}

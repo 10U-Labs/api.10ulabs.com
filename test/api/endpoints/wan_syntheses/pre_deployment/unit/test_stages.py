@@ -10,14 +10,14 @@ _TWO_DIVERSE_CIRCUITS = Tuning(backbone_number_of_diverse_circuits=2)
 
 def test_dual_home_returns_a_graph_without_off_net() -> None:
     homed = dual_home(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(), fixtures.ring_params(), []
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(), fixtures.ring_params(), []
     )
     assert all((homed.sites, homed.fiber_segments))
 
 
 def _homed_with_a_forced_off_net_pop() -> DualHomed:
     site, params = fixtures.forced_off_net_case()
-    return dual_home(fixtures.ring_sites(), fixtures.ring_fiber_segments(), params, [site])
+    return dual_home(fixtures.ring_pops(), fixtures.ring_fiber_segments(), params, [site])
 
 
 def _homed_with_a_forced_on_net_site() -> DualHomed:
@@ -27,7 +27,7 @@ def _homed_with_a_forced_on_net_site() -> DualHomed:
         forced_wan_pop_names=("Luke",),
     )
     return dual_home(
-        [*fixtures.ring_sites(), luke], fixtures.ring_fiber_segments(), params, []
+        [*fixtures.ring_pops(), luke], fixtures.ring_fiber_segments(), params, []
     )
 
 
@@ -60,7 +60,7 @@ def test_dual_home_reports_the_on_net_twin_it_fabricated() -> None:
 def _homed_with_a_forced_site_the_off_net_roster_also_lists() -> DualHomed:
     site, params = fixtures.forced_off_net_case()
     return dual_home(
-        [*fixtures.ring_sites(), fixtures.tenant_site(site.name, *site.coords)],
+        [*fixtures.ring_pops(), fixtures.tenant_site(site.name, *site.coords)],
         fixtures.ring_fiber_segments(),
         params,
         [site],
@@ -80,7 +80,7 @@ def test_a_forced_site_the_off_net_roster_also_lists_is_fabricated_once() -> Non
 
 def test_dual_home_reports_no_carrier_pop_as_fabricated() -> None:
     homed = _homed_with_a_forced_off_net_pop()
-    assert not homed.fabricated_ids & {site.id for site in fixtures.ring_sites()}
+    assert not homed.fabricated_ids & {site.id for site in fixtures.ring_pops()}
 
 
 def test_finalize_validates_a_synthesis() -> None:

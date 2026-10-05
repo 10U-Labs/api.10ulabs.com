@@ -57,13 +57,13 @@ def _homes_of(artifacts: SynthesisArtifacts, access_id: str) -> set[str]:
     }
 
 
-def _peers_of(artifacts: SynthesisArtifacts, site: str) -> set[str]:
+def _peers_of(artifacts: SynthesisArtifacts, wan_pop: str) -> set[str]:
     return {
         end
         for pair in backbone_mesh_pairs(artifacts.synthesis)
-        if site in pair
+        if wan_pop in pair
         for end in pair
-        if end != site
+        if end != wan_pop
     }
 
 
@@ -142,7 +142,7 @@ _CHORDED_BACKBONE = ("P0", "P1", "P2", "P3", "P4", "P5")
 
 
 def _chorded_synthesis(exempt: tuple[str, ...] = ()) -> SynthesisArtifacts:
-    sites = [
+    pops = [
         fixtures.carrier_pop(name, *fixtures.RING_COORDS[name]) for name in _CHORDED_BACKBONE
     ]
     params = SynthesisParams(
@@ -151,7 +151,7 @@ def _chorded_synthesis(exempt: tuple[str, ...] = ()) -> SynthesisArtifacts:
         degree_exempt_wan_pop_names=exempt,
         tuning=Tuning(backbone_number_of_diverse_circuits=3),
     )
-    return run_synthesis(sites, fixtures.fiber_segments_from(_CHORDED_PAIRS), params)
+    return run_synthesis(pops, fixtures.fiber_segments_from(_CHORDED_PAIRS), params)
 
 
 EXEMPT_SPUR = _chorded_synthesis(("P5",))
@@ -170,7 +170,8 @@ def test_the_chorded_ring_names_the_spur_whose_target_it_lowered() -> None:
 
 def test_a_chorded_wan_pop_ends_above_the_number_because_a_peer_asked() -> None:
     assert max(
-        diverse_circuit_count(CHORDED.synthesis.drawn_circuits, site) for site in _CHORDED_BACKBONE
+        diverse_circuit_count(CHORDED.synthesis.drawn_circuits, wan_pop)
+        for wan_pop in _CHORDED_BACKBONE
     ) > 3
 
 
@@ -187,10 +188,10 @@ def test_no_chorded_wan_pop_finishes_below_what_its_own_fiber_allows() -> None:
     ceilings = CHORDED.validation["backbone_diverse_circuits_ceiling_limited"]
     capped = {str(entry["id"]): int(str(entry["ceiling"])) for entry in ceilings}
     assert [
-        site
-        for site in _CHORDED_BACKBONE
-        if diverse_circuit_count(CHORDED.synthesis.drawn_circuits, site)
-        < min(3, capped.get(site, 3))
+        wan_pop
+        for wan_pop in _CHORDED_BACKBONE
+        if diverse_circuit_count(CHORDED.synthesis.drawn_circuits, wan_pop)
+        < min(3, capped.get(wan_pop, 3))
     ] == []
 
 
@@ -207,15 +208,15 @@ def test_the_exempt_spur_picks_its_own_two_fiber_directions() -> None:
 
 
 def _forced_off_net_artifacts() -> SynthesisArtifacts:
-    site, params = fixtures.forced_off_net_case()
+    pop, params = fixtures.forced_off_net_case()
     return run_synthesis(
-        fixtures.ring_sites(), fixtures.ring_fiber_segments(), params, off_net_pops=[site]
+        fixtures.ring_pops(), fixtures.ring_fiber_segments(), params, off_net_pops=[pop]
     )
 
 
 def test_forced_off_net_pop_is_selected_into_the_backbone() -> None:
     synthesis = _forced_off_net_artifacts().synthesis
-    assert any(site_id.startswith("offnet_") for site_id in synthesis.wan_pop_ids)
+    assert any(wan_pop_id.startswith("offnet_") for wan_pop_id in synthesis.wan_pop_ids)
 
 
 def test_off_net_synthesis_validates_connected() -> None:
@@ -232,7 +233,7 @@ def test_the_off_net_twin_is_published_as_fabricated() -> None:
 
 
 def test_no_carrier_pop_of_the_ring_is_published_as_fabricated() -> None:
-    ring = {site.id for site in fixtures.ring_sites()}
+    ring = {pop.id for pop in fixtures.ring_pops()}
     assert not any(
         site["fabricated"]
         for site in synthesis_payload(_forced_off_net_artifacts())["sites"]

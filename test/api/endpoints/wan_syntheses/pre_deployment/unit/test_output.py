@@ -95,21 +95,21 @@ def test_a_provider_homing_circuit_is_labelled_provider_to_backbone() -> None:
     assert payload["homing_circuits"][0]["homing_kind"] == "provider_to_backbone"
 
 
-def _published_sites_with_a_twin() -> dict[str, dict[str, Any]]:
+def _published_pops_with_a_twin() -> dict[str, dict[str, Any]]:
     payload = _payload_for(
         _synthesis(Homings([], [])),
         [fixtures.carrier_pop("fac_s")],
         frozenset({"fac_s"}),
     )
-    return {site["id"]: site for site in payload["sites"]}
+    return {pop["id"]: pop for pop in payload["sites"]}
 
 
-def test_a_site_the_synthesizer_fabricated_says_so() -> None:
-    assert _published_sites_with_a_twin()["fac_s"]["fabricated"] is True
+def test_a_pop_the_synthesizer_fabricated_says_so() -> None:
+    assert _published_pops_with_a_twin()["fac_s"]["fabricated"] is True
 
 
 def test_a_carrier_pop_says_it_was_not_fabricated() -> None:
-    assert _published_sites_with_a_twin()["b"]["fabricated"] is False
+    assert _published_pops_with_a_twin()["b"]["fabricated"] is False
 
 
 def test_every_published_site_says_whether_it_was_fabricated() -> None:
