@@ -40,7 +40,7 @@ from synthesizer.synthesize import (
 from synthesizer.search_plan import _SearchPlan
 from synthesizer.graphs import build_adjacency
 from synthesizer.overrides import apply_role_overrides
-from synthesizer.strength import site_straightness
+from synthesizer.strength import pop_straightness
 
 pop = fixtures.carrier_pop
 physical = fixtures.fiber_segments_from
@@ -223,13 +223,13 @@ def test_convergence_excludes_a_selected_wan_pop() -> None:
     assert convergence_promotion_ids(synthesis) == set()
 
 
-def test_site_straightness_is_zero_without_reachable_sites() -> None:
-    assert site_straightness("a", {"a": pop("a")}, {}) == 0.0
+def test_pop_straightness_is_zero_without_reachable_pops() -> None:
+    assert pop_straightness("a", {"a": pop("a")}, {}) == 0.0
 
 
-def test_site_straightness_skips_zero_length_hops() -> None:
+def test_pop_straightness_skips_zero_length_hops() -> None:
     by_id = {"a": pop("a", 0.0, 0.0), "b": pop("b", 0.0, 0.0)}
-    assert site_straightness("a", by_id, {"b": "a"}) == 0.0
+    assert pop_straightness("a", by_id, {"b": "a"}) == 0.0
 
 
 MESH_FIBER = physical(

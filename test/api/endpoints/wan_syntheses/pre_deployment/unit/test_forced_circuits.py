@@ -15,7 +15,7 @@ from synthesizer.input_graph import segment_key
 pop = fixtures.carrier_pop
 access = fixtures.tenant_site
 
-SITES = [pop("P0"), pop("P1"), access("A1")]
+SITES = [pop("P0"), pop("P1"), access("A1"), fixtures.provider_region("R1")]
 
 
 def test_backbone_circuit_resolves_to_a_segment_key() -> None:
@@ -30,6 +30,13 @@ def test_forced_home_resolves_to_an_ordered_pair() -> None:
         OperatorCircuits(homes=(NamedCircuit("A1", "P1"),)), SITES, {"P1"}
     )
     assert circuits.homes == frozenset({("A1", "P1")})
+
+
+def test_forced_home_from_a_provider_region_resolves_to_an_ordered_pair() -> None:
+    circuits = resolve_forced_circuits(
+        OperatorCircuits(homes=(NamedCircuit("R1", "P1"),)), SITES, {"P1"}
+    )
+    assert circuits.homes == frozenset({("R1", "P1")})
 
 
 def test_excluded_backbone_resolves_to_a_removed_pair() -> None:
@@ -96,7 +103,7 @@ def test_forced_home_target_off_the_carrier_graph_names_the_home_list() -> None:
 
 
 def test_forced_home_source_that_is_not_demand_is_rejected() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="neither a site nor a provider region: Nope"):
         resolve_forced_circuits(
             OperatorCircuits(homes=(NamedCircuit("Nope", "P1"),)), SITES, {"P1"}
         )

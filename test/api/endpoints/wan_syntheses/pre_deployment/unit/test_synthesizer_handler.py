@@ -1,3 +1,4 @@
+import re
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable, Dict, List, cast
 
@@ -65,8 +66,9 @@ def _artifacts(loaded: Any) -> SynthesisArtifacts:
 @pytest.fixture(name="synthesized")
 def synthesized_fixture(
     synthesizer: ModuleType, monkeypatch: pytest.MonkeyPatch, store: SimpleNamespace,
-    run: List[Dict[str, Any]]
+    run: List[Dict[str, Any]], caplog: pytest.LogCaptureFixture
 ) -> SimpleNamespace:
+    caplog.set_level("INFO")
     store.items.extend(run)
     synthesized = SimpleNamespace(loaded=None, answer=None)
 
@@ -147,6 +149,41 @@ def test_the_success_carries_the_coverage_against_the_target_the_knobs_set(
     )
 
 
+def _logged(caplog: pytest.LogCaptureFixture) -> List[str]:
+    return [record.getMessage() for record in caplog.get_records("setup")]
+
+
+@pytest.mark.usefixtures("synthesized")
+def test_the_run_logs_the_wan_pops_short_of_their_diverse_circuit_target(
+    caplog: pytest.LogCaptureFixture
+) -> None:
+    assert any(
+        message.startswith("WAN PoPs short of their diverse-circuit target: ")
+        for message in _logged(caplog)
+    )
+
+
+@pytest.mark.usefixtures("synthesized")
+def test_the_run_logs_the_carrier_pops_sites_and_provider_regions_it_loaded_apart(
+    caplog: pytest.LogCaptureFixture
+) -> None:
+    assert any(
+        re.match(
+            r"Loaded \d+ carrier PoPs, \d+ sites and \d+ provider regions"
+            r" over \d+ fiber segments$",
+            message,
+        )
+        for message in _logged(caplog)
+    )
+
+
+@pytest.mark.usefixtures("synthesized")
+def test_the_success_counts_the_provider_regions_outside_the_coverage_target(
+    store: SimpleNamespace
+) -> None:
+    assert _assigned(store, 1)["coverage"]["provider_regions_above_target"] == 0
+
+
 @pytest.mark.usefixtures("synthesized")
 def test_the_coverage_measures_the_worst_haul_of_a_site_or_region_to_a_wan_pop(
     store: SimpleNamespace
@@ -192,7 +229,7 @@ def test_a_backbone_circuit_is_published_between_wan_pop_ids_along_its_route(
 ) -> None:
     assert _published(store, "backbone-circuits/1") == {
         "source": 1, "target": 2, "route": ["Ashburn, VA", "Chicago, IL"], "distance_miles": 599.5,
-        "reason": "site_target", "requested_by": ["F.E. Warren AFB"],
+        "reason": "wan_pop_target", "requested_by": ["F.E. Warren AFB"],
     }
 
 

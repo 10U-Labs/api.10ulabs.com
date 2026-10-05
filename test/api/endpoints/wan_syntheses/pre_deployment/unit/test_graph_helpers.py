@@ -10,7 +10,7 @@ from synthesizer.graphs import (
     bridges,
     connected_components,
     dijkstra,
-    survives_any_one_site_loss,
+    survives_any_one_pop_loss,
     fiber_segments_along,
     reconstruct_path,
 )
@@ -175,13 +175,13 @@ def test_block_membership_keeps_bowtie_lobes_in_separate_blocks() -> None:
     assert not blocks["a"] & blocks["d"]
 
 
-def test_survives_any_one_site_loss_true_for_a_cycle() -> None:
-    assert survives_any_one_site_loss({"a", "b", "c"}, {("a", "b"), ("b", "c"), ("a", "c")}) is True
+def test_survives_any_one_pop_loss_true_for_a_cycle() -> None:
+    assert survives_any_one_pop_loss({"a", "b", "c"}, {("a", "b"), ("b", "c"), ("a", "c")}) is True
 
 
-def test_survives_any_one_site_loss_false_for_a_chain() -> None:
-    assert survives_any_one_site_loss({"a", "b", "c"}, {("a", "b"), ("b", "c")}) is False
+def test_survives_any_one_pop_loss_false_for_a_chain() -> None:
+    assert survives_any_one_pop_loss({"a", "b", "c"}, {("a", "b"), ("b", "c")}) is False
 
 
-def test_survives_any_one_site_loss_false_when_disconnected() -> None:
-    assert survives_any_one_site_loss({"a", "b", "c", "d"}, {("a", "b"), ("c", "d")}) is False
+def test_survives_any_one_pop_loss_false_when_disconnected() -> None:
+    assert survives_any_one_pop_loss({"a", "b", "c", "d"}, {("a", "b"), ("c", "d")}) is False

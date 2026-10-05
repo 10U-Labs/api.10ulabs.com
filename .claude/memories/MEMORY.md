@@ -87,3 +87,4 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [issues-have-no-house-style](issues-have-no-house-style.md) — no conventions on how an issue is written but one: a part of the body takes a header, never a bolded first sentence; a shape the existing issues share is not a rule
 - [a-decision-rewrites-the-issue](a-decision-rewrites-the-issue.md) — a person's decision is written into the issue's title and body, with `needs decision` removed; never posted as a comment
+- [an-issue-is-split-by-problem-not-by-fix](an-issue-is-split-by-problem-not-by-fix.md) — issues divide the work, one indivisible problem each, and batches merge them into a session; never merge issues to cut their count or because they share a batch

@@ -54,8 +54,16 @@ def test_the_coverage_profile_ignores_exempt_sites() -> None:
     pops = {"pop": pop("pop", 40.0, -100.0)}
     near = access("near", 40.0, -99.0)
     far = replace(access("far", 10.0, -160.0), exempt_from_distance_constraint=True)
-    assert coverage_haul_profile(("pop",), [near, far], pops) == pytest.approx(
+    assert coverage_haul_profile(("pop",), [near, far], [], pops) == pytest.approx(
         (haversine_miles(near, pops["pop"]),)
+    )
+
+
+def test_the_coverage_profile_measures_a_provider_region() -> None:
+    pops = {"pop": pop("pop", 40.0, -100.0)}
+    region = fixtures.provider_region("region", 40.0, -99.0)
+    assert coverage_haul_profile(("pop",), [], [region], pops) == pytest.approx(
+        (haversine_miles(region, pops["pop"]),)
     )
 
 
@@ -177,10 +185,17 @@ def test_growth_stops_when_no_candidate_leaves_any_site_nearer() -> None:
 
 _REPORT_POPS = {"hub": pop("hub", 40.0, -100.0)}
 _REPORT_SITES = [access("near", 40.0, -100.5), access("far", 40.0, -95.0)]
+_REPORT_REGIONS = [
+    fixtures.provider_region("near_region", 40.0, -100.2),
+    fixtures.provider_region("far_region", 40.0, -96.0),
+    fixtures.provider_region("farther_region", 40.0, -96.5),
+]
 
 
 def _report(target_miles: float) -> CoverageReport:
-    return coverage_report(("hub",), _REPORT_SITES, _REPORT_POPS, target_miles)
+    return coverage_report(
+        ("hub",), _REPORT_SITES, _REPORT_REGIONS, _REPORT_POPS, target_miles
+    )
 
 
 def test_a_synthesis_that_stopped_short_reports_the_target_unmet() -> None:
@@ -193,6 +208,10 @@ def test_a_synthesis_inside_the_target_reports_it_met() -> None:
 
 def test_the_report_counts_the_sites_left_outside_the_target() -> None:
     assert _report(100.0)["sites_above_target"] == 1
+
+
+def test_the_report_counts_the_provider_regions_left_outside_the_target() -> None:
+    assert _report(100.0)["provider_regions_above_target"] == 2
 
 
 def test_the_report_carries_the_worst_haul_it_measured() -> None:

@@ -112,7 +112,7 @@ def test_synthesis_is_connected() -> None:
 
 
 def test_backbone_survives_any_single_city() -> None:
-    assert ARTIFACTS.validation["backbone_mesh_survives_any_one_site_loss"] is True
+    assert ARTIFACTS.validation["backbone_mesh_survives_any_one_pop_loss"] is True
 
 
 def test_every_meshed_ring_wan_pop_holds_its_circuits_independently() -> None:

@@ -72,11 +72,11 @@ def test_the_funnelled_site_has_the_most_fiber_segments() -> None:
 
 
 def test_the_funnelled_site_is_held_to_its_two_failure_points() -> None:
-    assert _FUNNEL_BOUNDS.per_site["funnel"] == 2
+    assert _FUNNEL_BOUNDS.per_pop["funnel"] == 2
 
 
 def test_the_bound_ranks_the_spread_site_above_the_funnelled_one() -> None:
-    assert _FUNNEL_BOUNDS.per_site["spread"] > _FUNNEL_BOUNDS.per_site["funnel"]
+    assert _FUNNEL_BOUNDS.per_pop["spread"] > _FUNNEL_BOUNDS.per_pop["funnel"]
 
 
 def test_strength_ranks_the_spread_site_above_the_funnelled_one() -> None:
@@ -88,4 +88,4 @@ def test_a_site_with_no_fiber_cannot_divide_the_score_by_zero() -> None:
 
 
 def test_a_site_with_no_fiber_is_not_listed_among_the_bounds() -> None:
-    assert diverse_circuit_bounds({"lonely"}, {}).per_site == {}
+    assert diverse_circuit_bounds({"lonely"}, {}).per_pop == {}

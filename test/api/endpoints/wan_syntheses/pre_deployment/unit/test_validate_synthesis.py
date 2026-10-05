@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import dataclasses
+
 import fixtures
-from synthesizer.validation import sites_below_homing_degree, validate_synthesis
+from synthesizer.validation import (
+    provider_regions_below_homing_degree,
+    sites_below_homing_degree,
+    validate_synthesis,
+)
 from synthesizer.model import (
     Homings,
     HomingCircuit,
@@ -90,6 +96,36 @@ def test_homing_fails_below_the_configured_count() -> None:
 
 def test_missing_redundancy_names_the_failing_demand_site() -> None:
     assert sites_below_homing_degree(SINGLE_HOMED, 2) == ["A"]
+
+
+SHORT_REGION = dataclasses.replace(
+    GOOD,
+    homings=Homings(GOOD.homings.tenant, [HomingCircuit("R", "B1", 1.0)]),
+)
+SHORT_REGION_PLACES = [*GOOD_SITES, make_pop("R")]
+
+
+def test_a_provider_region_short_of_the_homing_degree_leaves_every_site_meeting_it() -> None:
+    report = validate_synthesis(SHORT_REGION_PLACES, SHORT_REGION)
+    assert report["every_site_meets_homing_degree"] is True
+
+
+def test_a_provider_region_short_of_the_homing_degree_is_reported() -> None:
+    report = validate_synthesis(SHORT_REGION_PLACES, SHORT_REGION)
+    assert report["every_provider_region_meets_homing_degree"] is False
+
+
+def test_the_report_names_the_provider_region_below_the_homing_degree() -> None:
+    report = validate_synthesis(SHORT_REGION_PLACES, SHORT_REGION)
+    assert report["provider_regions_below_homing_degree"] == [{"id": "R", "name": "R"}]
+
+
+def test_provider_regions_below_homing_degree_names_the_short_region() -> None:
+    assert provider_regions_below_homing_degree(SHORT_REGION, 2) == ["R"]
+
+
+def test_sites_below_homing_degree_leaves_the_short_region_out() -> None:
+    assert not sites_below_homing_degree(SHORT_REGION, 2)
 
 
 def _mesh_synthesis(wan_pop_ids: tuple[str, ...], pairs: list[tuple[str, str]]) -> Synthesis:
@@ -276,26 +312,26 @@ def test_segment_disjoint_circuits_are_survives_any_one_link_loss() -> None:
     assert report["backbone_mesh_survives_any_one_link_loss"] is True
 
 
-def test_backbone_mesh_survives_any_one_site_loss_with_fewer_than_two_wan_pops() -> None:
+def test_backbone_mesh_survives_any_one_pop_loss_with_fewer_than_two_wan_pops() -> None:
     synthesis = build_synthesis(("B1",), (), [], [])
     report = validate_synthesis([make_pop("B1")], synthesis)
-    assert report["backbone_mesh_survives_any_one_site_loss"] is True
+    assert report["backbone_mesh_survives_any_one_pop_loss"] is True
 
 
-def test_healthy_backbone_survives_any_one_site_loss() -> None:
-    assert _mesh_report(*_HEALTHY)["backbone_mesh_survives_any_one_site_loss"] is True
+def test_healthy_backbone_survives_any_one_pop_loss() -> None:
+    assert _mesh_report(*_HEALTHY)["backbone_mesh_survives_any_one_pop_loss"] is True
 
 
-def test_chain_backbone_is_not_survives_any_one_site_loss() -> None:
+def test_chain_backbone_is_not_survives_any_one_pop_loss() -> None:
     chain = _mesh_synthesis(("C1", "C2", "C3"), [("C1", "C2"), ("C2", "C3")])
     report = validate_synthesis([make_pop(n) for n in ("C1", "C2", "C3")], chain)
-    assert report["backbone_mesh_survives_any_one_site_loss"] is False
+    assert report["backbone_mesh_survives_any_one_pop_loss"] is False
 
 
-def test_an_undrawn_wan_pop_is_not_survives_any_one_site_loss() -> None:
+def test_an_undrawn_wan_pop_is_not_survives_any_one_pop_loss() -> None:
     synthesis = _mesh_synthesis(("C1", "C2", "C3"), [("C1", "C2")])
     report = validate_synthesis([make_pop(n) for n in ("C1", "C2", "C3")], synthesis)
-    assert report["backbone_mesh_survives_any_one_site_loss"] is False
+    assert report["backbone_mesh_survives_any_one_pop_loss"] is False
 
 
 _BOWTIE_SYNTHESIS = _drawn_synthesis(
@@ -317,9 +353,9 @@ def test_bowtie_backbone_survives_any_one_link_loss() -> None:
     assert report["backbone_mesh_survives_any_one_link_loss"] is True
 
 
-def test_bowtie_backbone_is_not_survives_any_one_site_loss() -> None:
+def test_bowtie_backbone_is_not_survives_any_one_pop_loss() -> None:
     report = validate_synthesis(_BOWTIE_SITES, _BOWTIE_SYNTHESIS)
-    assert report["backbone_mesh_survives_any_one_site_loss"] is False
+    assert report["backbone_mesh_survives_any_one_pop_loss"] is False
 
 
 _DISCONNECTED = build_synthesis(

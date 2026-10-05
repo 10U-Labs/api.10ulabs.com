@@ -8,6 +8,7 @@ from synthesizer.model import Homings, HomingCircuit, Synthesis, SynthesisMetric
 from synthesizer.validation import (
     backbone_mesh_deficient,
     backbone_mesh_independence_deficient,
+    homes_by_provider_region,
     homes_by_site,
     synthesis_site_pairs,
     included_site_ids,
@@ -49,13 +50,19 @@ def test_included_site_ids_covers_a_provider_regions_homing_endpoints() -> None:
     assert included_site_ids(synthesis) == {"a", "r"}
 
 
-def test_homes_by_site_groups_a_provider_region_beside_a_tenant_site() -> None:
-    synthesis = make_synthesis(
-        [],
-        homing_circuits=[HomingCircuit("s", "a", 1.0)],
-        provider_homing_circuits=[HomingCircuit("r", "a", 1.0)],
-    )
-    assert homes_by_site(synthesis) == {"s": {"a"}, "r": {"a"}}
+_SITE_AND_REGION = make_synthesis(
+    [],
+    homing_circuits=[HomingCircuit("s", "a", 1.0)],
+    provider_homing_circuits=[HomingCircuit("r", "a", 1.0)],
+)
+
+
+def test_homes_by_site_counts_the_sites_alone() -> None:
+    assert homes_by_site(_SITE_AND_REGION) == {"s": {"a"}}
+
+
+def test_homes_by_provider_region_counts_the_provider_regions_alone() -> None:
+    assert homes_by_provider_region(_SITE_AND_REGION) == {"r": {"a"}}
 
 
 def test_included_site_ids_covers_the_tier_ids() -> None:

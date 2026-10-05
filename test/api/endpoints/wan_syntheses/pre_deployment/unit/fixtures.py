@@ -8,7 +8,6 @@ from synthesizer.input_graph import FiberSegment, Site, SiteInfo, segment_key
 from synthesizer.model import (
     KIND_ROADM,
     Homings,
-    HomingSites,
     Synthesis,
     SynthesisArtifacts,
     SynthesisInputs,
@@ -427,7 +426,8 @@ def synthesis_inputs_from_fiber(
     adjacency = build_adjacency(fiber_segments)
     paths = all_pairs_shortest(pops, adjacency)
     return SynthesisInputs(
-        homing_sites=HomingSites(tenant_sites, provider_regions),
+        sites=tenant_sites,
+        provider_regions=provider_regions,
         carrier_pops=pops,
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=eligible,

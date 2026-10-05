@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fixtures
+from synthesizer.codec import PROVIDER_KIND
 from synthesizer.coverage import coverage_report
 from synthesizer.model import SynthesisParams, Tuning, is_carrier_pop
 
@@ -37,7 +38,11 @@ def test_the_synthesis_selects_a_hub_for_each_of_the_two_far_sites() -> None:
 def test_the_delivered_synthesis_reports_its_coverage_target_met() -> None:
     delivered = coverage_report(
         ARTIFACTS.synthesis.wan_pop_ids,
-        [site for site in ARTIFACTS.sites if not is_carrier_pop(site)],
+        [
+            site for site in ARTIFACTS.sites
+            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+        ],
+        [site for site in ARTIFACTS.sites if site.kind == PROVIDER_KIND],
         {site.id: site for site in ARTIFACTS.sites},
         _TARGET_MILES,
     )

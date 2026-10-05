@@ -20,6 +20,7 @@ from synthesizer.model import (
 )
 from synthesizer.assemble import (
     assign_homes,
+    home_provider_regions,
     homing_miles,
     wan_pops_physically_biconnectable,
     build_synthesis_for_wan_pops,
@@ -52,6 +53,16 @@ def _homing_counts(homing_circuits: list[HomingCircuit]) -> dict[str, int]:
 def test_assign_homes_homes_a_demand_site_to_two_wan_pops() -> None:
     result = assign_homes(("c1", "c2"), _dual_inputs(), search_plan([]))
     assert _homing_counts(_joined(result)) == {"s": 2}
+
+
+def test_home_provider_regions_homes_a_provider_region_to_two_wan_pops() -> None:
+    homing_circuits = home_provider_regions(
+        [fixtures.provider_region("r", 0.0, 0.05)],
+        {"c1", "c2"},
+        search_plan([]),
+        {"c1": pop("c1", 0.0, 0.0), "c2": pop("c2", 0.0, 0.1)},
+    )
+    assert _homing_counts(homing_circuits) == {"r": 2}
 
 
 def test_assign_homes_returns_none_when_backbone_smaller_than_the_homing_degree() -> None:
