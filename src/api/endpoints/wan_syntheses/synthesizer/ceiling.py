@@ -39,7 +39,7 @@ def _unit_site_network(
         for neighbor, weight in neighbors
     ]
     new_arcs += [
-        (("in", peer), _SINK, 0.0, len(adjacency[peer])) for peer in sorted(peers)
+        (("in", peer), _SINK, 0.0, 1) for peer in sorted(peers)
     ]
     residual: _Residual = {}
     miles: _Miles = {}

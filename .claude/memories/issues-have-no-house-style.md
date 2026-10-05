@@ -1,6 +1,6 @@
 ---
 name: issues-have-no-house-style
-description: This repo has no conventions for how an issue is written; a pattern the existing issues share is not a rule, and a new issue is written however suits it
+description: This repo has no conventions for how an issue is written beyond one: a part of the body takes a header, never a bolded first sentence; a pattern the existing issues share is not a rule
 metadata:
   type: feedback
 ---
@@ -12,3 +12,5 @@ This repository has no conventions on how an issue is written. The open issues s
 **Why:** The user said so directly when a session treated the shape of the existing issues as something to conform to. A pattern that was never decided cannot be enforced, and reading one as a rule makes an issue worse by forcing content into a heading it does not fit.
 
 **How to apply:** When writing or editing an issue, ignore whatever pattern the other issues happen to share and write it however best says what it needs to say. Do not add, rename or reorder sections to match the neighbours, and do not flag a divergence from them as a problem. The one thing an issue still carries is what [[an-issue-is-closed-by-its-commit]] relies on: its number, so the commit can name it.
+
+One rule does hold: a part of the body is introduced by a Markdown header (`## Decision`), never by bolding its first sentence (`**Decided:** ...`). The user asked for this when a session rewrote #142 with bold lead sentences.

@@ -48,7 +48,7 @@ def _residual_network(question: SeparationQuestion) -> _Residual:
     spared = question.spared | {question.site}
     residual: _Residual = {}
     cities = {city for segment in question.held for city in segment}
-    for city in sorted(cities - spared):
+    for city in sorted(cities - spared - question.peers):
         _add_arc(residual, ("in", city), ("out", city), 1.0)
     for (left, right), share in question.held.items():
         if _admits(question, left, right):
@@ -56,7 +56,7 @@ def _residual_network(question: SeparationQuestion) -> _Residual:
         if _admits(question, right, left):
             _add_arc(residual, ("out", right), _half(left, "in", spared), share)
     for peer in sorted(question.peers & cities):
-        _add_arc(residual, _half(peer, "in", spared), _SINK, math.inf)
+        _add_arc(residual, _half(peer, "in", spared), _SINK, math.inf if peer in spared else 1.0)
     return residual
 
 

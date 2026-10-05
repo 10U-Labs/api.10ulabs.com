@@ -115,26 +115,17 @@ def backbone_mesh_cut_pops(synthesis: Synthesis) -> list[str]:
 
 def circuits_out_of(
     drawn_circuits: list[SynthesisCircuit], site: str
-) -> list[tuple[str, frozenset[str]]]:
+) -> list[frozenset[str]]:
     return [
-        (
-            drawn_circuit.target if drawn_circuit.source == site else drawn_circuit.source,
-            frozenset(drawn_circuit.pop_ids) - {site},
-        )
+        frozenset(drawn_circuit.pop_ids) - {site}
         for drawn_circuit in drawn_circuits
         if drawn_circuit.purpose == "backbone_mesh"
         and site in (drawn_circuit.source, drawn_circuit.target)
     ]
 
 
-def _all_disjoint(circuits: tuple[tuple[str, frozenset[str]], ...]) -> bool:
-    for (near_peer, near), (far_peer, far) in combinations(circuits, 2):
-        shared = near & far
-        if near_peer == far_peer:
-            shared -= {near_peer}
-        if shared:
-            return False
-    return True
+def _all_disjoint(circuits: tuple[frozenset[str], ...]) -> bool:
+    return not any(near & far for near, far in combinations(circuits, 2))
 
 
 def diverse_circuit_count(drawn_circuits: list[SynthesisCircuit], site: str) -> int:
