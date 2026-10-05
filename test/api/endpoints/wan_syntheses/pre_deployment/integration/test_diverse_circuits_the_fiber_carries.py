@@ -148,10 +148,13 @@ def _two_ways_to_one_peer() -> SynthesisArtifacts:
     )
 
 
-def test_a_pair_selected_below_the_count_its_config_allows_is_credited_both_circuits(
+def test_a_pair_selected_below_the_count_its_config_allows_is_limited_to_one_circuit_each(
     two_ways_to_one_peer: SynthesisArtifacts,
 ) -> None:
-    assert two_ways_to_one_peer.validation["backbone_diverse_circuits_ceiling_limited"] == []
+    assert {
+        (str(row["id"]), row["ceiling"])
+        for row in two_ways_to_one_peer.validation["backbone_diverse_circuits_ceiling_limited"]
+    } == {("a", 1), ("b", 1)}
 
 
 def test_that_pair_is_drawn_both_circuits_sharing_no_pop_between(

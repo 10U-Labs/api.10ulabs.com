@@ -135,8 +135,8 @@ def test_the_better_connected_of_two_covering_candidates_is_selected() -> None:
     assert _selected(_BOTH_COVER) == "rich"
 
 
-def test_a_candidates_segments_are_not_counted_as_diverse_circuits() -> None:
-    assert candidate_mesh_ceiling("poor", _FIBER_BACKBONE, _FIBER_ADJACENCY) == 2
+def test_a_candidate_whose_fiber_all_lands_on_one_wan_pop_has_a_ceiling_of_one() -> None:
+    assert candidate_mesh_ceiling("poor", _FIBER_BACKBONE, _FIBER_ADJACENCY) == 1
 
 
 def test_the_nearest_candidate_is_selected_when_none_satisfies_the_target() -> None:

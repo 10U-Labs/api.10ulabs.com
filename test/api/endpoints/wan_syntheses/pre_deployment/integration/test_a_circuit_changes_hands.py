@@ -54,11 +54,11 @@ def test_every_site_still_holds_the_circuits_its_tenant_asked_for() -> None:
     assert all(len(_circuits_at(site)) == 2 for site in _SITES)
 
 
-def test_the_ceiling_counts_the_circuits_that_change_hands() -> None:
+def test_the_ceiling_credits_each_site_one_circuit_to_its_only_peer() -> None:
     assert {
         str(row["id"]): row["ceiling"]
         for row in ARTIFACTS.validation["backbone_diverse_circuits_ceilings"]
-    } == {"a": 3, "c": 3}
+    } == {"a": 1, "c": 1}
 
 
 def test_the_synthesis_runs_the_miles_the_handoff_saves() -> None:

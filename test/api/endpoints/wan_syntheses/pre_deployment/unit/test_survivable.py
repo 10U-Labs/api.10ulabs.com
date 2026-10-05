@@ -4,6 +4,7 @@ import pytest
 
 import fixtures
 from synthesizer.ceiling import CircuitProofInputs, diverse_circuit_ceilings
+from synthesizer.flow_cuts import SeparationQuestion, weakest_separation
 from synthesizer.graphs import build_adjacency
 from synthesizer.input_graph import FiberSegment
 from synthesizer.survivable import (
@@ -129,12 +130,12 @@ _ONLY_REACHABLE_PEER = physical({
 _ONLY_REACHABLE_PEER_SELECTION = _selected(_ONLY_REACHABLE_PEER, ("a", "b", "e"))
 
 
-def test_the_fiber_selected_carries_both_circuits_to_a_wan_pops_only_reachable_peer() -> None:
-    assert _ONLY_REACHABLE_PEER_SELECTION.segments == frozenset(_ONLY_REACHABLE_PEER)
+def test_the_fiber_selected_carries_one_circuit_to_a_wan_pops_only_reachable_peer() -> None:
+    assert _ONLY_REACHABLE_PEER_SELECTION.segments == frozenset({("a", "b"), ("b", "e")})
 
 
-def test_the_floor_states_both_circuits_to_a_wan_pops_only_reachable_peer() -> None:
-    assert _ONLY_REACHABLE_PEER_SELECTION.lower_bound_miles == pytest.approx(170.0)
+def test_the_floor_states_one_circuit_to_a_wan_pops_only_reachable_peer() -> None:
+    assert _ONLY_REACHABLE_PEER_SELECTION.lower_bound_miles == pytest.approx(42.0)
 
 
 _ASKED_TWO_OVER_ONE = _Requirement(
@@ -222,30 +223,44 @@ _TWIN_SPLIT = fixtures.carrier_fiber_segments({
     ("a", "q"): (1.0, ("zayo",)),
     ("b", "q"): (1.0, ("lumen",)),
 })
-_TWIN_OWNED = fixtures.carrier_fiber_segments({
+_TWIN_SPLIT_SELECTION = _selected(_TWIN_SPLIT, ("a", "b"))
+_FORK_SITES = ("a", "b", "c")
+_FORK = physical({
+    ("a", "p"): 1.0, ("b", "p"): 1.0, ("a", "q"): 1.0, ("c", "q"): 1.0,
+})
+_FORK_SPLIT = fixtures.carrier_fiber_segments({
+    ("a", "p"): (1.0, ("zayo",)),
+    ("b", "p"): (1.0, ("zayo",)),
+    ("a", "q"): (1.0, ("zayo",)),
+    ("c", "q"): (1.0, ("lumen",)),
+})
+_FORK_OWNED = fixtures.carrier_fiber_segments({
     ("a", "p"): (1.0, ("zayo",)),
     ("b", "p"): (1.0, ("zayo",)),
     ("a", "q"): (1.0, ("lumen",)),
-    ("b", "q"): (1.0, ("lumen",)),
+    ("c", "q"): (1.0, ("lumen",)),
 })
-_TWIN_SPLIT_SELECTION = _selected(_TWIN_SPLIT, ("a", "b"))
 _CHAIN_ASKED_ONE = _selected(_CHAIN, ("a", "b", "c"), number_of_diverse_circuits=1)
 
 
 def test_a_site_is_owed_a_diverse_circuit_that_changes_hands() -> None:
-    assert _owed(_TWIN_SPLIT, ("a", "b"), "a") == 2
+    assert _owed(_FORK_SPLIT, _FORK_SITES, "a") == 2
 
 
 def test_a_site_is_owed_both_diverse_circuits_where_one_carrier_has_each() -> None:
-    assert _owed(_TWIN_OWNED, ("a", "b"), "a") == 2
+    assert _owed(_FORK_OWNED, _FORK_SITES, "a") == 2
 
 
 def test_fiber_nobody_owns_is_owed_like_anybodys() -> None:
-    assert _owed(_TWIN_CIRCUITS, ("a", "b"), "a") == 2
+    assert _owed(_FORK, _FORK_SITES, "a") == 2
 
 
 def test_a_wan_pop_asked_for_one_circuit_is_owed_the_two_the_directive_requires() -> None:
-    assert _owed(_TWIN_CIRCUITS, ("a", "b"), "a", number_of_diverse_circuits=1) == 2
+    assert _owed(_FORK, _FORK_SITES, "a", number_of_diverse_circuits=1) == 2
+
+
+def test_a_site_with_one_peer_is_owed_one_circuit_however_many_ways_reach_it() -> None:
+    assert _owed(_TWIN_CIRCUITS, ("a", "b"), "a") == 1
 
 
 def test_the_fiber_selected_carries_the_circuit_that_changes_hands() -> None:
@@ -263,15 +278,16 @@ _SHARED_TRANSIT_SELECTION = _selected(
 )
 
 
-def _shared_transit_ceilings(segments: frozenset[tuple[str, str]]) -> dict[str, int]:
-    held = {segment: fixtures.SHARED_TRANSIT_FIBER[segment] for segment in segments}
-    return diverse_circuit_ceilings(CircuitProofInputs(
-        fixtures.SHARED_TRANSIT_SITES, build_adjacency(held)
-    ))
-
-
-def test_the_fiber_selected_where_two_carriers_share_a_pop_carries_both_diverse_circuits() -> None:
-    assert _shared_transit_ceilings(_SHARED_TRANSIT_SELECTION.segments) == {"a": 2, "b": 2}
+def test_the_fiber_selected_where_two_carriers_share_a_pop_carries_two_ways_sharing_none() -> None:
+    assert weakest_separation(
+        SeparationQuestion(
+            "a",
+            frozenset({"b"}),
+            frozenset(fixtures.SHARED_TRANSIT_SITES),
+            {segment: 1.0 for segment in _SHARED_TRANSIT_SELECTION.segments},
+        ),
+        2,
+    ) is None
 
 
 def test_the_floor_is_stated_over_the_circuit_round_the_pop_two_carriers_share() -> None:

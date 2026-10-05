@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fixtures
-from synthesizer.model import CIRCUIT_FOR_TARGET
+from synthesizer.model import CIRCUIT_FOR_RELIEF, CIRCUIT_FOR_TARGET
 
 _SITES = ("a", "b")
 _ASKED_FOR = 2
@@ -32,10 +32,10 @@ def test_the_two_circuits_share_no_city_but_the_two_sites() -> None:
     assert sorted(transit) == sorted(set(transit))
 
 
-def test_both_circuits_are_ones_the_two_sites_reached_for_themselves() -> None:
-    assert [drawn_circuit.reason for drawn_circuit in _MESH] == [
-        CIRCUIT_FOR_TARGET, CIRCUIT_FOR_TARGET,
-    ]
+def test_one_circuit_is_reached_for_and_the_other_relieves_the_city_it_crosses() -> None:
+    assert sorted(drawn_circuit.reason for drawn_circuit in _MESH) == sorted([
+        CIRCUIT_FOR_TARGET, CIRCUIT_FOR_RELIEF,
+    ])
 
 
 def test_each_site_is_credited_with_the_circuits_it_holds() -> None:
