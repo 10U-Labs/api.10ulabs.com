@@ -142,6 +142,7 @@ RIDDEN_FIBER_FIELDS = [
     "z_municipality", "z_state", "z_latitude", "z_longitude", "distance_miles", "submarine",
 ]
 CIRCUIT_FIELDS = ["id", "source", "target", "route", "distance_miles", "reason", "requested_by"]
+REASONS = ["wan_pop_target", "operator_pin", "pop_loss_relief"]
 HOMING_FIELDS = ["id", "source_id", "homing_kind", "target", "route", "distance_miles"]
 HOMING_KINDS = ["tenant_to_backbone", "provider_to_backbone"]
 UNDER_A_WAN_POP = [(WAN_POP, "get")]
@@ -528,6 +529,32 @@ def test_a_synthesis_s_status_is_one_of_five(openapi: Dict[str, Any]) -> None:
 def test_a_backbone_circuit_s_route_is_the_names_it_runs_through(openapi: Dict[str, Any]) -> None:
     route = _listed(openapi, BACKBONE_CIRCUITS)["properties"]["route"]
     assert (route["type"], route["items"]["type"]) == ("array", "string")
+
+
+def _circuit_field(openapi: Dict[str, Any], field: str) -> Dict[str, Any]:
+    described: Dict[str, Any] = _listed(openapi, BACKBONE_CIRCUITS)["properties"][field]
+    return described
+
+
+def test_a_backbone_circuit_s_reason_is_one_of_three(openapi: Dict[str, Any]) -> None:
+    assert _circuit_field(openapi, "reason")["enum"] == REASONS
+
+
+def test_a_backbone_circuit_s_reason_example_is_a_reason_it_takes(
+    openapi: Dict[str, Any]
+) -> None:
+    assert _circuit_field(openapi, "reason")["example"] in REASONS
+
+
+def test_a_backbone_circuit_s_reason_says_what_each_value_means(openapi: Dict[str, Any]) -> None:
+    description = _circuit_field(openapi, "reason")["description"]
+    assert all(f"`{reason}`" in description for reason in REASONS)
+
+
+def test_a_backbone_circuit_is_requested_by_wan_pops_targets(openapi: Dict[str, Any]) -> None:
+    assert _circuit_field(openapi, "requested_by")["description"] == (
+        "The names of the WAN PoPs whose diverse-circuit target asked for the circuit"
+    )
 
 
 def test_a_homing_circuit_s_kind_says_whose_id_its_source_is(openapi: Dict[str, Any]) -> None:
