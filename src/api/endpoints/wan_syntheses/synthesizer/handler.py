@@ -216,7 +216,7 @@ def _given(
     inputs: dict[str, list[dict[str, Any]]], sites: list[Vertex], regions: list[Vertex]
 ) -> dict[str, int]:
     rows = inputs["sites"] + inputs["hyperscale_cloud_service_provider_regions"]
-    return {site.id: row["id"] for row, site in zip(rows, sites + regions)}
+    return {vertex.id: row["id"] for row, vertex in zip(rows, sites + regions)}
 
 
 def _load(table: str, synthesis_id: int) -> Loaded:
