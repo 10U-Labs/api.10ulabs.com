@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 import fixtures
-from synthesizer.input_graph import FiberSegment, Site
+from synthesizer.input_graph import FiberSegment, Vertex
 from synthesizer.model import (
     RoleExclusions,
     SynthesisArtifacts,
@@ -15,7 +15,7 @@ _SEATS = 3
 
 
 def _artifacts(
-    sites: list[Site],
+    sites: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     transit_names: tuple[str, ...],
 ) -> SynthesisArtifacts:

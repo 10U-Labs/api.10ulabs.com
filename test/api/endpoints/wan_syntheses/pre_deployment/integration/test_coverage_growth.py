@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import fixtures
-from synthesizer.codec import PROVIDER_KIND
 from synthesizer.coverage import coverage_report
+from synthesizer.input_graph import ProviderRegion
 from synthesizer.model import SynthesisParams, Tuning, is_carrier_pop
 
-_SITES = [
+_VERTICES = [
     fixtures.carrier_pop("hub_a", 0.0, 0.0),
     fixtures.carrier_pop("hub_b", 0.05, 0.0),
     fixtures.carrier_pop("cape", 0.0, 7.4),
@@ -28,7 +28,7 @@ _PARAMS = SynthesisParams(
         backbone_coverage_target_miles=_TARGET_MILES,
     ),
 )
-ARTIFACTS = fixtures.run_synthesis(_SITES, _FIBER, _PARAMS)
+ARTIFACTS = fixtures.run_synthesis(_VERTICES, _FIBER, _PARAMS)
 
 
 def test_the_synthesis_selects_a_hub_for_each_of_the_two_far_sites() -> None:
@@ -39,11 +39,11 @@ def test_the_delivered_synthesis_reports_its_coverage_target_met() -> None:
     delivered = coverage_report(
         ARTIFACTS.synthesis.wan_pop_ids,
         [
-            site for site in ARTIFACTS.sites
-            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+            vertex for vertex in ARTIFACTS.vertices
+            if not is_carrier_pop(vertex) and not isinstance(vertex, ProviderRegion)
         ],
-        [site for site in ARTIFACTS.sites if site.kind == PROVIDER_KIND],
-        {site.id: site for site in ARTIFACTS.sites},
+        [vertex for vertex in ARTIFACTS.vertices if isinstance(vertex, ProviderRegion)],
+        {vertex.id: vertex for vertex in ARTIFACTS.vertices},
         _TARGET_MILES,
     )
     assert delivered["met"] is True

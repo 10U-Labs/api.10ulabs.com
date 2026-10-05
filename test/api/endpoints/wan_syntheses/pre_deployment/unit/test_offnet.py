@@ -5,10 +5,10 @@ import pytest
 import fixtures
 from synthesizer.offnet import RealizedOffNetPops, realize_off_net_pops
 from synthesizer.model import is_carrier_pop
-from synthesizer.input_graph import Site
+from synthesizer.input_graph import Vertex
 
 def _realize(
-    *sites: Site,
+    *sites: Vertex,
     forced: frozenset[str] = frozenset(),
 ) -> RealizedOffNetPops:
     return realize_off_net_pops(fixtures.carrier_pops_in_a_column(), {}, list(sites), forced)
@@ -32,7 +32,7 @@ def test_realize_adds_local_fiber_segments() -> None:
 def test_the_realized_twin_is_a_carrier_pop() -> None:
     result = _realize(fixtures.off_net_pop("dulles", 0.0, 0.5), forced=frozenset({"dulles"}))
     off_net_id = next(iter(result.off_net_ids))
-    assert is_carrier_pop(next(v for v in result.sites if v.id == off_net_id)) is True
+    assert is_carrier_pop(next(v for v in result.vertices if v.id == off_net_id)) is True
 
 
 def test_realize_ignores_unforced_pops() -> None:

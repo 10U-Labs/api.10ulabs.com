@@ -5,7 +5,7 @@ import math
 import pytest
 
 import fixtures
-from synthesizer.input_graph import Site
+from synthesizer.input_graph import Vertex
 from synthesizer.strength import (
     wan_pop_strength,
     diverse_circuit_bounds,
@@ -16,7 +16,7 @@ from synthesizer.strength import (
 _ORIGIN = "origin"
 
 
-def _at_bearing(bearing: float) -> Site:
+def _at_bearing(bearing: float) -> Vertex:
     radians = math.radians(bearing)
     return fixtures.carrier_pop(
         f"n{int(bearing)}", math.cos(radians), math.sin(radians)

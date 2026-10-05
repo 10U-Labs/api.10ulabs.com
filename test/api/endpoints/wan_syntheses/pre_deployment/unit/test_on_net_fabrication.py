@@ -8,10 +8,10 @@ from synthesizer.on_net_fabrication import (
     fabricate_missing_on_net_pops,
 )
 from synthesizer.model import is_carrier_pop
-from synthesizer.input_graph import Site
+from synthesizer.input_graph import Vertex
 
 def _fabricate(
-    *extra: Site,
+    *extra: Vertex,
     forced: frozenset[str] = frozenset(),
 ) -> FabricatedOnNetPops:
     sites = [*fixtures.carrier_pops_in_a_column(), *extra]
@@ -36,7 +36,7 @@ def test_fabricated_twin_is_a_carrier_pop() -> None:
     result = _fabricate(
         fixtures.tenant_site("luke", 0.0, 0.5), forced=frozenset({"luke"})
     )
-    assert is_carrier_pop(next(v for v in result.sites if v.id == "fac_luke")) is True
+    assert is_carrier_pop(next(v for v in result.vertices if v.id == "fac_luke")) is True
 
 
 def test_ignores_unforced_sites() -> None:
@@ -85,5 +85,5 @@ def test_a_forced_site_no_fiber_can_reach_is_left_demand_only_as_a_site(
             [fixtures.tenant_site("alone", 0.0, 0.5)], {}, frozenset({"alone"})
         )
     assert [record.getMessage() for record in caplog.records] == [
-        "Site alone has fewer than 2 carrier PoPs to wire to; leaving it demand-only"
+        "Vertex alone has fewer than 2 carrier PoPs to wire to; leaving it demand-only"
     ]

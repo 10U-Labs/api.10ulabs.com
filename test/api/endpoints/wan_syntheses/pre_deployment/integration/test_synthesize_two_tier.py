@@ -39,9 +39,9 @@ FORCED_HOME = fixtures.forced_circuit_artifacts(
 )
 UNFORCED_HOME = fixtures.forced_circuit_artifacts(_MESHED_RING, OperatorCircuits(), _DEMAND_RING)
 
-_RING_SITES, _RING_FIBER = _DEMAND_RING
+_RING_VERTICES, _RING_FIBER = _DEMAND_RING
 _MIXED_RING = (
-    [*_RING_SITES, fixtures.provider_region("R1", *fixtures.RING_COORDS["P3"])],
+    [*_RING_VERTICES, fixtures.provider_region("R1", *fixtures.RING_COORDS["P3"])],
     _RING_FIBER,
 )
 MIXED_DEMAND = fixtures.forced_circuit_artifacts(
@@ -226,18 +226,18 @@ def test_off_net_synthesis_validates_connected() -> None:
 
 def test_the_off_net_twin_is_published_as_fabricated() -> None:
     assert [
-        site["fabricated"]
-        for site in synthesis_payload(_forced_off_net_artifacts())["sites"]
-        if site["id"].startswith("offnet_")
+        vertex["fabricated"]
+        for vertex in synthesis_payload(_forced_off_net_artifacts())["vertices"]
+        if vertex["id"].startswith("offnet_")
     ] == [True]
 
 
 def test_no_carrier_pop_of_the_ring_is_published_as_fabricated() -> None:
     ring = {pop.id for pop in fixtures.ring_pops()}
     assert not any(
-        site["fabricated"]
-        for site in synthesis_payload(_forced_off_net_artifacts())["sites"]
-        if site["id"] in ring
+        vertex["fabricated"]
+        for vertex in synthesis_payload(_forced_off_net_artifacts())["vertices"]
+        if vertex["id"] in ring
     )
 
 

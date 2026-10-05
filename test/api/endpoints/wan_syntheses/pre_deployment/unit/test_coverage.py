@@ -6,7 +6,7 @@ import pytest
 
 import fixtures
 from fixtures import synthesis_inputs_from_fiber, search_plan
-from synthesizer.input_graph import FiberSegment, Site, haversine_miles
+from synthesizer.input_graph import FiberSegment, Vertex, haversine_miles
 from synthesizer.graphs import build_adjacency
 from synthesizer.model import SynthesisParams, Tuning
 from synthesizer.coverage import (
@@ -102,7 +102,7 @@ _OCONUS_SITE = replace(access("oconus", 0.0, -40.0), exempt_from_distance_constr
 
 
 def _ranking_hauls(
-    candidates: list[str], sites: list[Site]
+    candidates: list[str], sites: list[Vertex]
 ) -> list[tuple[tuple[float, ...], str]]:
     inputs = synthesis_inputs_from_fiber(
         _RANKING_IDS, _RANKING_FIBER, set(_RANKING_IDS), sites, coords=_RANKING_COORDS

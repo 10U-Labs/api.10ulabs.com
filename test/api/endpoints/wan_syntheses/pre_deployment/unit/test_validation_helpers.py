@@ -10,8 +10,8 @@ from synthesizer.validation import (
     backbone_mesh_independence_deficient,
     homes_by_provider_region,
     homes_by_site,
-    synthesis_site_pairs,
-    included_site_ids,
+    synthesis_vertex_pairs,
+    included_vertex_ids,
     diverse_circuit_count,
     neighbor_degrees,
 )
@@ -38,16 +38,16 @@ def make_synthesis(
 meshed_synthesis = fixtures.meshed_backbone_synthesis
 
 
-def test_included_site_ids_covers_homing_endpoints() -> None:
+def test_included_vertex_ids_covers_homing_endpoints() -> None:
     synthesis = make_synthesis([("a", "b")], homing_circuits=[HomingCircuit("s", "a", 1.0)])
-    assert included_site_ids(synthesis) == {"a", "b", "s"}
+    assert included_vertex_ids(synthesis) == {"a", "b", "s"}
 
 
-def test_included_site_ids_covers_a_provider_regions_homing_endpoints() -> None:
+def test_included_vertex_ids_covers_a_provider_regions_homing_endpoints() -> None:
     synthesis = make_synthesis(
         [], provider_homing_circuits=[HomingCircuit("r", "a", 1.0)]
     )
-    assert included_site_ids(synthesis) == {"a", "r"}
+    assert included_vertex_ids(synthesis) == {"a", "r"}
 
 
 _SITE_AND_REGION = make_synthesis(
@@ -65,14 +65,14 @@ def test_homes_by_provider_region_counts_the_provider_regions_alone() -> None:
     assert homes_by_provider_region(_SITE_AND_REGION) == {"r": {"a"}}
 
 
-def test_included_site_ids_covers_the_tier_ids() -> None:
+def test_included_vertex_ids_covers_the_tier_ids() -> None:
     synthesis = make_synthesis([], wan_pop_ids=("b",), transit_ids=("t",))
-    assert included_site_ids(synthesis) == {"b", "t"}
+    assert included_vertex_ids(synthesis) == {"b", "t"}
 
 
-def test_synthesis_site_pairs_merge_homing_and_physical() -> None:
+def test_synthesis_vertex_pairs_merge_homing_and_physical() -> None:
     synthesis = make_synthesis([("a", "b")], homing_circuits=[HomingCircuit("s", "a", 1.0)])
-    assert synthesis_site_pairs(synthesis) == {segment_key("a", "b"), segment_key("s", "a")}
+    assert synthesis_vertex_pairs(synthesis) == {segment_key("a", "b"), segment_key("s", "a")}
 
 
 def test_neighbor_degrees_counts_distinct_neighbors() -> None:

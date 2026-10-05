@@ -3,10 +3,18 @@ from __future__ import annotations
 import dataclasses
 from typing import cast
 
-from synthesizer.codec import OFF_NET_KIND, PROVIDER_KIND, SITE_KIND
-from synthesizer.input_graph import FiberSegment, Site, SiteInfo, segment_key
+from synthesizer.input_graph import (
+    CarrierPop,
+    FiberSegment,
+    OffNetPop,
+    ProviderRegion,
+    Roadm,
+    TenantSite,
+    Vertex,
+    VertexInfo,
+    segment_key,
+)
 from synthesizer.model import (
-    KIND_ROADM,
     Homings,
     Synthesis,
     SynthesisArtifacts,
@@ -56,39 +64,37 @@ def no_miles() -> SynthesisMetrics:
     return SynthesisMetrics(tenant_homing_miles=0.0, provider_homing_miles=0.0, physical_miles=0.0)
 
 
-def carrier_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
-    return Site(
+def carrier_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Vertex:
+    return CarrierPop(
         id=pop_id,
         name=pop_id,
-        kind="PoP",
         coords=(lat, lon),
-        info=SiteInfo(
+        info=VertexInfo(
             municipality=pop_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
         ),
     )
 
 
-def tenant_site(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
-    return Site(id=site_id, name=site_id, kind=SITE_KIND, coords=(lat, lon))
+def tenant_site(site_id: str, lat: float = 0.0, lon: float = 0.0) -> Vertex:
+    return TenantSite(id=site_id, name=site_id, coords=(lat, lon))
 
 
-def provider_region(region_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
-    return Site(id=region_id, name=region_id, kind=PROVIDER_KIND, coords=(lat, lon))
+def provider_region(region_id: str, lat: float = 0.0, lon: float = 0.0) -> Vertex:
+    return ProviderRegion(id=region_id, name=region_id, coords=(lat, lon))
 
 
-def off_net_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Site:
-    return Site(
+def off_net_pop(pop_id: str, lat: float = 0.0, lon: float = 0.0) -> Vertex:
+    return OffNetPop(
         id=pop_id,
         name=pop_id,
-        kind=OFF_NET_KIND,
         coords=(lat, lon),
-        info=SiteInfo(
+        info=VertexInfo(
             municipality=pop_id, state=_FIXTURE_STATE, country=_FIXTURE_COUNTRY
         ),
     )
 
 
-def ring_pops() -> list[Site]:
+def ring_pops() -> list[Vertex]:
     pops = [carrier_pop(n, lat, lon) for n, (lat, lon) in RING_COORDS.items()]
     pops += [carrier_pop(n, lat, lon) for n, (lat, lon) in SPUR_COORDS.items()]
     return pops
@@ -153,7 +159,7 @@ def split_backbone_synthesis() -> Synthesis:
     return meshed_backbone_synthesis(SPLIT_BACKBONE_CIRCUITS, SPLIT_WAN_POPS)
 
 
-def carrier_pops_in_a_column() -> list[Site]:
+def carrier_pops_in_a_column() -> list[Vertex]:
     return [
         carrier_pop("P0", 0.0, 0.0),
         carrier_pop("P1", 0.0, 1.0),
@@ -161,7 +167,7 @@ def carrier_pops_in_a_column() -> list[Site]:
     ]
 
 
-def carrier_pops_by_id(pop_ids: str) -> dict[str, Site]:
+def carrier_pops_by_id(pop_ids: str) -> dict[str, Vertex]:
     return {pop_id: carrier_pop(pop_id) for pop_id in pop_ids}
 
 
@@ -202,7 +208,7 @@ def ring_params() -> SynthesisParams:
     return SynthesisParams(min_wan_pop_count=2)
 
 
-def forced_off_net_case() -> tuple[Site, SynthesisParams]:
+def forced_off_net_case() -> tuple[Vertex, SynthesisParams]:
     pop = off_net_pop("Dulles Hub", 40.5, -100.0)
     params = SynthesisParams(
         min_wan_pop_count=2,
@@ -211,7 +217,7 @@ def forced_off_net_case() -> tuple[Site, SynthesisParams]:
     return pop, params
 
 
-RingInputs = tuple[list[Site], dict[tuple[str, str], FiberSegment]]
+RingInputs = tuple[list[Vertex], dict[tuple[str, str], FiberSegment]]
 
 
 def _ring_inputs() -> RingInputs:
@@ -219,21 +225,21 @@ def _ring_inputs() -> RingInputs:
 
 
 def run_synthesis(
-    sites: list[Site],
+    vertices: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     params: SynthesisParams,
-    off_net_pops: list[Site] | None = None,
+    off_net_pops: list[Vertex] | None = None,
 ) -> SynthesisArtifacts:
-    homed = dual_home(sites, fiber_segments, params, off_net_pops or [])
-    sites, fiber_segments, overrides = apply_role_overrides(
-        homed.sites, homed.fiber_segments, params
+    homed = dual_home(vertices, fiber_segments, params, off_net_pops or [])
+    vertices, fiber_segments, overrides = apply_role_overrides(
+        homed.vertices, homed.fiber_segments, params
     )
-    synthesis = synthesize_two_tier(sites, fiber_segments, params, overrides)
-    sites, fiber_segments, synthesis, validation = finalize(
-        sites, fiber_segments, synthesis, params, overrides.degree_exempt_wan_pop_ids
+    synthesis = synthesize_two_tier(vertices, fiber_segments, params, overrides)
+    vertices, fiber_segments, synthesis, validation = finalize(
+        vertices, fiber_segments, synthesis, params, overrides.degree_exempt_wan_pop_ids
     )
     return SynthesisArtifacts(
-        sites, fiber_segments, synthesis, validation, homed.fabricated_ids
+        vertices, fiber_segments, synthesis, validation, homed.fabricated_ids
     )
 
 
@@ -316,7 +322,8 @@ def ring_artifacts() -> SynthesisArtifacts:
 def ring_inputs_with_roadm(roadm_id: str) -> RingInputs:
     pops, fiber = _ring_inputs()
     pops = [
-        dataclasses.replace(pop, kind=KIND_ROADM) if pop.id == roadm_id else pop
+        Roadm(id=pop.id, name=pop.name, coords=pop.coords, info=pop.info)
+        if pop.id == roadm_id else pop
         for pop in pops
     ]
     return pops, fiber
@@ -417,7 +424,7 @@ def synthesis_inputs_from_fiber(
     pop_ids: list[str],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     eligible: set[str],
-    *homed: list[Site],
+    *homed: list[Vertex],
     coords: dict[str, tuple[float, float]] | None = None,
 ) -> SynthesisInputs:
     tenant_sites, provider_regions = (list(homed) + [[], []])[:2]
@@ -503,7 +510,7 @@ FUNNEL_COORDS = {
 }
 
 
-def funnel_pops() -> list[Site]:
+def funnel_pops() -> list[Vertex]:
     return [carrier_pop(pop_id, *FUNNEL_COORDS[pop_id]) for pop_id in FUNNEL_IDS]
 
 
@@ -530,7 +537,7 @@ CROSSING_COORDS = {
 }
 
 
-def crossing_pops() -> list[Site]:
+def crossing_pops() -> list[Vertex]:
     return [carrier_pop(pop_id, *CROSSING_COORDS[pop_id]) for pop_id in CROSSING_IDS]
 
 
@@ -552,7 +559,7 @@ SHARED_HUB_PEER_WAN_POPS = ("a", "b", "c", "d")
 SHARED_HUB_PEER_IDS = ("a", "b", "c", "d", "h1", "h2", "h3", "d1", "d2")
 
 
-def shared_hub_peer_pops() -> list[Site]:
+def shared_hub_peer_pops() -> list[Vertex]:
     return [
         carrier_pop(pop_id, 38.0, -115.0 + 2.0 * index)
         for index, pop_id in enumerate(SHARED_HUB_PEER_IDS)
@@ -599,7 +606,7 @@ DISTANT_PEER_COORDS = {
 }
 
 
-def distant_peer_pops() -> list[Site]:
+def distant_peer_pops() -> list[Vertex]:
     return [
         carrier_pop(pop_id, *DISTANT_PEER_COORDS[pop_id])
         for pop_id in DISTANT_PEER_IDS
@@ -633,7 +640,7 @@ EXPRESS_COORDS = {
 }
 
 
-def express_pops() -> list[Site]:
+def express_pops() -> list[Vertex]:
     return [carrier_pop(pop_id, *EXPRESS_COORDS[pop_id]) for pop_id in EXPRESS_IDS]
 
 

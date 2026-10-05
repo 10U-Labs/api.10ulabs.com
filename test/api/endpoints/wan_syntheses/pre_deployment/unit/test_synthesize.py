@@ -45,7 +45,7 @@ from synthesizer.strength import pop_straightness
 pop = fixtures.carrier_pop
 physical = fixtures.fiber_segments_from
 access = fixtures.tenant_site
-TRIANGLE_SITES = [pop("a"), pop("b"), pop("c"), access("s", 40.0, -99.0)]
+TRIANGLE_VERTICES = [pop("a"), pop("b"), pop("c"), access("s", 40.0, -99.0)]
 
 
 _ONE_NODE = SynthesisParams(
@@ -59,13 +59,13 @@ _ONE_NODE = SynthesisParams(
 def test_min_wan_pop_count_below_one_is_rejected() -> None:
     with pytest.raises(ValueError):
         synthesize_two_tier(
-            TRIANGLE_SITES, TRIANGLE, SynthesisParams(min_wan_pop_count=0)
+            TRIANGLE_VERTICES, TRIANGLE, SynthesisParams(min_wan_pop_count=0)
         )
 
 
 def test_a_tenant_asking_for_one_wan_pop_gets_the_one_it_forced() -> None:
     synthesis = synthesize_two_tier(
-        TRIANGLE_SITES, TRIANGLE, _ONE_NODE,
+        TRIANGLE_VERTICES, TRIANGLE, _ONE_NODE,
         RoleOverrides(forced_wan_pop_ids=frozenset({"a"})),
     )
     assert synthesis.wan_pop_ids == ("a",)
@@ -74,14 +74,14 @@ def test_a_tenant_asking_for_one_wan_pop_gets_the_one_it_forced() -> None:
 def test_max_wan_pop_count_below_min_is_rejected() -> None:
     with pytest.raises(ValueError):
         synthesize_two_tier(
-            TRIANGLE_SITES, TRIANGLE, SynthesisParams(min_wan_pop_count=3, max_wan_pop_count=2)
+            TRIANGLE_VERTICES, TRIANGLE, SynthesisParams(min_wan_pop_count=3, max_wan_pop_count=2)
         )
 
 
 def test_forced_wan_pops_exceeding_max_count_is_rejected() -> None:
     with pytest.raises(ValueError):
         synthesize_two_tier(
-            TRIANGLE_SITES, TRIANGLE,
+            TRIANGLE_VERTICES, TRIANGLE,
             SynthesisParams(min_wan_pop_count=2, max_wan_pop_count=2),
             RoleOverrides(forced_wan_pop_ids=frozenset({"a", "b", "c"})),
         )

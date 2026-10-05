@@ -14,11 +14,11 @@ from synthesizer.graphs import (
     fiber_segments_along,
     reconstruct_path,
 )
-from synthesizer.input_graph import Site, segment_key, haversine_miles
+from synthesizer.input_graph import CarrierPop, Vertex, segment_key, haversine_miles
 
 
-def make_pop(pop_id: str, lat: float, lon: float) -> Site:
-    return Site(id=pop_id, name=pop_id, kind="PoP", coords=(lat, lon))
+def make_pop(pop_id: str, lat: float, lon: float) -> Vertex:
+    return CarrierPop(id=pop_id, name=pop_id, coords=(lat, lon))
 
 
 def _adjacency(pairs: list[tuple[str, str]]) -> dict[str, list[tuple[str, float]]]:

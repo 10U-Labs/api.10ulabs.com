@@ -15,40 +15,40 @@ from synthesizer.input_graph import segment_key
 pop = fixtures.carrier_pop
 access = fixtures.tenant_site
 
-SITES = [pop("P0"), pop("P1"), access("A1"), fixtures.provider_region("R1")]
+VERTICES = [pop("P0"), pop("P1"), access("A1"), fixtures.provider_region("R1")]
 
 
 def test_backbone_circuit_resolves_to_a_segment_key() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), SITES, {"P0", "P1"}
+        OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), VERTICES, {"P0", "P1"}
     )
     assert circuits.backbone == frozenset({segment_key("P0", "P1")})
 
 
 def test_forced_home_resolves_to_an_ordered_pair() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(homes=(NamedCircuit("A1", "P1"),)), SITES, {"P1"}
+        OperatorCircuits(homes=(NamedCircuit("A1", "P1"),)), VERTICES, {"P1"}
     )
     assert circuits.homes == frozenset({("A1", "P1")})
 
 
 def test_forced_home_from_a_provider_region_resolves_to_an_ordered_pair() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(homes=(NamedCircuit("R1", "P1"),)), SITES, {"P1"}
+        OperatorCircuits(homes=(NamedCircuit("R1", "P1"),)), VERTICES, {"P1"}
     )
     assert circuits.homes == frozenset({("R1", "P1")})
 
 
 def test_excluded_backbone_resolves_to_a_removed_pair() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(removed_backbone=(NamedCircuit("P0", "P1"),)), SITES, {"P0", "P1"}
+        OperatorCircuits(removed_backbone=(NamedCircuit("P0", "P1"),)), VERTICES, {"P0", "P1"}
     )
     assert circuits.removed_backbone == frozenset({segment_key("P0", "P1")})
 
 
 def test_excluded_wan_pop_endpoint_need_not_be_forced() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(removed_backbone=(NamedCircuit("P0", "P1"),)), SITES, set()
+        OperatorCircuits(removed_backbone=(NamedCircuit("P0", "P1"),)), VERTICES, set()
     )
     assert circuits.removed_backbone == frozenset({segment_key("P0", "P1")})
 
@@ -56,7 +56,7 @@ def test_excluded_wan_pop_endpoint_need_not_be_forced() -> None:
 def test_excluded_backbone_unknown_endpoint_is_rejected() -> None:
     with pytest.raises(ValueError):
         resolve_forced_circuits(
-            OperatorCircuits(removed_backbone=(NamedCircuit("Nowhere", "P1"),)), SITES, set()
+            OperatorCircuits(removed_backbone=(NamedCircuit("Nowhere", "P1"),)), VERTICES, set()
         )
 
 
@@ -77,41 +77,41 @@ def test_forced_backbone_pairs_keeps_only_in_set_pairs() -> None:
 def test_unknown_backbone_endpoint_is_rejected() -> None:
     with pytest.raises(ValueError, match="forced-circuit"):
         resolve_forced_circuits(
-            OperatorCircuits(backbone=(NamedCircuit("Nowhere", "P1"),)), SITES, {"P1"}
+            OperatorCircuits(backbone=(NamedCircuit("Nowhere", "P1"),)), VERTICES, {"P1"}
         )
 
 
 def test_backbone_endpoint_not_forced_is_rejected() -> None:
     with pytest.raises(ValueError, match="forced-circuit"):
         resolve_forced_circuits(
-            OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), SITES, {"P0"}
+            OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), VERTICES, {"P0"}
         )
 
 
 def test_forced_home_target_not_forced_names_the_home_list() -> None:
     with pytest.raises(ValueError, match="forced-home"):
         resolve_forced_circuits(
-            OperatorCircuits(homes=(NamedCircuit("A1", "P1"),)), SITES, set()
+            OperatorCircuits(homes=(NamedCircuit("A1", "P1"),)), VERTICES, set()
         )
 
 
 def test_forced_home_target_off_the_carrier_graph_names_the_home_list() -> None:
     with pytest.raises(ValueError, match="forced-home"):
         resolve_forced_circuits(
-            OperatorCircuits(homes=(NamedCircuit("A1", "Nowhere"),)), SITES, {"P1"}
+            OperatorCircuits(homes=(NamedCircuit("A1", "Nowhere"),)), VERTICES, {"P1"}
         )
 
 
 def test_forced_home_source_that_is_not_demand_is_rejected() -> None:
     with pytest.raises(ValueError, match="neither a site nor a provider region: Nope"):
         resolve_forced_circuits(
-            OperatorCircuits(homes=(NamedCircuit("Nope", "P1"),)), SITES, {"P1"}
+            OperatorCircuits(homes=(NamedCircuit("Nope", "P1"),)), VERTICES, {"P1"}
         )
 
 
 def test_a_mesh_pair_is_not_read_as_a_home() -> None:
     circuits = resolve_forced_circuits(
-        OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), SITES, {"P0", "P1"}
+        OperatorCircuits(backbone=(NamedCircuit("P0", "P1"),)), VERTICES, {"P0", "P1"}
     )
     assert circuits.homes == frozenset()
 

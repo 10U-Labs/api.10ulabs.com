@@ -16,11 +16,11 @@ from synthesizer.model import (
     SynthesisCircuit,
     ValidationReport,
 )
-from synthesizer.input_graph import Site, segment_key
+from synthesizer.input_graph import CarrierPop, Vertex, segment_key
 
 
-def make_pop(site_id: str) -> Site:
-    return Site(id=site_id, name=site_id, kind="PoP", coords=(0.0, 0.0))
+def make_pop(pop_id: str) -> Vertex:
+    return CarrierPop(id=pop_id, name=pop_id, coords=(0.0, 0.0))
 
 
 def build_synthesis(
@@ -377,9 +377,9 @@ def test_disconnected_synthesis_skips_articulation_search() -> None:
     assert report["articulation_points"] == []
 
 
-def test_degree_deficient_site_is_named() -> None:
+def test_a_degree_deficient_vertex_is_named() -> None:
     report = validate_synthesis(_DISCONNECTED_SITES, _DISCONNECTED)
-    assert {item["id"] for item in report["degree_deficient_sites"]} == {
+    assert {item["id"] for item in report["degree_deficient_vertices"]} == {
         "B1", "B2", "B3", "B4",
     }
 

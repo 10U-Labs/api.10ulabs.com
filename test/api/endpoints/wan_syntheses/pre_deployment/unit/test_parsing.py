@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from synthesizer.codec import (
-    OFF_NET_KIND,
     _slug,
     load_merged_carriers,
     load_off_net,
     load_regions,
     load_sites,
 )
+from synthesizer.input_graph import CarrierPop, OffNetPop, ProviderRegion, TenantSite
 from synthesizer.model import is_carrier_pop
 
 _MERGED_CARRIER_POPS = [
@@ -42,6 +42,11 @@ def test_merged_carriers_name_a_pop_by_its_city() -> None:
 def test_merged_carrier_points_are_carrier_pops() -> None:
     pops, _fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
     assert all(is_carrier_pop(pop) for pop in pops)
+
+
+def test_merged_carrier_points_load_as_carrier_pops() -> None:
+    pops, _fiber = load_merged_carriers(_MERGED_CARRIER_POPS, _MERGED_CARRIER_SEGMENT_ROWS)
+    assert all(isinstance(pop, CarrierPop) for pop in pops)
 
 
 def test_merged_carriers_collapse_a_city_across_carriers() -> None:
@@ -117,7 +122,15 @@ def test_regions_are_provider_regions() -> None:
         {"name": "us-east-1", "municipality": "Ashburn", "state": "VA",
          "country": "United States", "latitude": 39.0, "longitude": -77.5},
     ])
-    assert regions[0].kind == "provider region"
+    assert isinstance(regions[0], ProviderRegion)
+
+
+def test_sites_load_as_tenant_sites() -> None:
+    sites = load_sites([
+        {"name": "Buckley", "municipality": "Aurora", "state": "CO",
+         "country": "United States", "latitude": 39.7, "longitude": -104.75},
+    ])
+    assert isinstance(sites[0], TenantSite)
 
 
 def test_sites_keep_their_given_name() -> None:
@@ -154,8 +167,12 @@ def test_places_without_an_exempt_column_are_not_exempt() -> None:
     assert not regions[0].exempt_from_distance_constraint
 
 
-def test_an_off_net_row_is_a_pop_by_kind() -> None:
-    assert OFF_NET_KIND == "Off-net PoP"
+def test_an_off_net_row_loads_as_an_off_net_pop() -> None:
+    off_net = load_off_net([
+        {"municipality": "Dulles", "state": "VA", "country": "United States",
+         "latitude": 39.0, "longitude": -77.4},
+    ])
+    assert isinstance(off_net[0], OffNetPop)
 
 
 def test_off_net_pops_are_named_by_city() -> None:

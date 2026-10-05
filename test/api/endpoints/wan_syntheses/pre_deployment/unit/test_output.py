@@ -5,7 +5,7 @@ from typing import Any
 import fixtures
 import pytest
 from synthesizer import output
-from synthesizer.input_graph import FiberSegment, Site, segment_key
+from synthesizer.input_graph import FiberSegment, Vertex, segment_key
 from synthesizer.model import (
     HomingCircuit,
     Homings,
@@ -33,11 +33,11 @@ def _synthesis(homings: Homings) -> Synthesis:
 
 
 def _payload_for(
-    synthesis: Synthesis, sites: list[Site], fabricated_ids: frozenset[str] = frozenset()
+    synthesis: Synthesis, vertices: list[Vertex], fabricated_ids: frozenset[str] = frozenset()
 ) -> dict[str, Any]:
     fiber = {segment_key("b", "x"): FiberSegment("b", "x", 1.0)}
     artifacts = SynthesisArtifacts(
-        [*sites, fixtures.carrier_pop("b")],
+        [*vertices, fixtures.carrier_pop("b")],
         fiber,
         synthesis,
         ARTIFACTS.validation,
@@ -46,17 +46,17 @@ def _payload_for(
     return synthesis_payload(artifacts)
 
 
-def test_synthesis_payload_includes_sites() -> None:
-    assert "sites" in synthesis_payload(ARTIFACTS)
+def test_synthesis_payload_includes_vertices() -> None:
+    assert "vertices" in synthesis_payload(ARTIFACTS)
 
 
 def test_the_payload_holds_only_the_collections_a_route_serves() -> None:
     assert set(synthesis_payload(ARTIFACTS)) == {
-        "sites", "homing_circuits", "fiber_segments", "drawn_circuits"
+        "vertices", "homing_circuits", "fiber_segments", "drawn_circuits"
     }
 
 
-def test_the_sites_the_wan_includes_are_read_once_for_every_site_published(
+def test_the_vertices_the_wan_includes_are_read_once_for_every_vertex_published(
         monkeypatch: pytest.MonkeyPatch) -> None:
     read: list[Synthesis] = []
 
@@ -64,15 +64,15 @@ def test_the_sites_the_wan_includes_are_read_once_for_every_site_published(
         read.append(synthesis)
         return set()
 
-    monkeypatch.setattr(output, "included_site_ids", _reading)
+    monkeypatch.setattr(output, "included_vertex_ids", _reading)
     synthesis_payload(ARTIFACTS)
     assert len(read) == 1
 
 
 def test_synthesis_payload_entries_carry_municipality_and_state() -> None:
-    sites = synthesis_payload(ARTIFACTS)["sites"]
+    vertices = synthesis_payload(ARTIFACTS)["vertices"]
     assert all(
-        "municipality" in site["info"] and "state" in site["info"] for site in sites
+        "municipality" in vertex["info"] and "state" in vertex["info"] for vertex in vertices
     )
 
 
@@ -101,7 +101,7 @@ def _published_pops_with_a_twin() -> dict[str, dict[str, Any]]:
         [fixtures.carrier_pop("fac_s")],
         frozenset({"fac_s"}),
     )
-    return {pop["id"]: pop for pop in payload["sites"]}
+    return {pop["id"]: pop for pop in payload["vertices"]}
 
 
 def test_a_pop_the_synthesizer_fabricated_says_so() -> None:
@@ -112,5 +112,5 @@ def test_a_carrier_pop_says_it_was_not_fabricated() -> None:
     assert _published_pops_with_a_twin()["b"]["fabricated"] is False
 
 
-def test_every_published_site_says_whether_it_was_fabricated() -> None:
-    assert all("fabricated" in site for site in synthesis_payload(ARTIFACTS)["sites"])
+def test_every_published_vertex_says_whether_it_was_fabricated() -> None:
+    assert all("fabricated" in vertex for vertex in synthesis_payload(ARTIFACTS)["vertices"])

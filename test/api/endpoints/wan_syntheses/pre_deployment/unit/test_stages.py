@@ -12,12 +12,12 @@ def test_dual_home_returns_a_graph_without_off_net() -> None:
     homed = dual_home(
         fixtures.ring_pops(), fixtures.ring_fiber_segments(), fixtures.ring_params(), []
     )
-    assert all((homed.sites, homed.fiber_segments))
+    assert all((homed.vertices, homed.fiber_segments))
 
 
 def _homed_with_a_forced_off_net_pop() -> DualHomed:
-    site, params = fixtures.forced_off_net_case()
-    return dual_home(fixtures.ring_pops(), fixtures.ring_fiber_segments(), params, [site])
+    pop, params = fixtures.forced_off_net_case()
+    return dual_home(fixtures.ring_pops(), fixtures.ring_fiber_segments(), params, [pop])
 
 
 def _homed_with_a_forced_on_net_site() -> DualHomed:
@@ -33,44 +33,44 @@ def _homed_with_a_forced_on_net_site() -> DualHomed:
 
 def test_dual_home_realizes_a_forced_off_net_pop() -> None:
     assert any(
-        site.id.startswith("offnet_") for site in _homed_with_a_forced_off_net_pop().sites
+        vertex.id.startswith("offnet_") for vertex in _homed_with_a_forced_off_net_pop().vertices
     )
 
 
 def test_dual_home_fabricates_a_forced_on_net_site() -> None:
     assert any(
-        site.id.startswith("fac_") for site in _homed_with_a_forced_on_net_site().sites
+        vertex.id.startswith("fac_") for vertex in _homed_with_a_forced_on_net_site().vertices
     )
 
 
 def test_dual_home_reports_the_off_net_twin_it_fabricated() -> None:
     homed = _homed_with_a_forced_off_net_pop()
     assert {
-        site.id for site in homed.sites if site.id.startswith("offnet_")
+        vertex.id for vertex in homed.vertices if vertex.id.startswith("offnet_")
     } == homed.fabricated_ids
 
 
 def test_dual_home_reports_the_on_net_twin_it_fabricated() -> None:
     homed = _homed_with_a_forced_on_net_site()
     assert {
-        site.id for site in homed.sites if site.id.startswith("fac_")
+        vertex.id for vertex in homed.vertices if vertex.id.startswith("fac_")
     } == homed.fabricated_ids
 
 
 def _homed_with_a_forced_site_the_off_net_roster_also_lists() -> DualHomed:
-    site, params = fixtures.forced_off_net_case()
+    pop, params = fixtures.forced_off_net_case()
     return dual_home(
-        [*fixtures.ring_pops(), fixtures.tenant_site(site.name, *site.coords)],
+        [*fixtures.ring_pops(), fixtures.tenant_site(pop.name, *pop.coords)],
         fixtures.ring_fiber_segments(),
         params,
-        [site],
+        [pop],
     )
 
 
 def test_a_forced_site_the_off_net_roster_also_lists_is_realized_as_off_net() -> None:
     assert [
-        site.id for site in _homed_with_a_forced_site_the_off_net_roster_also_lists().sites
-        if site.id.startswith("offnet_")
+        vertex.id for vertex in _homed_with_a_forced_site_the_off_net_roster_also_lists().vertices
+        if vertex.id.startswith("offnet_")
     ] == ["offnet_Dulles Hub"]
 
 
@@ -80,35 +80,35 @@ def test_a_forced_site_the_off_net_roster_also_lists_is_fabricated_once() -> Non
 
 def test_dual_home_reports_no_carrier_pop_as_fabricated() -> None:
     homed = _homed_with_a_forced_off_net_pop()
-    assert not homed.fabricated_ids & {site.id for site in fixtures.ring_pops()}
+    assert not homed.fabricated_ids & {pop.id for pop in fixtures.ring_pops()}
 
 
 def test_finalize_validates_a_synthesis() -> None:
     art = fixtures.ring_artifacts()
-    _sites, _fiber, _synthesis, validation = finalize(
-        art.sites, art.fiber_segments, art.synthesis, fixtures.ring_params()
+    _vertices, _fiber, _synthesis, validation = finalize(
+        art.vertices, art.fiber_segments, art.synthesis, fixtures.ring_params()
     )
     assert validation["connected"] is True
 
 
 def test_finalize_returns_the_synthesis_unchanged() -> None:
     art = fixtures.ring_artifacts()
-    _sites, _fiber, synthesis, _validation = finalize(
-        art.sites, art.fiber_segments, art.synthesis, fixtures.ring_params()
+    _vertices, _fiber, synthesis, _validation = finalize(
+        art.vertices, art.fiber_segments, art.synthesis, fixtures.ring_params()
     )
     assert synthesis is art.synthesis
 
 
 def test_finalize_reports_the_independent_mesh_target() -> None:
     art = fixtures.ring_artifacts()
-    _sites, _fiber, _synthesis, validation = finalize(
-        art.sites, art.fiber_segments, art.synthesis, fixtures.ring_params()
+    _vertices, _fiber, _synthesis, validation = finalize(
+        art.vertices, art.fiber_segments, art.synthesis, fixtures.ring_params()
     )
     assert validation["backbone_meets_independent_mesh_link_target"] is True
 
 
 def _finalize_short_of_three(degree_exempt: frozenset[str] = frozenset()) -> ValidationReport:
-    _sites, _fiber, _synthesis, validation = finalize(
+    _vertices, _fiber, _synthesis, validation = finalize(
         list(fixtures.carrier_pops_by_id(fixtures.SHORT_OF_THREE_CITIES).values()),
         {},
         fixtures.meshed_backbone_synthesis(
