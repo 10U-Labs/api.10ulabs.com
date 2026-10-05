@@ -1,10 +1,20 @@
+import json
 from fnmatch import fnmatchcase
 from types import ModuleType, SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
 STAGE = "arn:aws:execute-api:us-east-2:781581267945:abc123/prod"
+KEY = "Bearer the-workflows-key"
+ID_TOKEN = "Bearer an-id-token"
+SOMEONE = "someone@10ulabs.com"
+REFUSALS: List[Any] = [
+    (("Basic an-id-token", {}, False), "no-bearer"),
+    ((ID_TOKEN, {}, True), "tokeninfo-refused"),
+    ((ID_TOKEN, {"aud": "someone-else.apps.googleusercontent.com"}, False), "wrong-audience"),
+    ((ID_TOKEN, {"iss": "https://example.com"}, False), "wrong-issuer"),
+]
 
 
 def _event(token: str) -> Dict[str, Any]:
@@ -17,6 +27,19 @@ def _decide(authorizer: ModuleType, token: str) -> Dict[str, Any]:
 
 def _effect(authorizer: ModuleType, token: str) -> str:
     return str(_decide(authorizer, token)["policyDocument"]["Statement"][0]["Effect"])
+
+
+def _line(principal: str, verdict: str, reason: str) -> Dict[str, Any]:
+    return {
+        "principal": principal,
+        "verdict": verdict,
+        "reason": reason,
+        "methodArn": f"{STAGE}/GET/carriers",
+    }
+
+
+def _messages(caplog: pytest.LogCaptureFixture) -> List[str]:
+    return [record.getMessage() for record in caplog.records]
 
 
 def _granted(authorizer: ModuleType, token: str, method: str, path: str) -> bool:
@@ -169,3 +192,56 @@ def test_a_token_google_refuses_is_unauthorized(
 def test_anything_but_a_bearer_token_is_unauthorized(authorizer: ModuleType, token: str) -> None:
     with pytest.raises(authorizer.Unauthorized):
         _decide(authorizer, token)
+
+
+@pytest.fixture(name="refused")
+def refused_fixture(
+    authorizer: ModuleType,
+    google: SimpleNamespace,
+    caplog: pytest.LogCaptureFixture,
+    request: pytest.FixtureRequest,
+) -> List[str]:
+    token, claims, refusing = request.param
+    google.claims.update(claims)
+    google.refusing = refusing
+    with pytest.raises(authorizer.Unauthorized):
+        _decide(authorizer, token)
+    return _messages(caplog)
+
+
+@pytest.mark.parametrize("case", [
+    (KEY, {}, ("api-key", "allow", "api-key")),
+    (ID_TOKEN, {}, (SOMEONE, "allow", "authorized")),
+    (ID_TOKEN, {"hd": "example.com"}, (SOMEONE, "deny", "hosted-domain")),
+    (ID_TOKEN, {"email_verified": "false"}, (SOMEONE, "deny", "email-unverified")),
+    (ID_TOKEN, {"email": "stranger@10ulabs.com"}, ("stranger@10ulabs.com", "deny", "not-on-list")),
+])
+def test_each_verdict_is_logged_with_its_reason(
+    authorizer: ModuleType,
+    google: SimpleNamespace,
+    caplog: pytest.LogCaptureFixture,
+    case: Tuple[str, Dict[str, str], Tuple[str, str, str]],
+) -> None:
+    token, claims, line = case
+    google.claims.update(claims)
+    _decide(authorizer, token)
+    assert [json.loads(message) for message in _messages(caplog)] == [_line(*line)]
+
+
+@pytest.mark.parametrize("refused, reason", REFUSALS, indirect=["refused"])
+def test_each_refusal_is_logged_with_its_reason(refused: List[str], reason: str) -> None:
+    line = _line("unknown", "unauthorized", reason)
+    assert [json.loads(message) for message in refused] == [line]
+
+
+@pytest.mark.parametrize("token", [KEY, ID_TOKEN])
+def test_no_verdict_logs_the_token_or_the_key(
+    authorizer: ModuleType, caplog: pytest.LogCaptureFixture, token: str
+) -> None:
+    _decide(authorizer, token)
+    assert not any(secret in caplog.text for secret in ("the-workflows-key", "an-id-token"))
+
+
+@pytest.mark.parametrize("refused", [refusal for refusal, _ in REFUSALS], indirect=True)
+def test_no_refusal_logs_the_token(refused: List[str]) -> None:
+    assert not any("an-id-token" in message for message in refused)
