@@ -145,6 +145,17 @@ jobs:
           search-in: test
           trees: test
           verbose: "true"
+  audit-solver-layer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Audit the solver layer's wheels for advisories
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: src/api/endpoints/wan_syntheses/requirements-layer.txt
+          internal-be-careful-extra-flags: --strict
+          no-deps: true
   copy-paste-source:
     runs-on: ubuntu-latest
     steps:
@@ -309,6 +320,7 @@ jobs:
       - assert-pytest-test-can-fail
       - assert-python-definition-is-used
       - assert-python-definition-is-used-in-tests
+      - audit-solver-layer
       - copy-paste-source
       - copy-paste-tests
       - mypy-source
