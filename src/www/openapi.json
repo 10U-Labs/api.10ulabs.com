@@ -3522,12 +3522,17 @@
                       },
                       "reason": {
                         "type": "string",
-                        "description": "Why the synthesizer drew the circuit",
-                        "example": "circuit_for_target"
+                        "description": "Why the synthesizer drew the circuit: `wan_pop_target` toward a WAN PoP's diverse-circuit target, `operator_pin` because the operator forced it, `pop_loss_relief` to relieve the loss of a PoP",
+                        "enum": [
+                          "wan_pop_target",
+                          "operator_pin",
+                          "pop_loss_relief"
+                        ],
+                        "example": "wan_pop_target"
                       },
                       "requested_by": {
                         "type": "array",
-                        "description": "The names of the sites whose homing asked for the circuit",
+                        "description": "The names of the WAN PoPs whose diverse-circuit target asked for the circuit",
                         "items": {
                           "type": "string"
                         },
