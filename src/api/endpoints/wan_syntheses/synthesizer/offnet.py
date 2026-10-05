@@ -10,7 +10,7 @@ from synthesizer.local_fiber import (
     unique_twin_id,
 )
 from synthesizer.model import is_carrier_pop
-from synthesizer.input_graph import FiberSegment, Site
+from synthesizer.input_graph import FiberSegment, Vertex
 
 OFF_NET_ID_PREFIX = "offnet_"
 OFF_NET_SEGMENT_NOTE = "synthetic off-net local-fiber link"
@@ -18,21 +18,21 @@ OFF_NET_SEGMENT_NOTE = "synthetic off-net local-fiber link"
 
 @dataclass(frozen=True)
 class RealizedOffNetPops:
-    sites: list[Site]
+    vertices: list[Vertex]
     fiber_segments: dict[tuple[str, str], FiberSegment]
     off_net_ids: frozenset[str]
 
 
 def realize_off_net_pops(
-    sites: list[Site],
+    vertices: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
-    off_net_roster: list[Site],
+    off_net_roster: list[Vertex],
     forced_names: frozenset[str],
 ) -> RealizedOffNetPops:
-    carrier_pops = [site for site in sites if is_carrier_pop(site)]
+    carrier_pops = [vertex for vertex in vertices if is_carrier_pop(vertex)]
     carrier_names = {pop.name for pop in carrier_pops}
-    used_ids = {site.id for site in sites}
-    augmented_sites = list(sites)
+    used_ids = {vertex.id for vertex in vertices}
+    augmented_vertices = list(vertices)
     augmented_fiber_segments = dict(fiber_segments)
     off_net_ids: set[str] = set()
     for off_net_pop in sorted(off_net_roster, key=lambda off_net_pop: off_net_pop.id):
@@ -54,7 +54,7 @@ def realize_off_net_pops(
                 "cannot select it as a WAN PoP"
             )
         used_ids.add(twin_id)
-        augmented_sites.append(built[0])
+        augmented_vertices.append(built[0])
         augmented_fiber_segments.update(built[1])
         off_net_ids.add(twin_id)
-    return RealizedOffNetPops(augmented_sites, augmented_fiber_segments, frozenset(off_net_ids))
+    return RealizedOffNetPops(augmented_vertices, augmented_fiber_segments, frozenset(off_net_ids))

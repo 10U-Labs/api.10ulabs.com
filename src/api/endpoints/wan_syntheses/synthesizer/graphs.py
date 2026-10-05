@@ -18,16 +18,16 @@ def dijkstra(
     queue = [(0.0, source)]
 
     while queue:
-        distance, site_id = heapq.heappop(queue)
-        if distance > distances[site_id] + 1e-9:
+        distance, vertex_id = heapq.heappop(queue)
+        if distance > distances[vertex_id] + 1e-9:
             continue
-        for neighbor, weight in adjacency.get(site_id, []):
-            if blocked and segment_key(site_id, neighbor) in blocked:
+        for neighbor, weight in adjacency.get(vertex_id, []):
+            if blocked and segment_key(vertex_id, neighbor) in blocked:
                 continue
             new_distance = distance + weight
             if new_distance + 1e-9 < distances.get(neighbor, math.inf):
                 distances[neighbor] = new_distance
-                predecessors[neighbor] = site_id
+                predecessors[neighbor] = vertex_id
                 heapq.heappush(queue, (new_distance, neighbor))
 
     return distances, predecessors
@@ -50,9 +50,9 @@ def fiber_segments_along(pop_ids: tuple[str, ...]) -> set[tuple[str, str]]:
     return {segment_key(pop_ids[index], pop_ids[index + 1]) for index in range(len(pop_ids) - 1)}
 
 def undirected_adjacency(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> dict[str, set[str]]:
-    adjacency: dict[str, set[str]] = {site_id: set() for site_id in site_ids}
+    adjacency: dict[str, set[str]] = {vertex_id: set() for vertex_id in vertex_ids}
     for left, right in fiber_segment_keys:
         if left in adjacency and right in adjacency:
             adjacency[left].add(right)
@@ -60,9 +60,9 @@ def undirected_adjacency(
     return adjacency
 
 def connected_components(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> list[list[str]]:
-    adjacency = undirected_adjacency(site_ids, fiber_segment_keys)
+    adjacency = undirected_adjacency(vertex_ids, fiber_segment_keys)
     remaining = set(adjacency)
     components: list[list[str]] = []
     while remaining:
@@ -71,9 +71,9 @@ def connected_components(
         queue: deque[str] = deque([start])
         component: list[str] = []
         while queue:
-            site_id = queue.popleft()
-            component.append(site_id)
-            for neighbor in sorted(adjacency[site_id]):
+            vertex_id = queue.popleft()
+            component.append(vertex_id)
+            for neighbor in sorted(adjacency[vertex_id]):
                 if neighbor in remaining:
                     remaining.remove(neighbor)
                     queue.append(neighbor)
@@ -95,13 +95,13 @@ def reachable_over(
     }
 
 def bridges(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> set[tuple[str, str]]:
-    base = len(connected_components(site_ids, fiber_segment_keys))
+    base = len(connected_components(vertex_ids, fiber_segment_keys))
     return {
         key
         for key in fiber_segment_keys
-        if len(connected_components(site_ids, fiber_segment_keys - {key})) > base
+        if len(connected_components(vertex_ids, fiber_segment_keys - {key})) > base
     }
 
 def _lowlink_dfs(
@@ -121,30 +121,30 @@ def _lowlink_dfs(
         counter += 1
         stack: list[tuple[str, Iterator[tuple[str, float]]]] = [(root, iter(adjacency[root]))]
         while stack:
-            site, neighbors = stack[-1]
+            vertex, neighbors = stack[-1]
             descended = False
             for neighbor, _weight in neighbors:
-                if neighbor == parent[site]:
+                if neighbor == parent[vertex]:
                     continue
                 if neighbor in disc:
-                    if disc[neighbor] < disc[site]:
-                        low[site] = min(low[site], disc[neighbor])
-                        on_segment(site, neighbor)
+                    if disc[neighbor] < disc[vertex]:
+                        low[vertex] = min(low[vertex], disc[neighbor])
+                        on_segment(vertex, neighbor)
                     continue
                 disc[neighbor] = low[neighbor] = counter
-                parent[neighbor] = site
+                parent[neighbor] = vertex
                 counter += 1
-                on_segment(site, neighbor)
+                on_segment(vertex, neighbor)
                 stack.append((neighbor, iter(adjacency[neighbor])))
                 descended = True
                 break
             if descended:
                 continue
             stack.pop()
-            up = parent[site]
+            up = parent[vertex]
             if up is not None:
-                low[up] = min(low[up], low[site])
-                on_finish(site, up, low[site], disc[up])
+                low[up] = min(low[up], low[vertex])
+                on_finish(vertex, up, low[vertex], disc[up])
 
 def _record_block(
     segment_stack: list[tuple[str, str]],
@@ -155,7 +155,7 @@ def _record_block(
     while block[-1] != marker:
         block.append(segment_stack.pop())
     if len(block) >= 2:
-        blocks.append({site for segment in block for site in segment})
+        blocks.append({vertex for segment in block for vertex in segment})
 
 def biconnected_block_membership(
     adjacency: dict[str, list[tuple[str, float]]],
@@ -163,37 +163,37 @@ def biconnected_block_membership(
     segment_stack: list[tuple[str, str]] = []
     blocks: list[set[str]] = []
 
-    def push(site: str, neighbor: str) -> None:
-        segment_stack.append(segment_key(site, neighbor))
+    def push(vertex: str, neighbor: str) -> None:
+        segment_stack.append(segment_key(vertex, neighbor))
 
-    def close(site: str, up: str, low_site: int, disc_up: int) -> None:
-        if low_site >= disc_up:
-            _record_block(segment_stack, segment_key(up, site), blocks)
+    def close(vertex: str, up: str, low_vertex: int, disc_up: int) -> None:
+        if low_vertex >= disc_up:
+            _record_block(segment_stack, segment_key(up, vertex), blocks)
 
     _lowlink_dfs(adjacency, push, close)
     return {
-        site: frozenset(index for index, block in enumerate(blocks) if site in block)
-        for site in adjacency
+        vertex: frozenset(index for index, block in enumerate(blocks) if vertex in block)
+        for vertex in adjacency
     }
 
 def survives_any_one_segment_loss(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> bool:
-    if len(connected_components(site_ids, fiber_segment_keys)) != 1:
+    if len(connected_components(vertex_ids, fiber_segment_keys)) != 1:
         return False
-    return not bridges(site_ids, fiber_segment_keys)
+    return not bridges(vertex_ids, fiber_segment_keys)
 
 def survives_any_one_pop_loss(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> bool:
-    if len(connected_components(site_ids, fiber_segment_keys)) != 1:
+    if len(connected_components(vertex_ids, fiber_segment_keys)) != 1:
         return False
-    return not articulation_points(site_ids, fiber_segment_keys)
+    return not articulation_points(vertex_ids, fiber_segment_keys)
 
 def articulation_points(
-    site_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
+    vertex_ids: set[str], fiber_segment_keys: set[tuple[str, str]]
 ) -> set[str]:
-    adjacency = undirected_adjacency(site_ids, fiber_segment_keys)
+    adjacency = undirected_adjacency(vertex_ids, fiber_segment_keys)
     visited: set[str] = set()
     discovery: dict[str, int] = {}
     low: dict[str, int] = {}
@@ -201,31 +201,31 @@ def articulation_points(
     points: set[str] = set()
     time = 0
 
-    def dfs(site_id: str) -> None:
+    def dfs(vertex_id: str) -> None:
         nonlocal time
-        visited.add(site_id)
-        discovery[site_id] = time
-        low[site_id] = time
+        visited.add(vertex_id)
+        discovery[vertex_id] = time
+        low[vertex_id] = time
         time += 1
         children = 0
 
-        for neighbor in sorted(adjacency[site_id]):
+        for neighbor in sorted(adjacency[vertex_id]):
             if neighbor not in visited:
-                parent[neighbor] = site_id
+                parent[neighbor] = vertex_id
                 children += 1
                 dfs(neighbor)
-                low[site_id] = min(low[site_id], low[neighbor])
-                if parent.get(site_id) is None and children > 1:
-                    points.add(site_id)
-                if parent.get(site_id) is not None and low[neighbor] >= discovery[site_id]:
-                    points.add(site_id)
-            elif neighbor != parent.get(site_id):
-                low[site_id] = min(low[site_id], discovery[neighbor])
+                low[vertex_id] = min(low[vertex_id], low[neighbor])
+                if parent.get(vertex_id) is None and children > 1:
+                    points.add(vertex_id)
+                if parent.get(vertex_id) is not None and low[neighbor] >= discovery[vertex_id]:
+                    points.add(vertex_id)
+            elif neighbor != parent.get(vertex_id):
+                low[vertex_id] = min(low[vertex_id], discovery[neighbor])
 
-    for site_id in sorted(adjacency):
-        if site_id not in visited:
-            parent[site_id] = None
-            dfs(site_id)
+    for vertex_id in sorted(adjacency):
+        if vertex_id not in visited:
+            parent[vertex_id] = None
+            dfs(vertex_id)
 
     return points
 

@@ -8,7 +8,6 @@ from cache import invalidate
 from store import assign, member, members, partition, plain, put, sort_id, typed
 from synthesizer import collections as published
 from synthesizer.codec import (
-    PROVIDER_KIND,
     load_merged_carriers,
     load_off_net,
     load_regions,
@@ -16,7 +15,7 @@ from synthesizer.codec import (
 )
 from synthesizer.config import LIST_INPUTS, AppConfig, app_config_from_record
 from synthesizer.coverage import coverage_report
-from synthesizer.input_graph import FiberSegment, Site
+from synthesizer.input_graph import FiberSegment, ProviderRegion, Vertex
 from synthesizer.model import SynthesisArtifacts, SynthesisParams, is_carrier_pop
 from synthesizer.output import synthesis_payload
 from synthesizer.overrides import apply_role_overrides
@@ -95,11 +94,11 @@ def _delivered(artifacts: SynthesisArtifacts, params: SynthesisParams) -> dict[s
     coverage = coverage_report(
         synthesis.wan_pop_ids,
         [
-            site for site in artifacts.sites
-            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+            vertex for vertex in artifacts.vertices
+            if not is_carrier_pop(vertex) and not isinstance(vertex, ProviderRegion)
         ],
-        [site for site in artifacts.sites if site.kind == PROVIDER_KIND],
-        {site.id: site for site in artifacts.sites},
+        [vertex for vertex in artifacts.vertices if isinstance(vertex, ProviderRegion)],
+        {vertex.id: vertex for vertex in artifacts.vertices},
         params.tuning.backbone_coverage_target_miles,
     )
     logger.info("Coverage delivered: %s", coverage)
@@ -167,7 +166,7 @@ def _homing_circuits(
     ]
 
 
-def _end(pop: Site, end: str) -> dict[str, Any]:
+def _end(pop: Vertex, end: str) -> dict[str, Any]:
     return {
         f"{end}_municipality": pop.info.municipality,
         f"{end}_state": pop.info.state,
@@ -177,7 +176,7 @@ def _end(pop: Site, end: str) -> dict[str, Any]:
 
 
 def _fiber_segments(artifacts: SynthesisArtifacts) -> list[dict[str, Any]]:
-    by_id = {site.id: site for site in artifacts.sites}
+    by_id = {vertex.id: vertex for vertex in artifacts.vertices}
     rows: list[dict[str, Any]] = []
     for left, right in sorted(artifacts.synthesis.fiber_segment_keys):
         segment = artifacts.fiber_segments[(left, right)]
@@ -205,16 +204,16 @@ def _published(
 
 
 class Loaded(NamedTuple):
-    graph: list[Site]
+    graph: list[Vertex]
     fiber_segments: dict[tuple[str, str], FiberSegment]
-    off_net: list[Site]
+    off_net: list[Vertex]
     config: AppConfig
     given: dict[str, int]
     owners: dict[tuple[str, str], str]
 
 
 def _given(
-    inputs: dict[str, list[dict[str, Any]]], sites: list[Site], regions: list[Site]
+    inputs: dict[str, list[dict[str, Any]]], sites: list[Vertex], regions: list[Vertex]
 ) -> dict[str, int]:
     rows = inputs["sites"] + inputs["hyperscale_cloud_service_provider_regions"]
     return {site.id: row["id"] for row, site in zip(rows, sites + regions)}
@@ -247,7 +246,7 @@ def _synthesize(loaded: Loaded) -> SynthesisArtifacts:
     logger.info("Dual-homing the sites and the provider regions")
     homed = dual_home(loaded.graph, loaded.fiber_segments, params, loaded.off_net)
     graph, fiber_segments, overrides = apply_role_overrides(
-        homed.sites, homed.fiber_segments, params, loaded.config.operator_circuits
+        homed.vertices, homed.fiber_segments, params, loaded.config.operator_circuits
     )
     logger.info("Synthesizing the two-tier WAN (this is the long step)")
     synthesis = synthesize_two_tier(graph, fiber_segments, params, overrides)

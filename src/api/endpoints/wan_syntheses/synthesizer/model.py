@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import NamedTuple, TypedDict
 
-from synthesizer.input_graph import FiberSegment, Site
+from synthesizer.input_graph import CarrierPop, FiberSegment, Roadm, Vertex
 
 
 @dataclass(frozen=True)
@@ -120,9 +120,9 @@ class FiberAnalysis(NamedTuple):
 
 @dataclass(frozen=True)
 class SynthesisInputs:
-    sites: list[Site]
-    provider_regions: list[Site]
-    carrier_pops: list[Site]
+    sites: list[Vertex]
+    provider_regions: list[Vertex]
+    carrier_pops: list[Vertex]
     fiber_segments: dict[tuple[str, str], FiberSegment]
     eligible_wan_pop_ids: set[str]
     adjacency: dict[str, list[tuple[str, float]]]
@@ -139,7 +139,7 @@ class ValidationReport(TypedDict):
     connected: bool
     component_count: int
     min_distinct_neighbor_degree: int
-    degree_deficient_sites: list[dict[str, object]]
+    degree_deficient_vertices: list[dict[str, object]]
     biconnected_no_articulation_points: bool
     articulation_points: list[dict[str, str]]
     every_site_meets_homing_degree: bool
@@ -163,15 +163,11 @@ class ValidationReport(TypedDict):
 
 @dataclass(frozen=True)
 class SynthesisArtifacts:
-    sites: list[Site]
+    vertices: list[Vertex]
     fiber_segments: dict[tuple[str, str], FiberSegment]
     synthesis: Synthesis
     validation: ValidationReport
     fabricated_ids: frozenset[str]
 
-KIND_POP = "PoP"
-KIND_ROADM = "ROADM"
-CARRIER_KINDS = frozenset({KIND_POP, KIND_ROADM})
-
-def is_carrier_pop(site: Site) -> bool:
-    return site.kind in CARRIER_KINDS
+def is_carrier_pop(vertex: Vertex) -> bool:
+    return isinstance(vertex, (CarrierPop, Roadm))

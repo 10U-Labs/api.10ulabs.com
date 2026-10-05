@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from itertools import combinations
 
-from synthesizer.input_graph import Site, segment_key
+from synthesizer.input_graph import Vertex, segment_key
 from synthesizer.model import (
     CIRCUIT_FOR_TARGET,
     HomingCircuit,
@@ -31,20 +31,20 @@ def wan_pop_mesh_target(wan_pop: str, targets: MeshRequirements) -> int:
 def backbone_mesh_deficient(
     wan_pop_ids: tuple[str, ...],
     wan_pop_degrees: dict[str, int],
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     targets: MeshRequirements,
 ) -> list[dict[str, object]]:
     if len(wan_pop_ids) <= targets.number_of_diverse_circuits:
         return []
     return [
-        {"id": wan_pop_id, "name": sites_by_id[wan_pop_id].name, "degree": degree}
+        {"id": wan_pop_id, "name": vertices_by_id[wan_pop_id].name, "degree": degree}
         for wan_pop_id, degree in sorted(wan_pop_degrees.items())
         if degree < wan_pop_mesh_target(wan_pop_id, targets)
         and wan_pop_id not in targets.degree_exempt
     ]
 
 
-def synthesis_site_pairs(synthesis: Synthesis) -> set[tuple[str, str]]:
+def synthesis_vertex_pairs(synthesis: Synthesis) -> set[tuple[str, str]]:
     pairs = set(synthesis.fiber_segment_keys)
     pairs.update(
         segment_key(homing_circuit.source, homing_circuit.target)
@@ -52,7 +52,7 @@ def synthesis_site_pairs(synthesis: Synthesis) -> set[tuple[str, str]]:
     )
     return pairs
 
-def included_site_ids(synthesis: Synthesis) -> set[str]:
+def included_vertex_ids(synthesis: Synthesis) -> set[str]:
     ids = set(synthesis.wan_pop_ids) | set(synthesis.transit_ids)
     ids.update(pop_id for key in synthesis.fiber_segment_keys for pop_id in key)
     ids.update(homing_circuit.source for homing_circuit in synthesis.homings.joined())
@@ -147,13 +147,13 @@ def diverse_circuit_count(drawn_circuits: list[SynthesisCircuit], wan_pop: str) 
 
 def backbone_mesh_independence_deficient(
     synthesis: Synthesis,
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     targets: MeshRequirements,
 ) -> list[dict[str, object]]:
     return [
         {
             "id": wan_pop_id,
-            "name": sites_by_id[wan_pop_id].name,
+            "name": vertices_by_id[wan_pop_id].name,
             "independent_degree": degree,
         }
         for wan_pop_id, degree in sorted(
@@ -181,36 +181,36 @@ def _ceilings_where(
 
 def _ceiling_rows(
     wan_pop_ids: tuple[str, ...],
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     ceilings: Mapping[str, int] | None,
     keep: Callable[[int], bool],
 ) -> list[dict[str, object]]:
     return [
-        {"id": wan_pop, "name": sites_by_id[wan_pop].name, "ceiling": ceiling}
+        {"id": wan_pop, "name": vertices_by_id[wan_pop].name, "ceiling": ceiling}
         for wan_pop, ceiling in _ceilings_where(wan_pop_ids, ceilings, keep)
     ]
 
 
 def diverse_circuit_ceilings_reported(
     wan_pop_ids: tuple[str, ...],
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     targets: MeshRequirements,
 ) -> list[dict[str, object]]:
     return [
         dict(row, target=wan_pop_mesh_target(str(row["id"]), targets))
         for row in _ceiling_rows(
-            wan_pop_ids, sites_by_id, targets.ceilings, lambda _ceiling: True
+            wan_pop_ids, vertices_by_id, targets.ceilings, lambda _ceiling: True
         )
     ]
 
 
 def ceiling_limited_wan_pops(
     wan_pop_ids: tuple[str, ...],
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     targets: MeshRequirements,
 ) -> list[dict[str, object]]:
     return _ceiling_rows(
-        wan_pop_ids, sites_by_id, targets.ceilings,
+        wan_pop_ids, vertices_by_id, targets.ceilings,
         lambda value: value < targets.number_of_diverse_circuits,
     )
 
@@ -248,7 +248,7 @@ def unrequested_mesh_circuits(synthesis: Synthesis, wan_pop: str) -> list[dict[s
 
 def above_target_wan_pops(
     synthesis: Synthesis,
-    sites_by_id: dict[str, Site],
+    vertices_by_id: dict[str, Vertex],
     targets: MeshRequirements,
 ) -> list[dict[str, object]]:
     asked_for = targets.number_of_diverse_circuits
@@ -259,7 +259,7 @@ def above_target_wan_pops(
             continue
         rows.append({
             "id": wan_pop,
-            "name": sites_by_id[wan_pop].name,
+            "name": vertices_by_id[wan_pop].name,
             "target": asked_for,
             "link_count": len(circuits),
             "diverse_circuit_count": diverse_circuit_count(synthesis.drawn_circuits, wan_pop),
@@ -269,36 +269,36 @@ def above_target_wan_pops(
 
 
 def neighbor_degrees(
-    ids: set[str], site_pairs: set[tuple[str, str]]
+    ids: set[str], vertex_pairs: set[tuple[str, str]]
 ) -> dict[str, int]:
-    neighbors: dict[str, set[str]] = {site_id: set() for site_id in ids}
-    for left, right in site_pairs:
+    neighbors: dict[str, set[str]] = {vertex_id: set() for vertex_id in ids}
+    for left, right in vertex_pairs:
         if left in ids and right in ids:
             neighbors[left].add(right)
             neighbors[right].add(left)
-    return {site_id: len(value) for site_id, value in neighbors.items()}
+    return {vertex_id: len(value) for vertex_id, value in neighbors.items()}
 
-def _named(ids: list[str], by_id: dict[str, Site]) -> list[dict[str, str]]:
+def _named(ids: list[str], by_id: dict[str, Vertex]) -> list[dict[str, str]]:
     return [{"id": named_id, "name": by_id[named_id].name} for named_id in ids]
 
 def validate_synthesis(
-    sites: list[Site],
+    vertices: list[Vertex],
     synthesis: Synthesis,
     homing_degree: int = 2,
     targets: MeshRequirements = MeshRequirements(),
 ) -> ValidationReport:
-    sites_by_id = {site.id: site for site in sites}
-    ids = included_site_ids(synthesis)
-    pairs = synthesis_site_pairs(synthesis)
+    vertices_by_id = {vertex.id: vertex for vertex in vertices}
+    ids = included_vertex_ids(synthesis)
+    pairs = synthesis_vertex_pairs(synthesis)
     components = connected_components(ids, pairs)
     degrees = neighbor_degrees(ids, pairs)
     articulations = articulation_points(ids, pairs) if len(components) == 1 else set()
     wan_pop_degrees = neighbor_degrees(set(synthesis.wan_pop_ids), backbone_mesh_pairs(synthesis))
     mesh_deficient = backbone_mesh_deficient(
-        synthesis.wan_pop_ids, wan_pop_degrees, sites_by_id, targets
+        synthesis.wan_pop_ids, wan_pop_degrees, vertices_by_id, targets
     )
     independence_deficient = backbone_mesh_independence_deficient(
-        synthesis, sites_by_id, targets
+        synthesis, vertices_by_id, targets
     )
     cut_pops = backbone_mesh_cut_pops(synthesis)
 
@@ -306,44 +306,44 @@ def validate_synthesis(
         "connected": len(components) == 1,
         "component_count": len(components),
         "min_distinct_neighbor_degree": min(degrees.values()) if degrees else 0,
-        "degree_deficient_sites": [
-            {"id": site_id, "name": sites_by_id[site_id].name, "degree": degree}
-            for site_id, degree in sorted(degrees.items())
+        "degree_deficient_vertices": [
+            {"id": vertex_id, "name": vertices_by_id[vertex_id].name, "degree": degree}
+            for vertex_id, degree in sorted(degrees.items())
             if degree < 2
         ],
         "biconnected_no_articulation_points": len(components) == 1 and not articulations,
         "articulation_points": [
-            {"id": site_id, "name": sites_by_id[site_id].name}
-            for site_id in sorted(articulations)
+            {"id": vertex_id, "name": vertices_by_id[vertex_id].name}
+            for vertex_id in sorted(articulations)
         ],
         "every_site_meets_homing_degree": not sites_below_homing_degree(
             synthesis, homing_degree
         ),
         "sites_below_homing_degree": _named(
-            sites_below_homing_degree(synthesis, homing_degree), sites_by_id
+            sites_below_homing_degree(synthesis, homing_degree), vertices_by_id
         ),
         "every_provider_region_meets_homing_degree": not provider_regions_below_homing_degree(
             synthesis, homing_degree
         ),
         "provider_regions_below_homing_degree": _named(
-            provider_regions_below_homing_degree(synthesis, homing_degree), sites_by_id
+            provider_regions_below_homing_degree(synthesis, homing_degree), vertices_by_id
         ),
         "backbone_meets_mesh_link_target": not mesh_deficient,
         "backbone_diverse_circuits_deficient": mesh_deficient,
         "backbone_meets_independent_mesh_link_target": not independence_deficient,
         "backbone_mesh_independence_deficient": independence_deficient,
         "backbone_degree_exempt": [
-            {"id": wan_pop_id, "name": sites_by_id[wan_pop_id].name}
+            {"id": wan_pop_id, "name": vertices_by_id[wan_pop_id].name}
             for wan_pop_id in sorted(set(synthesis.wan_pop_ids) & targets.degree_exempt)
         ],
         "backbone_diverse_circuits_ceilings": diverse_circuit_ceilings_reported(
-            synthesis.wan_pop_ids, sites_by_id, targets
+            synthesis.wan_pop_ids, vertices_by_id, targets
         ),
         "backbone_diverse_circuits_ceiling_limited": ceiling_limited_wan_pops(
-            synthesis.wan_pop_ids, sites_by_id, targets
+            synthesis.wan_pop_ids, vertices_by_id, targets
         ),
         "backbone_diverse_circuits_above_target": above_target_wan_pops(
-            synthesis, sites_by_id, targets
+            synthesis, vertices_by_id, targets
         ),
         "backbone_mesh_survives_any_one_link_loss":
             backbone_mesh_survives_any_one_link_loss(synthesis),
@@ -351,11 +351,11 @@ def validate_synthesis(
             backbone_mesh_survives_any_one_pop_loss(synthesis),
         "backbone_mesh_is_one_piece": len(backbone_mesh_pieces(synthesis)) <= 1,
         "backbone_mesh_pieces": [
-            [{"id": pop, "name": sites_by_id[pop].name} for pop in piece]
+            [{"id": pop, "name": vertices_by_id[pop].name} for pop in piece]
             for piece in backbone_mesh_pieces(synthesis)
         ],
         "backbone_mesh_has_no_cut_pop": not cut_pops,
         "backbone_mesh_cut_pops": [
-            {"id": pop, "name": sites_by_id[pop].name} for pop in cut_pops
+            {"id": pop, "name": vertices_by_id[pop].name} for pop in cut_pops
         ],
     }

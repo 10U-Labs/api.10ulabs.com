@@ -3,12 +3,17 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from synthesizer.input_graph import FiberSegment, Site, SiteInfo, segment_key, haversine_miles
-
-PROVIDER_KIND = "provider region"
-CARRIER_KIND = "PoP"
-SITE_KIND = "Tenant site"
-OFF_NET_KIND = "Off-net PoP"
+from synthesizer.input_graph import (
+    CarrierPop,
+    FiberSegment,
+    OffNetPop,
+    ProviderRegion,
+    TenantSite,
+    Vertex,
+    VertexInfo,
+    segment_key,
+    haversine_miles,
+)
 
 
 def _slug(value: str) -> str:
@@ -21,62 +26,63 @@ def _city(row: dict[str, Any]) -> str:
 
 
 def _unique(base: str, used: set[str]) -> str:
-    site_id = base
+    vertex_id = base
     suffix = 2
-    while site_id in used:
-        site_id = f"{base}-{suffix}"
+    while vertex_id in used:
+        vertex_id = f"{base}-{suffix}"
         suffix += 1
-    used.add(site_id)
-    return site_id
+    used.add(vertex_id)
+    return vertex_id
 
 
-def _site(row: dict[str, Any], site_id: str, name: str, kind: str) -> Site:
-    return Site(
-        id=site_id,
+def _vertex(row: dict[str, Any], vertex_id: str, name: str, kind: type[Vertex]) -> Vertex:
+    return kind(
+        id=vertex_id,
         name=name,
-        kind=kind,
         coords=(float(row["latitude"]), float(row["longitude"])),
-        info=SiteInfo(
+        info=VertexInfo(
             municipality=row["municipality"], state=row["state"], country=row["country"]
         ),
         exempt_from_distance_constraint=bool(row.get("exempt_from_distance_constraint")),
     )
 
 
-def _load_sites(rows: list[dict[str, Any]], prefix: str, kind: str, named: bool) -> list[Site]:
+def _load_vertices(
+    rows: list[dict[str, Any]], prefix: str, kind: type[Vertex], named: bool
+) -> list[Vertex]:
     used: set[str] = set()
-    sites: list[Site] = []
+    vertices: list[Vertex] = []
     for row in rows:
         name = row["name"] if named else _city(row)
-        site_id = _unique(f"{prefix}-{_slug(name)}", used)
-        sites.append(_site(row, site_id, name, kind))
-    return sites
+        vertex_id = _unique(f"{prefix}-{_slug(name)}", used)
+        vertices.append(_vertex(row, vertex_id, name, kind))
+    return vertices
 
 
-def load_regions(rows: list[dict[str, Any]]) -> list[Site]:
-    return _load_sites(rows, "provider", PROVIDER_KIND, named=True)
+def load_regions(rows: list[dict[str, Any]]) -> list[Vertex]:
+    return _load_vertices(rows, "provider", ProviderRegion, named=True)
 
 
-def load_sites(rows: list[dict[str, Any]]) -> list[Site]:
-    return _load_sites(rows, "site", SITE_KIND, named=True)
+def load_sites(rows: list[dict[str, Any]]) -> list[Vertex]:
+    return _load_vertices(rows, "site", TenantSite, named=True)
 
 
-def load_off_net(rows: list[dict[str, Any]]) -> list[Site]:
-    return _load_sites(rows, "offnet", OFF_NET_KIND, named=False)
+def load_off_net(rows: list[dict[str, Any]]) -> list[Vertex]:
+    return _load_vertices(rows, "offnet", OffNetPop, named=False)
 
 
 def load_merged_carriers(
     pop_rows: list[dict[str, Any]], segment_rows: list[dict[str, Any]]
-) -> tuple[list[Site], dict[tuple[str, str], FiberSegment]]:
+) -> tuple[list[Vertex], dict[tuple[str, str], FiberSegment]]:
     used: set[str] = set()
-    pops: list[Site] = []
-    by_city: dict[tuple[str, str], Site] = {}
+    pops: list[Vertex] = []
+    by_city: dict[tuple[str, str], Vertex] = {}
     for row in pop_rows:
         city = (row["municipality"], row["state"])
         if city in by_city:
             continue
         name = _city(row)
-        pop = _site(row, _unique(_slug(name), used), name, CARRIER_KIND)
+        pop = _vertex(row, _unique(_slug(name), used), name, CarrierPop)
         pops.append(pop)
         by_city[city] = pop
     fiber_segments: dict[tuple[str, str], FiberSegment] = {}

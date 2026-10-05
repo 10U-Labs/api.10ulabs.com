@@ -6,7 +6,7 @@ import math
 import os
 from dataclasses import replace
 
-from synthesizer.input_graph import FiberSegment, Site
+from synthesizer.input_graph import FiberSegment, ProviderRegion, Vertex
 from synthesizer.model import (
     FiberAnalysis,
     ShortestPaths,
@@ -26,7 +26,6 @@ from synthesizer.assemble import (
     forced_wan_pop_resilience_error,
     homing_miles,
 )
-from synthesizer.codec import PROVIDER_KIND
 from synthesizer.coverage import grow_wan_pops_for_coverage
 from synthesizer.search_plan import _SearchPlan
 from synthesizer.strength import wan_pop_strength, diverse_circuit_bounds
@@ -39,7 +38,7 @@ CONVERGENCE_WAN_POP_DEGREE = 3
 
 
 def compute_eligible_wan_pop_ids(
-    carrier_pops: list[Site],
+    carrier_pops: list[Vertex],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> set[str]:
     return {
@@ -66,7 +65,7 @@ def convergence_promotion_ids(
 
 
 def all_pairs_shortest(
-    carrier_pops: list[Site],
+    carrier_pops: list[Vertex],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> ShortestPaths:
     all_distances: dict[str, dict[str, float]] = {}
@@ -77,7 +76,7 @@ def all_pairs_shortest(
 
 
 def validate_pop_graph(
-    carrier_pops: list[Site],
+    carrier_pops: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     adjacency: dict[str, list[tuple[str, float]]],
 ) -> None:
@@ -205,7 +204,7 @@ def search_best_synthesis(
 
 
 def analyze_fiber(
-    carrier_pops: list[Site], adjacency: dict[str, list[tuple[str, float]]]
+    carrier_pops: list[Vertex], adjacency: dict[str, list[tuple[str, float]]]
 ) -> FiberAnalysis:
     return FiberAnalysis(
         all_pairs_shortest(carrier_pops, adjacency), biconnected_block_membership(adjacency)
@@ -213,18 +212,18 @@ def analyze_fiber(
 
 
 def build_synthesis_inputs(
-    sites: list[Site],
+    vertices: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
 ) -> SynthesisInputs:
-    carrier_pops = [site for site in sites if is_carrier_pop(site)]
+    carrier_pops = [vertex for vertex in vertices if is_carrier_pop(vertex)]
     adjacency = build_adjacency(fiber_segments)
     validate_pop_graph(carrier_pops, fiber_segments, adjacency)
     return SynthesisInputs(
         sites=[
-            site for site in sites
-            if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+            vertex for vertex in vertices
+            if not is_carrier_pop(vertex) and not isinstance(vertex, ProviderRegion)
         ],
-        provider_regions=[site for site in sites if site.kind == PROVIDER_KIND],
+        provider_regions=[vertex for vertex in vertices if isinstance(vertex, ProviderRegion)],
         carrier_pops=carrier_pops,
         fiber_segments=fiber_segments,
         eligible_wan_pop_ids=set(),
@@ -266,7 +265,7 @@ def build_search_plan(
 
 
 def synthesize_two_tier(
-    sites: list[Site],
+    vertices: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     params: SynthesisParams,
     overrides: RoleOverrides | None = None,
@@ -287,7 +286,7 @@ def synthesize_two_tier(
     ):
         raise ValueError("more WAN PoPs are forced than max_wan_pop_count allows")
 
-    graph = build_synthesis_inputs(sites, fiber_segments)
+    graph = build_synthesis_inputs(vertices, fiber_segments)
     eligible_ids = compute_eligible_wan_pop_ids(
         graph.carrier_pops, graph.adjacency
     )

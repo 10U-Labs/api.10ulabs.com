@@ -5,12 +5,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from synthesizer.ceiling import CircuitProofInputs, diverse_circuit_ceilings
-from synthesizer.input_graph import Site, haversine_miles
+from synthesizer.input_graph import Vertex, haversine_miles
 from synthesizer.model import SynthesisInputs
 from synthesizer.graphs import reconstruct_path
 
 
-def segment_bearing(origin: Site, neighbor: Site) -> float:
+def segment_bearing(origin: Vertex, neighbor: Vertex) -> float:
     lat1, lat2 = math.radians(origin.lat), math.radians(neighbor.lat)
     delta_lon = math.radians(neighbor.lon - origin.lon)
     x = math.sin(delta_lon) * math.cos(lat2)
@@ -22,7 +22,7 @@ def segment_bearing(origin: Site, neighbor: Site) -> float:
 def segment_sectors(
     pop_id: str,
     adjacency: dict[str, list[tuple[str, float]]],
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
     compass_sector_count: int,
 ) -> set[int]:
     width = 360.0 / compass_sector_count
@@ -34,7 +34,7 @@ def segment_sectors(
 
 def pop_straightness(
     pop_id: str,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
     predecessors: dict[str, str],
 ) -> float:
     origin = pop_by_id[pop_id]
@@ -69,7 +69,7 @@ def diverse_circuit_bounds(
 def wan_pop_strength(
     pop_id: str,
     inputs: SynthesisInputs,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
     bounds: DiverseCircuitBounds,
     compass_sector_count: int,
 ) -> float:

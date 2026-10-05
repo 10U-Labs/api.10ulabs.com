@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-from synthesizer.input_graph import Site, haversine_miles
+from synthesizer.input_graph import Vertex, haversine_miles
 from synthesizer.model import Synthesis, SynthesisInputs, SynthesisParams
 from synthesizer.assemble import build_synthesis_for_wan_pops, evaluate_wan_pops
 from synthesizer.ceiling import CircuitProofInputs, diverse_circuit_ceiling
@@ -22,8 +22,8 @@ class CoverageReport(TypedDict):
 
 def hauls(
     wan_pop_ids: tuple[str, ...],
-    homed: list[Site],
-    pop_by_id: dict[str, Site],
+    homed: list[Vertex],
+    pop_by_id: dict[str, Vertex],
 ) -> list[float]:
     wan_pops = [pop_by_id[wan_pop_id] for wan_pop_id in wan_pop_ids]
     return [
@@ -34,8 +34,8 @@ def hauls(
 
 def _covered_hauls(
     wan_pop_ids: tuple[str, ...],
-    homed: list[Site],
-    pop_by_id: dict[str, Site],
+    homed: list[Vertex],
+    pop_by_id: dict[str, Vertex],
 ) -> list[float]:
     covered = [member for member in homed if not member.exempt_from_distance_constraint]
     return hauls(wan_pop_ids, covered, pop_by_id)
@@ -43,9 +43,9 @@ def _covered_hauls(
 
 def coverage_haul_profile(
     wan_pop_ids: tuple[str, ...],
-    sites: list[Site],
-    provider_regions: list[Site],
-    pop_by_id: dict[str, Site],
+    sites: list[Vertex],
+    provider_regions: list[Vertex],
+    pop_by_id: dict[str, Vertex],
 ) -> tuple[float, ...]:
     return tuple(sorted(
         _covered_hauls(wan_pop_ids, sites, pop_by_id)
@@ -64,9 +64,9 @@ def _above_target(hauls_measured: list[float], target_miles: float) -> int:
 
 def coverage_report(
     wan_pop_ids: tuple[str, ...],
-    sites: list[Site],
-    provider_regions: list[Site],
-    pop_by_id: dict[str, Site],
+    sites: list[Vertex],
+    provider_regions: list[Vertex],
+    pop_by_id: dict[str, Vertex],
     target_miles: float,
 ) -> CoverageReport:
     worst = coverage_worst_haul(
@@ -90,7 +90,7 @@ def coverage_candidate_hauls(
     free: list[str],
     inputs: SynthesisInputs,
     plan: _SearchPlan,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
 ) -> list[tuple[tuple[float, ...], str]]:
     scored: list[tuple[tuple[float, ...], str]] = []
     for candidate_id in free:
@@ -141,7 +141,7 @@ def grow_wan_pops_for_coverage(
     inputs: SynthesisInputs,
     plan: _SearchPlan,
     params: SynthesisParams,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
 ) -> Synthesis:
     target_miles = params.tuning.backbone_coverage_target_miles
     wan_pop_ids = base_ids

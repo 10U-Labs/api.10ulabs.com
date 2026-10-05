@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from synthesizer.input_graph import Site, haversine_miles
+from synthesizer.input_graph import Vertex, haversine_miles
 from synthesizer.model import ForcedCircuits
 
 
@@ -25,10 +25,10 @@ def forced_backbone_pairs(
 
 
 def apply_forced_homes(
-    homed: Site,
+    homed: Vertex,
     completed: list[str],
     circuits: ForcedCircuits,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
     homes: int,
 ) -> list[str]:
     required = [wan_pop for source, wan_pop in sorted(circuits.homes) if source == homed.id]

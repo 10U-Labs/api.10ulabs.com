@@ -2,17 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from synthesizer.codec import PROVIDER_KIND
-from synthesizer.input_graph import Site
+from synthesizer.input_graph import ProviderRegion, Vertex
 from synthesizer.model import Synthesis, is_carrier_pop
 
 
-def site_role(site: Site, synthesis: Synthesis) -> str:
-    if not is_carrier_pop(site):
-        return "provider" if site.kind == PROVIDER_KIND else "tenant"
-    if site.id in synthesis.wan_pop_ids:
+def vertex_role(vertex: Vertex, synthesis: Synthesis) -> str:
+    if not is_carrier_pop(vertex):
+        return "provider" if isinstance(vertex, ProviderRegion) else "tenant"
+    if vertex.id in synthesis.wan_pop_ids:
         return "wan_pop"
-    if site.id in synthesis.transit_ids:
+    if vertex.id in synthesis.transit_ids:
         return "transit"
     return "unused"
 
@@ -39,7 +38,7 @@ def backbone_circuits(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _tier(payload: dict[str, Any], tier_role: str) -> list[dict[str, Any]]:
-    return [site for site in payload["sites"] if site["tier_role"] == tier_role]
+    return [vertex for vertex in payload["vertices"] if vertex["tier_role"] == tier_role]
 
 
 def wan_pops(payload: dict[str, Any]) -> list[dict[str, Any]]:

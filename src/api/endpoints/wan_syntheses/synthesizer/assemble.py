@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from synthesizer.input_graph import FiberSegment, Site, haversine_miles
+from synthesizer.input_graph import FiberSegment, Vertex, haversine_miles
 from synthesizer.model import (
     HomingCircuit,
     Homings,
@@ -68,10 +68,10 @@ def homing_miles(homing_circuits: list[HomingCircuit]) -> float:
 
 
 def _home_to_nearest_wan_pops(
-    homed: list[Site],
+    homed: list[Vertex],
     wan_pop_set: set[str],
     plan: _SearchPlan,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
 ) -> list[HomingCircuit]:
     homing_degree = plan.tuning.homing_degree
     homing_circuits: list[HomingCircuit] = []
@@ -97,19 +97,19 @@ def _home_to_nearest_wan_pops(
 
 
 def home_sites(
-    sites: list[Site],
+    sites: list[Vertex],
     wan_pop_set: set[str],
     plan: _SearchPlan,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
 ) -> list[HomingCircuit]:
     return _home_to_nearest_wan_pops(sites, wan_pop_set, plan, pop_by_id)
 
 
 def home_provider_regions(
-    provider_regions: list[Site],
+    provider_regions: list[Vertex],
     wan_pop_set: set[str],
     plan: _SearchPlan,
-    pop_by_id: dict[str, Site],
+    pop_by_id: dict[str, Vertex],
 ) -> list[HomingCircuit]:
     return _home_to_nearest_wan_pops(provider_regions, wan_pop_set, plan, pop_by_id)
 

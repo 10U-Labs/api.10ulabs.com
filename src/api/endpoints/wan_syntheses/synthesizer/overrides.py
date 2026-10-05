@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Set as AbstractSet
 
-from synthesizer.codec import PROVIDER_KIND
-from synthesizer.input_graph import FiberSegment, Site, segment_key
+from synthesizer.input_graph import FiberSegment, ProviderRegion, Vertex, segment_key
 from synthesizer.model import (
     SynthesisParams,
     ForcedCircuits,
@@ -14,7 +13,7 @@ from synthesizer.model import (
 )
 
 
-def pop_id_by_name(carrier_pops: list[Site]) -> dict[str, str]:
+def pop_id_by_name(carrier_pops: list[Vertex]) -> dict[str, str]:
     return {pop.name: pop.id for pop in carrier_pops}
 
 def resolve_pinned_ids(
@@ -40,10 +39,10 @@ def reject_override_conflicts(
 
 
 def _resolve_operator_pins(
-    sites: list[Site],
+    vertices: list[Vertex],
     params: SynthesisParams,
 ) -> tuple[set[str], set[str], set[str]]:
-    carrier_pops = [site for site in sites if is_carrier_pop(site)]
+    carrier_pops = [vertex for vertex in vertices if is_carrier_pop(vertex)]
     name_to_id = pop_id_by_name(carrier_pops)
     forced_wan_pops = resolve_pinned_ids(
         params.forced_wan_pop_names, name_to_id, "forced_wan_pops"
@@ -114,16 +113,16 @@ def _removed_backbone_circuits(
 
 def resolve_forced_circuits(
     circuits: OperatorCircuits,
-    sites: list[Site],
+    vertices: list[Vertex],
     forced_wan_pops: set[str],
 ) -> ForcedCircuits:
-    name_to_id = pop_id_by_name([site for site in sites if is_carrier_pop(site)])
+    name_to_id = pop_id_by_name([vertex for vertex in vertices if is_carrier_pop(vertex)])
     site_id_by_name = {
-        site.name: site.id for site in sites
-        if not is_carrier_pop(site) and site.kind != PROVIDER_KIND
+        vertex.name: vertex.id for vertex in vertices
+        if not is_carrier_pop(vertex) and not isinstance(vertex, ProviderRegion)
     }
     provider_region_id_by_name = {
-        site.name: site.id for site in sites if site.kind == PROVIDER_KIND
+        vertex.name: vertex.id for vertex in vertices if isinstance(vertex, ProviderRegion)
     }
     return ForcedCircuits(
         backbone=frozenset(
@@ -141,18 +140,18 @@ def resolve_forced_circuits(
 
 
 def apply_role_overrides(
-    sites: list[Site],
+    vertices: list[Vertex],
     fiber_segments: dict[tuple[str, str], FiberSegment],
     params: SynthesisParams,
     circuits: OperatorCircuits = OperatorCircuits(),
-) -> tuple[list[Site], dict[tuple[str, str], FiberSegment], RoleOverrides]:
+) -> tuple[list[Vertex], dict[tuple[str, str], FiberSegment], RoleOverrides]:
     forced_wan_pops, prohibited_wan_pops, degree_exempt = _resolve_operator_pins(
-        sites, params
+        vertices, params
     )
     overrides = RoleOverrides(
         forced_wan_pop_ids=frozenset(forced_wan_pops),
         prohibited_wan_pop_ids=frozenset(prohibited_wan_pops),
         degree_exempt_wan_pop_ids=frozenset(degree_exempt),
-        forced_circuits=resolve_forced_circuits(circuits, sites, forced_wan_pops),
+        forced_circuits=resolve_forced_circuits(circuits, vertices, forced_wan_pops),
     )
-    return sites, fiber_segments, overrides
+    return vertices, fiber_segments, overrides

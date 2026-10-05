@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from synthesizer.input_graph import (
+    CarrierPop,
     FiberSegment,
-    Site,
+    Vertex,
     segment_key,
     haversine_miles,
 )
-from synthesizer.model import KIND_POP
 
 LOCAL_FIBER_HOMING_DEGREE = 3
 LOCAL_FIBER_MIN_HOMING_DEGREE = 2
@@ -22,10 +22,10 @@ class LocalFiberTwinSettings:
 
 
 def nearest_carrier_pops(
-    site: Site, carrier_pops: list[Site], homing_degree: int, max_radius: float | None
-) -> list[Site]:
+    vertex: Vertex, carrier_pops: list[Vertex], homing_degree: int, max_radius: float | None
+) -> list[Vertex]:
     ranked = sorted(
-        ((haversine_miles(site, pop), pop) for pop in carrier_pops),
+        ((haversine_miles(vertex, pop), pop) for pop in carrier_pops),
         key=lambda item: (item[0], item[1].id),
     )
     return [
@@ -45,22 +45,21 @@ def unique_twin_id(base: str, used_ids: set[str]) -> str:
 
 
 def build_local_fiber_twin(
-    site: Site,
+    vertex: Vertex,
     twin_id: str,
-    carrier_pops: list[Site],
+    carrier_pops: list[Vertex],
     settings: LocalFiberTwinSettings,
-) -> tuple[Site, dict[tuple[str, str], FiberSegment]] | None:
+) -> tuple[Vertex, dict[tuple[str, str], FiberSegment]] | None:
     neighbors = nearest_carrier_pops(
-        site, carrier_pops, LOCAL_FIBER_HOMING_DEGREE, settings.max_radius
+        vertex, carrier_pops, LOCAL_FIBER_HOMING_DEGREE, settings.max_radius
     )
     if len(neighbors) < LOCAL_FIBER_MIN_HOMING_DEGREE:
         return None
-    twin = Site(
+    twin = CarrierPop(
         id=twin_id,
-        name=site.name,
-        kind=KIND_POP,
-        coords=site.coords,
-        info=site.info,
+        name=vertex.name,
+        coords=vertex.coords,
+        info=vertex.info,
     )
     fiber_segments: dict[tuple[str, str], FiberSegment] = {}
     for pop in neighbors:

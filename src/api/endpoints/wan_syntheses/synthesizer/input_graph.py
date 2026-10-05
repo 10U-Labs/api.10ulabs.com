@@ -8,19 +8,18 @@ EARTH_RADIUS_MILES = 3958.7613
 
 
 @dataclass(frozen=True)
-class SiteInfo:
+class VertexInfo:
     description: str = ""
     municipality: str = ""
     state: str = ""
     country: str = ""
 
 @dataclass(frozen=True)
-class Site:
+class Vertex:
     id: str
     name: str
-    kind: str
     coords: tuple[float, float]
-    info: SiteInfo = field(default_factory=SiteInfo)
+    info: VertexInfo = field(default_factory=VertexInfo)
     exempt_from_distance_constraint: bool = False
 
     @property
@@ -30,6 +29,26 @@ class Site:
     @property
     def lon(self) -> float:
         return self.coords[1]
+
+@dataclass(frozen=True)
+class TenantSite(Vertex):
+    pass
+
+@dataclass(frozen=True)
+class ProviderRegion(Vertex):
+    pass
+
+@dataclass(frozen=True)
+class CarrierPop(Vertex):
+    pass
+
+@dataclass(frozen=True)
+class Roadm(Vertex):
+    pass
+
+@dataclass(frozen=True)
+class OffNetPop(Vertex):
+    pass
 
 @dataclass(frozen=True)
 class FiberSegment:
@@ -46,7 +65,7 @@ def segment_key(left: str, right: str) -> tuple[str, str]:
         raise ValueError(f"Self-loop is not a valid Carrier fiber segment: {left}")
     return (left, right) if left < right else (right, left)
 
-def haversine_miles(a: Site, b: Site) -> float:
+def haversine_miles(a: Vertex, b: Vertex) -> float:
     lat1 = math.radians(a.lat)
     lat2 = math.radians(b.lat)
     delta_lat = math.radians(b.lat - a.lat)

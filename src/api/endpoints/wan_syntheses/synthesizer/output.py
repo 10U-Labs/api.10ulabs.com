@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from synthesizer.collections import site_role
+from synthesizer.collections import vertex_role
 from synthesizer.input_graph import segment_key
 from synthesizer.model import (
     HomingCircuit,
@@ -12,7 +12,7 @@ from synthesizer.model import (
     Synthesis,
     SynthesisArtifacts,
 )
-from synthesizer.validation import included_site_ids
+from synthesizer.validation import included_vertex_ids
 
 
 def sorted_fiber_segments(synthesis: Synthesis) -> list[tuple[str, str]]:
@@ -31,27 +31,27 @@ def _kinded(synthesis: Synthesis) -> list[tuple[HomingCircuit, str]]:
 
 
 def synthesis_payload(artifacts: SynthesisArtifacts) -> dict[str, Any]:
-    sites = artifacts.sites
+    vertices = artifacts.vertices
     fiber_segments = artifacts.fiber_segments
     synthesis = artifacts.synthesis
-    sites_by_id = {site.id: site for site in sites}
-    included = included_site_ids(synthesis)
+    vertices_by_id = {vertex.id: vertex for vertex in vertices}
+    included = included_vertex_ids(synthesis)
     return {
-        "sites": [
+        "vertices": [
             {
-                **asdict(site),
-                "tier_role": site_role(site, synthesis),
-                "included": site.id in included,
-                "fabricated": site.id in artifacts.fabricated_ids,
+                **asdict(vertex),
+                "tier_role": vertex_role(vertex, synthesis),
+                "included": vertex.id in included,
+                "fabricated": vertex.id in artifacts.fabricated_ids,
             }
-            for site in sites
+            for vertex in vertices
         ],
         "homing_circuits": [
             {
                 "source_id": homing_circuit.source,
-                "source_name": sites_by_id[homing_circuit.source].name,
+                "source_name": vertices_by_id[homing_circuit.source].name,
                 "target_id": homing_circuit.target,
-                "target_name": sites_by_id[homing_circuit.target].name,
+                "target_name": vertices_by_id[homing_circuit.target].name,
                 "homing_kind": homing_kind,
                 "distance_miles": round(homing_circuit.distance_miles, 3),
             }
@@ -60,9 +60,9 @@ def synthesis_payload(artifacts: SynthesisArtifacts) -> dict[str, Any]:
         "fiber_segments": [
             {
                 "source_id": left,
-                "source_name": sites_by_id[left].name,
+                "source_name": vertices_by_id[left].name,
                 "target_id": right,
-                "target_name": sites_by_id[right].name,
+                "target_name": vertices_by_id[right].name,
                 "distance_miles": round(fiber_segments[segment_key(left, right)].distance_miles, 3),
                 "source_page": fiber_segments[segment_key(left, right)].source_page,
                 "note": fiber_segments[segment_key(left, right)].note,
@@ -74,14 +74,14 @@ def synthesis_payload(artifacts: SynthesisArtifacts) -> dict[str, Any]:
             {
                 "purpose": drawn_circuit.purpose,
                 "source_id": drawn_circuit.source,
-                "source_name": sites_by_id[drawn_circuit.source].name,
+                "source_name": vertices_by_id[drawn_circuit.source].name,
                 "target_id": drawn_circuit.target,
-                "target_name": sites_by_id[drawn_circuit.target].name,
+                "target_name": vertices_by_id[drawn_circuit.target].name,
                 "distance_miles": round(drawn_circuit.distance_miles, 3),
-                "route": [sites_by_id[pop_id].name for pop_id in drawn_circuit.pop_ids],
+                "route": [vertices_by_id[pop_id].name for pop_id in drawn_circuit.pop_ids],
                 "reason": drawn_circuit.reason,
                 "requested_by": [
-                    sites_by_id[wan_pop_id].name for wan_pop_id in drawn_circuit.requested_by
+                    vertices_by_id[wan_pop_id].name for wan_pop_id in drawn_circuit.requested_by
                 ],
             }
             for drawn_circuit in synthesis.drawn_circuits
