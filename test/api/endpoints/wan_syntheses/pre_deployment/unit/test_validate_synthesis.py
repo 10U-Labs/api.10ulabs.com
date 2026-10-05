@@ -52,12 +52,12 @@ SINGLE_HOMED = build_synthesis(
     physical_pairs=[("B1", "B2")],
 )
 
-GOOD_SITES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("X", "Y", "B1", "B2")]]
-SINGLE_SITES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("B1", "B2")]]
+GOOD_VERTICES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("X", "Y", "B1", "B2")]]
+SINGLE_VERTICES = [fixtures.tenant_site("A"), *[make_pop(name) for name in ("B1", "B2")]]
 
 
 def test_good_synthesis_homes_demand_with_redundancy() -> None:
-    report = validate_synthesis(GOOD_SITES, GOOD)
+    report = validate_synthesis(GOOD_VERTICES, GOOD)
     assert report["every_site_meets_homing_degree"] is True
 
 
@@ -77,11 +77,13 @@ TRIPLE_HOMED = build_synthesis(
     homing_circuits=[HomingCircuit("s", target, 1.0) for target in ("B1", "B2", "B3")],
     physical_pairs=[("B1", "B2")],
 )
-TRIPLE_HOMED_SITES = [fixtures.tenant_site("s"), *[make_pop(name) for name in ("B1", "B2", "B3")]]
+TRIPLE_HOMED_VERTICES = [
+    fixtures.tenant_site("s"), *[make_pop(name) for name in ("B1", "B2", "B3")]
+]
 
 
 def test_homing_passes_at_the_configured_count() -> None:
-    report = validate_synthesis(TRIPLE_HOMED_SITES, TRIPLE_HOMED, homing_degree=3)
+    report = validate_synthesis(TRIPLE_HOMED_VERTICES, TRIPLE_HOMED, homing_degree=3)
     assert report["every_site_meets_homing_degree"] is True
 
 
@@ -90,7 +92,7 @@ def test_homing_fails_above_the_configured_count() -> None:
 
 
 def test_homing_fails_below_the_configured_count() -> None:
-    report = validate_synthesis(SINGLE_SITES, SINGLE_HOMED)
+    report = validate_synthesis(SINGLE_VERTICES, SINGLE_HOMED)
     assert report["every_site_meets_homing_degree"] is False
 
 
@@ -102,7 +104,7 @@ SHORT_REGION = dataclasses.replace(
     GOOD,
     homings=Homings(GOOD.homings.tenant, [HomingCircuit("R", "B1", 1.0)]),
 )
-SHORT_REGION_PLACES = [*GOOD_SITES, fixtures.provider_region("R")]
+SHORT_REGION_PLACES = [*GOOD_VERTICES, fixtures.provider_region("R")]
 
 
 def test_a_provider_region_short_of_the_homing_degree_leaves_every_site_meeting_it() -> None:
@@ -345,16 +347,16 @@ _BOWTIE_SYNTHESIS = _drawn_synthesis(
         SynthesisCircuit("backbone_mesh", "H", "B4", ("H", "B4"), 1.0),
     ],
 )
-_BOWTIE_SITES = [make_pop(name) for name in ("B1", "B2", "B3", "B4", "H")]
+_BOWTIE_VERTICES = [make_pop(name) for name in ("B1", "B2", "B3", "B4", "H")]
 
 
 def test_bowtie_backbone_survives_any_one_link_loss() -> None:
-    report = validate_synthesis(_BOWTIE_SITES, _BOWTIE_SYNTHESIS)
+    report = validate_synthesis(_BOWTIE_VERTICES, _BOWTIE_SYNTHESIS)
     assert report["backbone_mesh_survives_any_one_link_loss"] is True
 
 
 def test_bowtie_backbone_is_not_survives_any_one_pop_loss() -> None:
-    report = validate_synthesis(_BOWTIE_SITES, _BOWTIE_SYNTHESIS)
+    report = validate_synthesis(_BOWTIE_VERTICES, _BOWTIE_SYNTHESIS)
     assert report["backbone_mesh_survives_any_one_pop_loss"] is False
 
 
@@ -364,21 +366,21 @@ _DISCONNECTED = build_synthesis(
     homing_circuits=[],
     physical_pairs=[("B1", "B2"), ("B3", "B4")],
 )
-_DISCONNECTED_SITES = [make_pop(name) for name in ("B1", "B2", "B3", "B4")]
+_DISCONNECTED_VERTICES = [make_pop(name) for name in ("B1", "B2", "B3", "B4")]
 
 
 def test_disconnected_synthesis_reports_multiple_components() -> None:
-    report = validate_synthesis(_DISCONNECTED_SITES, _DISCONNECTED)
+    report = validate_synthesis(_DISCONNECTED_VERTICES, _DISCONNECTED)
     assert report["component_count"] == 2
 
 
 def test_disconnected_synthesis_skips_articulation_search() -> None:
-    report = validate_synthesis(_DISCONNECTED_SITES, _DISCONNECTED)
+    report = validate_synthesis(_DISCONNECTED_VERTICES, _DISCONNECTED)
     assert report["articulation_points"] == []
 
 
 def test_a_degree_deficient_vertex_is_named() -> None:
-    report = validate_synthesis(_DISCONNECTED_SITES, _DISCONNECTED)
+    report = validate_synthesis(_DISCONNECTED_VERTICES, _DISCONNECTED)
     assert {item["id"] for item in report["degree_deficient_vertices"]} == {
         "B1", "B2", "B3", "B4",
     }

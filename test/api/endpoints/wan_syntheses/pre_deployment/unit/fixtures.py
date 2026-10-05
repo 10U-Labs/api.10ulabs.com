@@ -334,15 +334,15 @@ def _forced_artifacts(
     inputs: RingInputs | None = None,
     circuits: OperatorCircuits = OperatorCircuits(),
 ) -> SynthesisArtifacts:
-    sites, fiber_segments = inputs if inputs is not None else _ring_inputs()
-    sites, fiber_segments, overrides = apply_role_overrides(
-        sites, fiber_segments, params, circuits
+    vertices, fiber_segments = inputs if inputs is not None else _ring_inputs()
+    vertices, fiber_segments, overrides = apply_role_overrides(
+        vertices, fiber_segments, params, circuits
     )
-    synthesis = synthesize_two_tier(sites, fiber_segments, params, overrides)
-    sites, fiber_segments, synthesis, validation = finalize(
-        sites, fiber_segments, synthesis, params, overrides.degree_exempt_wan_pop_ids
+    synthesis = synthesize_two_tier(vertices, fiber_segments, params, overrides)
+    vertices, fiber_segments, synthesis, validation = finalize(
+        vertices, fiber_segments, synthesis, params, overrides.degree_exempt_wan_pop_ids
     )
-    return SynthesisArtifacts(sites, fiber_segments, synthesis, validation, frozenset())
+    return SynthesisArtifacts(vertices, fiber_segments, synthesis, validation, frozenset())
 
 
 def forced_wan_pop_artifacts(name: str) -> SynthesisArtifacts:
@@ -372,8 +372,8 @@ def prohibited_wan_pop_artifacts(name: str) -> SynthesisArtifacts:
 
 
 def ring_inputs_with_demand(access_id: str, at_pop: str) -> RingInputs:
-    sites, fiber = _ring_inputs()
-    return [*sites, tenant_site(access_id, *RING_COORDS[at_pop])], fiber
+    pops, fiber = _ring_inputs()
+    return [*pops, tenant_site(access_id, *RING_COORDS[at_pop])], fiber
 
 
 def forced_circuit_artifacts(
