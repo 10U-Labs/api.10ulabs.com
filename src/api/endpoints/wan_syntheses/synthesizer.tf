@@ -75,7 +75,7 @@ resource "aws_lambda_function" "synthesizer" {
 
 resource "aws_cloudwatch_log_group" "synthesizer" {
   name              = "/aws/lambda/${local.synthesizer_name}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_lambda_function" "failure_handler" {
@@ -110,7 +110,7 @@ resource "aws_lambda_function" "failure_handler" {
 
 resource "aws_cloudwatch_log_group" "failure_handler" {
   name              = "/aws/lambda/${local.failure_handler_name}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_lambda_function_event_invoke_config" "synthesizer" {

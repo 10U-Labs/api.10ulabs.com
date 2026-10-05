@@ -35,7 +35,7 @@ resource "aws_lambda_function" "catchall" {
 
 resource "aws_cloudwatch_log_group" "catchall" {
   name              = "/aws/lambda/${local.names.catchall}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_lambda_permission" "catchall" {

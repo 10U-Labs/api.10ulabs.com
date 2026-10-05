@@ -172,7 +172,7 @@ resource "aws_cloudwatch_log_group" "verb" {
   for_each = local.verbs
 
   name              = "/aws/lambda/${each.value.name}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_lambda_permission" "verb" {

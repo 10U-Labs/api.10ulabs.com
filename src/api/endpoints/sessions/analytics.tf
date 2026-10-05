@@ -75,7 +75,7 @@ resource "aws_lambda_function" "export" {
 
 resource "aws_cloudwatch_log_group" "export" {
   name              = "/aws/lambda/${local.export_name}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_scheduler_schedule" "daily_export" {

@@ -64,7 +64,7 @@ resource "aws_lambda_function" "handler" {
 
 resource "aws_cloudwatch_log_group" "handler" {
   name              = "/aws/lambda/${local.function_name}"
-  retention_in_days = 7
+  retention_in_days = 1827
 }
 
 resource "aws_lambda_permission" "api_gateway" {
