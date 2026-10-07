@@ -82,6 +82,8 @@ output "lambda_handler_names" {
     remove_fiber_segment        = "api-10ulabs-com-remove-fiber-segment"
     remove_pop                  = "api-10ulabs-com-remove-pop"
     rename_carrier              = "api-10ulabs-com-rename-carrier"
+    replace_fiber_segments      = "api-10ulabs-com-replace-fiber-segments"
+    replace_pops                = "api-10ulabs-com-replace-pops"
     sessions                    = "api-10ulabs-com-sessions"
     store_rack_configuration    = "api-10ulabs-com-store-rack-configuration"
   }
