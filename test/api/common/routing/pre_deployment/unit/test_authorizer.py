@@ -76,12 +76,20 @@ def test_the_api_key_removes_a_pop_of_a_carrier(authorizer: ModuleType) -> None:
     assert _granted(authorizer, "Bearer the-workflows-key", "DELETE", "carriers/3/pops/4")
 
 
+def test_the_api_key_replaces_the_pops_of_a_carrier(authorizer: ModuleType) -> None:
+    assert _granted(authorizer, "Bearer the-workflows-key", "PUT", "carriers/3/pops")
+
+
 def test_the_api_key_adds_a_fiber_segment_to_a_carrier(authorizer: ModuleType) -> None:
     assert _granted(authorizer, "Bearer the-workflows-key", "POST", "carriers/3/fiber-segments")
 
 
 def test_the_api_key_removes_a_fiber_segment_of_a_carrier(authorizer: ModuleType) -> None:
     assert _granted(authorizer, "Bearer the-workflows-key", "DELETE", "carriers/3/fiber-segments/4")
+
+
+def test_the_api_key_replaces_the_fiber_segments_of_a_carrier(authorizer: ModuleType) -> None:
+    assert _granted(authorizer, "Bearer the-workflows-key", "PUT", "carriers/3/fiber-segments")
 
 
 def test_the_api_key_creates_a_region(authorizer: ModuleType) -> None:
