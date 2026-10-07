@@ -62,11 +62,13 @@ CARRIER_VERBS = [
     ("/carriers/{id}", "delete", "${DeleteCarrierHandlerArn}"),
     ("/carriers/{id}/pops", "get", "${ListPopsHandlerArn}"),
     ("/carriers/{id}/pops", "post", "${AddPopHandlerArn}"),
+    ("/carriers/{id}/pops", "put", "${ReplacePopsHandlerArn}"),
     (POP, "get", "${ReadPopHandlerArn}"),
     (POP, "put", "${CorrectPopHandlerArn}"),
     (POP, "delete", "${RemovePopHandlerArn}"),
     (FIBER_SEGMENTS, "get", "${ListFiberSegmentsHandlerArn}"),
     (FIBER_SEGMENTS, "post", "${AddFiberSegmentHandlerArn}"),
+    (FIBER_SEGMENTS, "put", "${ReplaceFiberSegmentsHandlerArn}"),
     (FIBER_SEGMENT, "get", "${ReadFiberSegmentHandlerArn}"),
     (FIBER_SEGMENT, "put", "${CorrectFiberSegmentHandlerArn}"),
     (FIBER_SEGMENT, "delete", "${RemoveFiberSegmentHandlerArn}"),
@@ -191,10 +193,10 @@ SYNTHESIS_FIELDS = [
 STATUSES = ["creating", "synthesizing", "success", "fail", "timeout"]
 SECURED = CARRIERS_OPERATIONS + REGIONS_OPERATIONS + SYNTHESES_OPERATIONS
 CARRIER_METHODS = ["get", "put", "delete"]
-POPS_METHODS = ["get", "post"]
+POPS_METHODS = ["get", "post", "put"]
 POP_SERVINGS = ["get", "put"]
 POP_METHODS = POP_SERVINGS + ["delete"]
-FIBER_SEGMENTS_METHODS = ["get", "post"]
+FIBER_SEGMENTS_METHODS = ["get", "post", "put"]
 FIBER_SEGMENT_SERVINGS = ["get", "put"]
 FIBER_SEGMENT_METHODS = FIBER_SEGMENT_SERVINGS + ["delete"]
 A_CARRIER = [("/carriers/{id}", method) for method in CARRIER_METHODS]
@@ -262,6 +264,11 @@ ADDITIONS = [
     (FIBER_SEGMENTS, "post", FIBER_SEGMENT_FIELDS),
     (REGIONS, "post", REGION_FIELDS),
 ]
+REPLACEMENTS = [
+    ("/carriers/{id}/pops", "put", POP_FIELDS),
+    (FIBER_SEGMENTS, "put", FIBER_SEGMENT_FIELDS),
+]
+REPLACED_BODIES = [(path, method) for path, method, _ in REPLACEMENTS]
 CREATIONS = [("/carriers", "post"), (SYNTHESES, "post")] + [
     (path, method) for path, method, _ in ADDITIONS
 ]
@@ -282,7 +289,7 @@ def test_a_carrier_answers_get_put_and_delete(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers/{id}"]) == CARRIER_METHODS
 
 
-def test_the_pops_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+def test_the_pops_of_a_carrier_answer_get_post_and_put(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"]["/carriers/{id}/pops"]) == POPS_METHODS
 
 
@@ -291,7 +298,7 @@ def test_a_pop_is_a_located_municipality_with_an_id(openapi: Dict[str, Any]) -> 
     assert listed["content"]["application/json"]["schema"]["items"]["required"] == POP_FIELDS
 
 
-def test_the_fiber_segments_of_a_carrier_answer_get_and_post(openapi: Dict[str, Any]) -> None:
+def test_the_fiber_segments_of_a_carrier_answer_get_post_and_put(openapi: Dict[str, Any]) -> None:
     assert list(openapi["paths"][FIBER_SEGMENTS]) == FIBER_SEGMENTS_METHODS
 
 
@@ -385,7 +392,9 @@ def test_a_member_may_be_written_with_no_state(
     assert "minLength" not in _request_body(openapi, path, method)["properties"][field]
 
 
-@pytest.mark.parametrize(("path", "method"), PLACED_BODIES + SPANNED_BODIES + LOCATED_BODIES)
+@pytest.mark.parametrize(
+    ("path", "method"), PLACED_BODIES + SPANNED_BODIES + LOCATED_BODIES + REPLACED_BODIES
+)
 def test_a_member_written_wrongly_is_documented_as_400(
     openapi: Dict[str, Any], path: str, method: str
 ) -> None:
@@ -398,6 +407,28 @@ def test_an_added_member_answers_with_its_id(
 ) -> None:
     created = openapi["paths"][path][method]["responses"]["201"]
     assert created["content"]["application/json"]["schema"]["required"] == fields
+
+
+@pytest.mark.parametrize(("path", "method", "fields"), REPLACEMENTS)
+def test_a_replacement_is_written_as_a_list_of_members_without_ids(
+    openapi: Dict[str, Any], path: str, method: str, fields: List[str]
+) -> None:
+    assert _request_body(openapi, path, method)["items"]["required"] == fields[1:]
+
+
+@pytest.mark.parametrize(("path", "method"), REPLACED_BODIES)
+def test_a_replacing_member_is_written_with_no_other_field(
+    openapi: Dict[str, Any], path: str, method: str
+) -> None:
+    assert _request_body(openapi, path, method)["items"]["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(("path", "method", "fields"), REPLACEMENTS)
+def test_a_replacement_answers_every_member_under_its_fresh_id(
+    openapi: Dict[str, Any], path: str, method: str, fields: List[str]
+) -> None:
+    replaced = openapi["paths"][path][method]["responses"]["200"]["content"]["application/json"]
+    assert replaced["schema"]["items"]["required"] == fields
 
 
 @pytest.mark.parametrize(("path", "method"), DELETIONS)

@@ -62,6 +62,8 @@ locals {
     RemoveFiberSegmentHandlerArn      = local.integration.remove_fiber_segment
     RemovePopHandlerArn               = local.integration.remove_pop
     RenameCarrierHandlerArn           = local.integration.rename_carrier
+    ReplaceFiberSegmentsHandlerArn    = local.integration.replace_fiber_segments
+    ReplacePopsHandlerArn             = local.integration.replace_pops
     SessionsHandlerArn                = local.integration.sessions
     StoreRackConfigurationHandlerArn  = local.integration.store_rack_configuration
   })

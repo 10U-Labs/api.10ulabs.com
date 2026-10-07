@@ -10,6 +10,11 @@ BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
 DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
            "z_municipality": "Salt Lake City", "z_state": "UT", "submarine": False}
 CORRECTION = dict(zip(MEMBERS, [BOISE, DEN_SLC]))
+LIST_REFUSAL = dict(zip(MEMBERS, [
+    'The body must be a list of {"municipality", "state", "country", "latitude", "longitude"}',
+    'The body must be a list of '
+    '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}',
+]))
 
 
 def test_the_carriers_are_listed_through_the_deployed_api(
@@ -307,11 +312,53 @@ def test_a_fiber_segment_for_a_carrier_that_is_not_there_names_the_error_through
     assert body["error"] == "No such carrier"
 
 
+@pytest.fixture(name="replaced_at_zero", scope="module")
+def replaced_at_zero_fixture(
+    stage_url: str, put_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> Dict[str, List[Tuple[int, Any]]]:
+    return {
+        members: [
+            put_json(f"{stage_url}/carriers/0/{members}", body, bearer)
+            for body in ([CORRECTION[members]], {})
+        ]
+        for members in MEMBERS
+    }
+
+
+@pytest.mark.parametrize("members", MEMBERS)
+def test_the_workflows_key_replaces_no_list_of_a_missing_carrier_through_the_deployed_api(
+    replaced_at_zero: Dict[str, List[Tuple[int, Any]]], members: str
+) -> None:
+    assert replaced_at_zero[members][0][0] == 404
+
+
+@pytest.mark.parametrize("members", MEMBERS)
+def test_a_replacement_for_a_carrier_that_is_not_there_names_it_through_the_deployed_api(
+    replaced_at_zero: Dict[str, List[Tuple[int, Any]]], members: str
+) -> None:
+    assert replaced_at_zero[members][0][1]["error"] == "No such carrier"
+
+
+@pytest.mark.parametrize("members", MEMBERS)
+def test_a_replacement_that_is_not_a_list_is_refused_through_the_deployed_api(
+    replaced_at_zero: Dict[str, List[Tuple[int, Any]]], members: str
+) -> None:
+    assert replaced_at_zero[members][1][0] == 400
+
+
+@pytest.mark.parametrize("members", MEMBERS)
+def test_a_replacement_that_is_not_a_list_is_told_what_is_expected_through_the_deployed_api(
+    replaced_at_zero: Dict[str, List[Tuple[int, Any]]], members: str
+) -> None:
+    assert replaced_at_zero[members][1][1]["error"] == LIST_REFUSAL[members]
+
+
 @pytest.fixture(name="throwaway", scope="module")
 def throwaway_fixture(
     stage_url: str,
     get_json: Callable[..., Tuple[int, Any]],
     post_json: Callable[..., Tuple[int, Any]],
+    put_json: Callable[..., Tuple[int, Any]],
     delete_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
 ) -> Dict[str, Any]:
@@ -321,15 +368,22 @@ def throwaway_fixture(
     url = f"{stage_url}/carriers/{carrier['id']}"
     added = [post_json(f"{url}/pops", BOISE, bearer)[0],
              post_json(f"{url}/fiber-segments", DEN_SLC, bearer)[0]]
+    replaced = [put_json(f"{url}/{members}", [CORRECTION[members]], bearer) for members in MEMBERS]
     deleted, _ = delete_json(url, bearer)
     read_back, _ = get_json(url, bearer)
-    return {"added": added, "deleted": deleted, "read_back": read_back}
+    return {"added": added, "replaced": replaced, "deleted": deleted, "read_back": read_back}
 
 
 def test_the_workflows_key_fills_a_carrier_it_built_through_the_deployed_api(
     throwaway: Dict[str, Any]
 ) -> None:
     assert throwaway["added"] == [201, 201]
+
+
+def test_the_workflows_key_replaces_a_list_of_its_carrier_under_fresh_ids_through_the_deployed_api(
+    throwaway: Dict[str, Any]
+) -> None:
+    assert throwaway["replaced"] == [(200, [{"id": 2, **BOISE}]), (200, [{"id": 2, **DEN_SLC}])]
 
 
 def test_the_workflows_key_deletes_a_carrier_with_everything_under_it_through_the_deployed_api(

@@ -762,6 +762,178 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "put": {
+        "summary": "Replace PoPs",
+        "description": "Replaces every point of presence of one carrier with the list given, in one write, and gives each one a fresh id, never reused: the ids of the PoPs it replaces are not given again.",
+        "operationId": "replacePops",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "description": "The carrier's PoPs, all of them; [] removes every one",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "municipality",
+                    "state",
+                    "country",
+                    "latitude",
+                    "longitude"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "municipality": {
+                      "type": "string",
+                      "minLength": 1,
+                      "example": "Chicago"
+                    },
+                    "state": {
+                      "type": "string",
+                      "description": "The state or province; empty outside a country that has them",
+                      "example": "IL"
+                    },
+                    "country": {
+                      "type": "string",
+                      "minLength": 1,
+                      "example": "US"
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "example": 41.8781
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "example": -87.6298
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The carrier's new PoPs, in the order given, each by its fresh id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "municipality",
+                      "state",
+                      "country",
+                      "latitude",
+                      "longitude"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "municipality": {
+                        "type": "string",
+                        "example": "Chicago"
+                      },
+                      "state": {
+                        "type": "string",
+                        "example": "IL"
+                      },
+                      "country": {
+                        "type": "string",
+                        "example": "US"
+                      },
+                      "latitude": {
+                        "type": "number",
+                        "example": 41.8781
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": -87.6298
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that is not a list of exactly {\"municipality\", \"state\", \"country\", \"latitude\", \"longitude\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No carrier has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be written"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${ReplacePopsHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
       }
     },
     "/carriers/{id}/pops/{pop_id}": {
@@ -1417,6 +1589,183 @@
         },
         "x-amazon-apigateway-integration": {
           "uri": "${AddFiberSegmentHandlerArn}",
+          "httpMethod": "POST",
+          "type": "aws_proxy"
+        }
+      },
+      "put": {
+        "summary": "Replace Fiber Segments",
+        "description": "Replaces every fiber segment of one carrier with the list given, in one write, and gives each one a fresh id, never reused: the ids of the fiber segments it replaces are not given again.",
+        "operationId": "replaceFiberSegments",
+        "tags": [
+          "/carriers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the carrier",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "description": "The carrier's fiber segments, all of them; [] removes every one",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "a_municipality",
+                    "a_state",
+                    "z_municipality",
+                    "z_state",
+                    "submarine"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "a_municipality": {
+                      "type": "string",
+                      "minLength": 1,
+                      "example": "Denver"
+                    },
+                    "a_state": {
+                      "type": "string",
+                      "description": "The state or province of the A end; empty outside a country that has them",
+                      "example": "CO"
+                    },
+                    "z_municipality": {
+                      "type": "string",
+                      "minLength": 1,
+                      "example": "Chicago"
+                    },
+                    "z_state": {
+                      "type": "string",
+                      "description": "The state or province of the Z end; empty outside a country that has them",
+                      "example": "IL"
+                    },
+                    "submarine": {
+                      "type": "boolean",
+                      "description": "Whether the segment runs under the sea",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The carrier's new fiber segments, in the order given, each by its fresh id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "a_municipality",
+                      "a_state",
+                      "z_municipality",
+                      "z_state",
+                      "submarine"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "a_municipality": {
+                        "type": "string",
+                        "example": "Denver"
+                      },
+                      "a_state": {
+                        "type": "string",
+                        "description": "The state or province of the A end; empty outside a country that has them",
+                        "example": "CO"
+                      },
+                      "z_municipality": {
+                        "type": "string",
+                        "example": "Chicago"
+                      },
+                      "z_state": {
+                        "type": "string",
+                        "description": "The state or province of the Z end; empty outside a country that has them",
+                        "example": "IL"
+                      },
+                      "submarine": {
+                        "type": "boolean",
+                        "description": "Whether the segment runs under the sea",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that is not a list of exactly {\"a_municipality\", \"a_state\", \"z_municipality\", \"z_state\", \"submarine\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token, or one the authorizer refused"
+          },
+          "403": {
+            "description": "A bearer token the authorizer does not admit to this operation"
+          },
+          "404": {
+            "description": "No carrier has that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The store could not be written"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": "${ReplaceFiberSegmentsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
