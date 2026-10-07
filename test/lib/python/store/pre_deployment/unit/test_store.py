@@ -198,14 +198,16 @@ def test_a_reservation_names_the_field_it_moves(dynamodb: SimpleNamespace) -> No
     assert _update(dynamodb)["ExpressionAttributeNames"] == {"#next": "next_pop"}
 
 
-def test_a_reservation_moves_the_field_in_one_update(dynamodb: SimpleNamespace) -> None:
+def test_a_reservation_starts_a_field_that_is_not_there_at_one(dynamodb: SimpleNamespace) -> None:
     reserve("the-table", KEY, "next_pop", 3)
-    assert _update(dynamodb)["UpdateExpression"] == "SET #next = #next + :count"
+    expression = "SET #next = if_not_exists(#next, :one) + :count"
+    assert _update(dynamodb)["UpdateExpression"] == expression
 
 
 def test_a_reservation_moves_the_field_by_its_count(dynamodb: SimpleNamespace) -> None:
     reserve("the-table", KEY, "next_pop", 3)
-    assert _update(dynamodb)["ExpressionAttributeValues"] == {":count": {"N": "3"}}
+    values = {":one": {"N": "1"}, ":count": {"N": "3"}}
+    assert _update(dynamodb)["ExpressionAttributeValues"] == values
 
 
 def test_a_reservation_asks_for_the_new_value(dynamodb: SimpleNamespace) -> None:
@@ -230,7 +232,14 @@ def test_the_next_id_comes_from_the_collection_s_counter_item(dynamodb: SimpleNa
 
 def test_the_next_id_starts_a_counter_that_is_not_there_at_one(dynamodb: SimpleNamespace) -> None:
     next_id("the-table", "carriers")
-    assert _update(dynamodb)["UpdateExpression"] == "SET #next = if_not_exists(#next, :one) + :one"
+    expression = "SET #next = if_not_exists(#next, :one) + :count"
+    assert _update(dynamodb)["UpdateExpression"] == expression
+
+
+def test_the_next_id_moves_the_counter_by_one(dynamodb: SimpleNamespace) -> None:
+    next_id("the-table", "carriers")
+    values = {":one": {"N": "1"}, ":count": {"N": "1"}}
+    assert _update(dynamodb)["ExpressionAttributeValues"] == values
 
 
 def test_the_next_id_moves_the_counter_s_next_field(dynamodb: SimpleNamespace) -> None:

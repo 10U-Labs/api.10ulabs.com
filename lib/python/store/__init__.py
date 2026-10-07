@@ -54,17 +54,14 @@ def advance(table: str, key: Dict[str, Any], field: str, **request: Any) -> int:
 def reserve(table: str, key: Dict[str, Any], field: str, count: int, **request: Any) -> int:
     return _moved(
         table, key, field, count,
-        UpdateExpression='SET #next = #next + :count',
-        ExpressionAttributeValues={':count': {'N': str(count)}},
+        UpdateExpression='SET #next = if_not_exists(#next, :one) + :count',
+        ExpressionAttributeValues={':one': {'N': '1'}, ':count': {'N': str(count)}},
         **request,
     )
 
 
 def next_id(table: str, collection: str) -> int:
-    return advance(
-        table, {'PK': {'S': collection}, 'SK': {'S': COUNTER}}, 'next',
-        UpdateExpression='SET #next = if_not_exists(#next, :one) + :one',
-    )
+    return reserve(table, {'PK': {'S': collection}, 'SK': {'S': COUNTER}}, 'next', 1)
 
 
 def put(
