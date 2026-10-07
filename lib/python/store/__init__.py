@@ -36,16 +36,28 @@ def member(table: str, collection: str, member_id: str) -> Optional[Dict[str, An
     return item
 
 
-def advance(table: str, key: Dict[str, Any], field: str, **request: Any) -> int:
+def _moved(table: str, key: Dict[str, Any], field: str, count: int, **request: Any) -> int:
     answer = aws_client('dynamodb').update_item(
         TableName=table,
         Key=key,
         ExpressionAttributeNames={'#next': field},
-        ExpressionAttributeValues={':one': {'N': '1'}},
         ReturnValues='UPDATED_NEW',
         **request,
     )
-    return int(answer['Attributes'][field]['N']) - 1
+    return int(answer['Attributes'][field]['N']) - count
+
+
+def advance(table: str, key: Dict[str, Any], field: str, **request: Any) -> int:
+    return _moved(table, key, field, 1, ExpressionAttributeValues={':one': {'N': '1'}}, **request)
+
+
+def reserve(table: str, key: Dict[str, Any], field: str, count: int, **request: Any) -> int:
+    return _moved(
+        table, key, field, count,
+        UpdateExpression='SET #next = #next + :count',
+        ExpressionAttributeValues={':count': {'N': str(count)}},
+        **request,
+    )
 
 
 def next_id(table: str, collection: str) -> int:

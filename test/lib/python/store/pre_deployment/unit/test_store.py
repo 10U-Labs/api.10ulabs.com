@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 import store
 from store import (
     BATCH, advance, assign, batch_write, conditional, conditioned, delete, member, members, next_id,
-    partition, plain, put, remove, sort_id, typed,
+    partition, plain, put, remove, reserve, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -175,6 +175,46 @@ def test_an_advance_asks_for_the_new_value(dynamodb: SimpleNamespace) -> None:
 
 def test_an_advance_passes_the_rest_of_the_request_through(dynamodb: SimpleNamespace) -> None:
     advance("the-table", KEY, "next_pop", ConditionExpression="attribute_exists(PK)")
+    assert _update(dynamodb)["ConditionExpression"] == "attribute_exists(PK)"
+
+
+@pytest.mark.usefixtures("dynamodb")
+def test_a_reservation_answers_the_first_of_the_ids_it_takes() -> None:
+    assert reserve("the-table", KEY, "next_pop", 3) == 4
+
+
+def test_a_reservation_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["TableName"] == "the-table"
+
+
+def test_a_reservation_is_of_the_key_it_names(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["Key"] == KEY
+
+
+def test_a_reservation_names_the_field_it_moves(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["ExpressionAttributeNames"] == {"#next": "next_pop"}
+
+
+def test_a_reservation_moves_the_field_in_one_update(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["UpdateExpression"] == "SET #next = #next + :count"
+
+
+def test_a_reservation_moves_the_field_by_its_count(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["ExpressionAttributeValues"] == {":count": {"N": "3"}}
+
+
+def test_a_reservation_asks_for_the_new_value(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3)
+    assert _update(dynamodb)["ReturnValues"] == "UPDATED_NEW"
+
+
+def test_a_reservation_passes_the_rest_of_the_request_through(dynamodb: SimpleNamespace) -> None:
+    reserve("the-table", KEY, "next_pop", 3, ConditionExpression="attribute_exists(PK)")
     assert _update(dynamodb)["ConditionExpression"] == "attribute_exists(PK)"
 
 
