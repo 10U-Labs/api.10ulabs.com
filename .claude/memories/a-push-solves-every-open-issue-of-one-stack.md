@@ -1,6 +1,6 @@
 ---
 name: a-push-solves-every-open-issue-of-one-stack
-description: "A batch is every open issue whose fix lands in one stack under src/api/, bounded by the stack and never by a count; its tests go in one push and its code in the next; a change under a path every workflow fires on goes alone"
+description: "A batch is every open issue whose fix lands in one stack under src/api/, bounded by the stack and never by a count; its tests and its fix go in one commit; a change under a path every workflow fires on goes alone"
 metadata:
   node_type: memory
   type: feedback
@@ -23,10 +23,9 @@ A batch is every open issue that shares one matter, and the matter bounds it, ne
 
 1. **Seed.** Take the issue the loop's command names first.
 2. **Gather.** Add every open issue of the seed's stack. Leave out every issue labelled `needs decision`, and bring each issue up to date before starting it. When an issue's stack cannot be told without investigating it, take it in; if its fix turns out to land elsewhere, it leaves the batch and seeds a later one.
-3. **Test.** Write the tests for every issue of the batch and push them as one commit, per [[write-the-test-first]], so CI shows them red.
-4. **Solve.** Solve the issues one after another in the working tree and commit nothing until the last is done. As each one is finished, write its paragraph of the commit message into the scratchpad, so nothing depends on the context outlasting the batch. An issue that turns out to need a person's decision is labelled for one; its edits come out of the tree, and its tests come out in the commit that solves the rest, so that run can go green.
-5. **Commit.** Commit once. The subject names the stack and what the batch does to it rather than joining every issue's subject; the body gives each issue its own paragraph; the message ends with one `Closes #N` line per issue ([[an-issue-is-closed-by-its-commit]]).
-6. **Push and read the run.** When it goes red, trace each failing job to the issue whose change it names and fix forward ([[a-rejected-push-is-fixed-forward]]).
+3. **Solve.** Solve the issues one after another in the working tree, each one's tests written before its code ([[write-the-test-first]]), and commit nothing until the last is done. The tests are never pushed as a commit of their own ahead of the fix. As each one is finished, write its paragraph of the commit message into the scratchpad, so nothing depends on the context outlasting the batch. An issue that turns out to need a person's decision is labelled for one; its edits and tests come out of the tree before the commit.
+4. **Commit.** Commit once. The subject names the stack and what the batch does to it rather than joining every issue's subject; the body gives each issue its own paragraph; the message ends with one `Closes #N` line per issue ([[an-issue-is-closed-by-its-commit]]).
+5. **Push and read the run.** When it goes red, trace each failing job to the issue whose change it names and fix forward ([[a-rejected-push-is-fixed-forward]]).
 
 Some changes go in a push of their own and are never batched:
 

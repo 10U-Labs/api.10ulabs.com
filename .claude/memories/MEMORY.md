@@ -26,7 +26,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [commit-straight-to-main](commit-straight-to-main.md) — direct commits to `main`, no feature branch and no pull request
 - [a-rejected-push-is-fixed-forward](a-rejected-push-is-fixed-forward.md) — a red run is answered with a follow-up commit, never an amend and force-push
-- [a-push-solves-every-open-issue-of-one-stack](a-push-solves-every-open-issue-of-one-stack.md) — a batch is every open issue fixed in one stack under `src/api/`, bounded by the stack and never by a count; its tests go in one push, its code in the next, and a change under a path every workflow fires on goes alone
+- [a-push-solves-every-open-issue-of-one-stack](a-push-solves-every-open-issue-of-one-stack.md) — a batch is every open issue fixed in one stack under `src/api/`, bounded by the stack and never by a count; its tests and fix go in one commit, and a change under a path every workflow fires on goes alone
 - [an-issue-is-closed-by-its-commit](an-issue-is-closed-by-its-commit.md) — a `Closes #N` line in the commit that solves it, one line per issue; naming an issue in prose references it without closing it
 
 ### Tests
@@ -42,7 +42,6 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [find-a-run-by-the-full-hash](find-a-run-by-the-full-hash.md) — `gh run list --commit` returns nothing for a short hash, so match `headSha` by prefix locally
 - [a-wait-runs-in-the-background](a-wait-runs-in-the-background.md) — a wait for CI is a background shell or a Monitor, never a foreground sleep or `gh run watch`, so the reminders keep firing
 - [long-running-commands-in-the-background](long-running-commands-in-the-background.md) — anything over about a minute (a `gh` or `aws` sweep, a long `grep`) runs with `run_in_background: true`, then the turn ends; a foreground command holds back every cron reminder
-- [a-fix-forward-fires-every-stack-the-red-commit-changed](a-fix-forward-fires-every-stack-the-red-commit-changed.md) — a fix forward touches a path that fires every workflow whose stack the red commit changed, or their skipped reconciliations never run
 - [a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix](a-red-run-with-a-green-twin-on-the-same-commit-needs-no-fix.md) — a red run whose twin on the same commit is green through reconciliation is not a red gate, and a job that tripped on a transient registry or download error is re-run on the same commit — in full, foundations first, when a foundation went red, since the dependents' wait jobs keep `apply=false`; group runs by workflow when a push fired twice
 - [a-failed-lambda-update-leaves-the-state-ahead-of-the-function](a-failed-lambda-update-leaves-the-state-ahead-of-the-function.md) — a reconciliation refused on a Lambda's configuration keeps the planned `source_code_hash` without uploading the code, so the fix forward must change the zip and the log must show the hash moving; a description is 256 characters at most
 
