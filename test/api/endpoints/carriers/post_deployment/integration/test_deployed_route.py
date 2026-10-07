@@ -318,8 +318,8 @@ def replaced_at_zero_fixture(
 ) -> Dict[str, List[Tuple[int, Any]]]:
     return {
         members: [
-            put_json(f"{stage_url}/carriers/0/{members}", body, bearer)
-            for body in ([CORRECTION[members]], {})
+            put_json(f"{stage_url}/carriers/0/{members}", [CORRECTION[members]], bearer),
+            put_json(f"{stage_url}/carriers/0/{members}", {}, bearer),
         ]
         for members in MEMBERS
     }
@@ -353,25 +353,45 @@ def test_a_replacement_that_is_not_a_list_is_told_what_is_expected_through_the_d
     assert replaced_at_zero[members][1][1]["error"] == LIST_REFUSAL[members]
 
 
+def _built(
+    stage_url: str, post_json: Callable[..., Tuple[int, Any]], bearer: Dict[str, str]
+) -> str:
+    created, carrier = post_json(f"{stage_url}/carriers", {"name": "throwaway"}, bearer)
+    if created != 201:
+        raise AssertionError(f"the throwaway carrier was refused with {created}")
+    return f"{stage_url}/carriers/{carrier['id']}"
+
+
 @pytest.fixture(name="throwaway", scope="module")
 def throwaway_fixture(
     stage_url: str,
     get_json: Callable[..., Tuple[int, Any]],
     post_json: Callable[..., Tuple[int, Any]],
-    put_json: Callable[..., Tuple[int, Any]],
     delete_json: Callable[..., Tuple[int, Any]],
     bearer: Dict[str, str],
 ) -> Dict[str, Any]:
-    created, carrier = post_json(f"{stage_url}/carriers", {"name": "throwaway"}, bearer)
-    if created != 201:
-        raise AssertionError(f"the throwaway carrier was refused with {created}")
-    url = f"{stage_url}/carriers/{carrier['id']}"
+    url = _built(stage_url, post_json, bearer)
     added = [post_json(f"{url}/pops", BOISE, bearer)[0],
              post_json(f"{url}/fiber-segments", DEN_SLC, bearer)[0]]
-    replaced = [put_json(f"{url}/{members}", [CORRECTION[members]], bearer) for members in MEMBERS]
     deleted, _ = delete_json(url, bearer)
     read_back, _ = get_json(url, bearer)
-    return {"added": added, "replaced": replaced, "deleted": deleted, "read_back": read_back}
+    return {"added": added, "deleted": deleted, "read_back": read_back}
+
+
+@pytest.fixture(name="refilled", scope="module")
+def refilled_fixture(
+    stage_url: str,
+    post_json: Callable[..., Tuple[int, Any]],
+    put_json: Callable[..., Tuple[int, Any]],
+    delete_json: Callable[..., Tuple[int, Any]],
+    bearer: Dict[str, str],
+) -> List[Tuple[int, Any]]:
+    url = _built(stage_url, post_json, bearer)
+    for members in MEMBERS:
+        post_json(f"{url}/{members}", CORRECTION[members], bearer)
+    replaced = [put_json(f"{url}/{members}", [CORRECTION[members]], bearer) for members in MEMBERS]
+    delete_json(url, bearer)
+    return replaced
 
 
 def test_the_workflows_key_fills_a_carrier_it_built_through_the_deployed_api(
@@ -381,9 +401,9 @@ def test_the_workflows_key_fills_a_carrier_it_built_through_the_deployed_api(
 
 
 def test_the_workflows_key_replaces_a_list_of_its_carrier_under_fresh_ids_through_the_deployed_api(
-    throwaway: Dict[str, Any]
+    refilled: List[Tuple[int, Any]]
 ) -> None:
-    assert throwaway["replaced"] == [(200, [{"id": 2, **BOISE}]), (200, [{"id": 2, **DEN_SLC}])]
+    assert refilled == [(200, [{"id": 2, **BOISE}]), (200, [{"id": 2, **DEN_SLC}])]
 
 
 def test_the_workflows_key_deletes_a_carrier_with_everything_under_it_through_the_deployed_api(
