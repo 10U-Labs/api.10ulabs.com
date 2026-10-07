@@ -9,6 +9,11 @@ DENVER = {"id": 1, "municipality": "Denver", "state": "CO", "country": "US",
           "latitude": 39.7392, "longitude": -104.9903}
 BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
          "latitude": 43.615, "longitude": -116.2023}
+BOISE_ITEM = {
+    "PK": {"S": "carriers/1"}, "SK": {"S": "pops/4"}, "municipality": {"S": "Boise"},
+    "state": {"S": "ID"}, "country": {"S": "US"},
+    "latitude": {"N": "43.615"}, "longitude": {"N": "-116.2023"},
+}
 AMSTERDAM = {"municipality": "Amsterdam", "state": "", "country": "Netherlands",
              "latitude": 52.3731, "longitude": 4.8925}
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'

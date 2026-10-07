@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from lambda_http import Handler
-from pops import BOISE, AMSTERDAM, POP_BODY, MISPLACED, post_pop
+from pops import BOISE, BOISE_ITEM, AMSTERDAM, POP_BODY, MISPLACED, post_pop
 
 Served = Callable[[Dict[str, Any]], Any]
 HANDLER = "lambda/add_pop"
@@ -67,11 +67,7 @@ def test_the_pop_is_written_under_the_carrier_by_its_id(
 ) -> None:
     store.items.extend(carriers)
     answer(post_pop(BOISE))
-    assert store.items[-1] == {
-        "PK": {"S": "carriers/1"}, "SK": {"S": "pops/4"}, "municipality": {"S": "Boise"},
-        "state": {"S": "ID"}, "country": {"S": "US"},
-        "latitude": {"N": "43.615"}, "longitude": {"N": "-116.2023"},
-    }
+    assert store.items[-1] == BOISE_ITEM
 
 
 def test_the_added_pop_is_then_listed_last(

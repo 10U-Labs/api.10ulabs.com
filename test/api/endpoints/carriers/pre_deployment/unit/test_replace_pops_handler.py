@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List
 import pytest
 
 from lambda_http import Handler
-from pops import AMSTERDAM, BOISE, MISPLACED, POPS_BODY, put_pops
+from pops import AMSTERDAM, BOISE, BOISE_ITEM, MISPLACED, POPS_BODY, put_pops
 
 Served = Callable[[Dict[str, Any]], Any]
 HANDLER = "lambda/replace_pops"
@@ -57,11 +57,7 @@ def test_a_replacement_leaves_the_carrier_s_fiber_segments_as_they_were(
 
 @pytest.mark.usefixtures("replacement")
 def test_a_new_pop_is_written_under_the_carrier_by_its_id(store: SimpleNamespace) -> None:
-    assert store.items[-2] == {
-        "PK": {"S": "carriers/1"}, "SK": {"S": "pops/4"}, "municipality": {"S": "Boise"},
-        "state": {"S": "ID"}, "country": {"S": "US"},
-        "latitude": {"N": "43.615"}, "longitude": {"N": "-116.2023"},
-    }
+    assert store.items[-2] == BOISE_ITEM
 
 
 @pytest.mark.usefixtures("replacement")

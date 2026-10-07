@@ -9,6 +9,12 @@ NYC_AMS = {"id": 3, "a_municipality": "New York", "a_state": "NY",
            "z_municipality": "Amsterdam", "z_state": "", "submarine": True}
 DEN_SLC = {"a_municipality": "Denver", "a_state": "CO",
            "z_municipality": "Salt Lake City", "z_state": "UT", "submarine": False}
+DEN_SLC_ITEM = {
+    "PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/4"},
+    "a_municipality": {"S": "Denver"}, "a_state": {"S": "CO"},
+    "z_municipality": {"S": "Salt Lake City"}, "z_state": {"S": "UT"},
+    "submarine": {"BOOL": False},
+}
 LON_PAR = {"a_municipality": "London", "a_state": "",
            "z_municipality": "Paris", "z_state": "", "submarine": True}
 FIBER_SEGMENT_BODY = (

@@ -3,7 +3,9 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
-from fiber_segments import DEN_SLC, FIBER_SEGMENT_BODY, LON_PAR, UNSPANNED, post_fiber_segment
+from fiber_segments import (
+    DEN_SLC, DEN_SLC_ITEM, FIBER_SEGMENT_BODY, LON_PAR, UNSPANNED, post_fiber_segment,
+)
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
@@ -80,12 +82,7 @@ def test_the_fiber_segment_is_written_under_the_carrier_by_its_id(
 ) -> None:
     store.items.extend(carriers)
     answer(post_fiber_segment(DEN_SLC))
-    assert store.items[-1] == {
-        "PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/4"},
-        "a_municipality": {"S": "Denver"}, "a_state": {"S": "CO"},
-        "z_municipality": {"S": "Salt Lake City"}, "z_state": {"S": "UT"},
-        "submarine": {"BOOL": False},
-    }
+    assert store.items[-1] == DEN_SLC_ITEM
 
 
 def test_the_added_fiber_segment_is_then_listed_last(

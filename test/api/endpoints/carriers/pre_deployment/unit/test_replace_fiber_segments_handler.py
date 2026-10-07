@@ -3,7 +3,9 @@ from typing import Any, Callable, Dict, List
 
 import pytest
 
-from fiber_segments import DEN_SLC, FIBER_SEGMENTS_BODY, LON_PAR, UNSPANNED, put_fiber_segments
+from fiber_segments import (
+    DEN_SLC, DEN_SLC_ITEM, FIBER_SEGMENTS_BODY, LON_PAR, UNSPANNED, put_fiber_segments,
+)
 from lambda_http import Handler
 
 Served = Callable[[Dict[str, Any]], Any]
@@ -61,12 +63,7 @@ def test_a_replacement_leaves_the_carrier_s_pops_as_they_were(store: SimpleNames
 def test_a_new_fiber_segment_is_written_under_the_carrier_by_its_id(
     store: SimpleNamespace,
 ) -> None:
-    assert store.items[-2] == {
-        "PK": {"S": "carriers/1"}, "SK": {"S": "fiber-segments/4"},
-        "a_municipality": {"S": "Denver"}, "a_state": {"S": "CO"},
-        "z_municipality": {"S": "Salt Lake City"}, "z_state": {"S": "UT"},
-        "submarine": {"BOOL": False},
-    }
+    assert store.items[-2] == DEN_SLC_ITEM
 
 
 @pytest.mark.usefixtures("respanned")
