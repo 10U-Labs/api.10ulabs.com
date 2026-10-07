@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    BATCH, advance, assign, conditional, conditioned, delete, member, members, next_id, partition,
-    plain, put, remove, sort_id, typed,
+    BATCH, advance, assign, batch_write, conditional, conditioned, delete, member, members, next_id,
+    partition, plain, put, remove, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -49,10 +49,9 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
     def batch_write_item(**request: Any) -> Dict[str, Any]:
         dynamodb.batches.append(request)
-        for one in [one for listed in request["RequestItems"].values() for one in listed]:
-            dynamodb.items = [
-                item for item in dynamodb.items if item["SK"] != one["DeleteRequest"]["Key"]["SK"]
-            ]
+        sent = [one for listed in request["RequestItems"].values() for one in listed]
+        deleted = [one["DeleteRequest"]["Key"]["SK"] for one in sent if "DeleteRequest" in one]
+        dynamodb.items = [item for item in dynamodb.items if item["SK"] not in deleted]
         return {"UnprocessedItems": dynamodb.unprocessed.pop(0) if dynamodb.unprocessed else {}}
 
     dynamodb.query = query
@@ -490,3 +489,47 @@ def test_a_removal_the_store_refuses_for_another_reason_is_raised(
     furnished.delete_item = refuse
     with pytest.raises(ClientError):
         remove("the-table", "carriers", "1")
+
+
+def _put_request(pop: int) -> Dict[str, Any]:
+    return {"PutRequest": {"Item": {"PK": {"S": "carriers/1"}, "SK": {"S": f"pops/{pop}"}}}}
+
+
+PUTS = [_put_request(pop) for pop in range(1, BATCH + 6)]
+
+
+def _sent(dynamodb: SimpleNamespace) -> List[List[Dict[str, Any]]]:
+    batches: List[Dict[str, Any]] = dynamodb.batches
+    return [batch["RequestItems"]["the-table"] for batch in batches]
+
+
+def test_a_batch_write_sends_at_most_twenty_five_requests_a_batch(
+    dynamodb: SimpleNamespace
+) -> None:
+    batch_write("the-table", PUTS)
+    assert [len(batch) for batch in _sent(dynamodb)] == [BATCH, 5]
+
+
+def test_a_batch_write_sends_every_request_in_order(dynamodb: SimpleNamespace) -> None:
+    batch_write("the-table", PUTS)
+    assert [one for batch in _sent(dynamodb) for one in batch] == PUTS
+
+
+def test_a_batch_write_sends_the_requests_the_store_left_unprocessed_again(
+    dynamodb: SimpleNamespace
+) -> None:
+    dynamodb.unprocessed = [{"the-table": [PUTS[1]]}]
+    batch_write("the-table", PUTS[:2])
+    assert _sent(dynamodb) == [PUTS[:2], [PUTS[1]]]
+
+
+def test_a_batch_write_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:
+    batch_write("the-table", PUTS[:2])
+    assert {table for batch in dynamodb.batches for table in batch["RequestItems"]} == {
+        "the-table"
+    }
+
+
+def test_a_batch_write_of_nothing_sends_nothing(dynamodb: SimpleNamespace) -> None:
+    batch_write("the-table", [])
+    assert dynamodb.batches == []
