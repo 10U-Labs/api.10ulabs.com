@@ -13,18 +13,25 @@ from lambda_http import Handler
 Served = Callable[[Dict[str, Any]], Any]
 
 
-def _batch_deleting(
+def _batch_writing(
     store: SimpleNamespace,
     held: Callable[..., Optional[Dict[str, Any]]],
     refuse: Callable[..., None],
 ) -> Callable[..., Dict[str, Any]]:
+    def write(one: Dict[str, Any]) -> None:
+        put = one.get("PutRequest", {}).get("Item")
+        key = one["DeleteRequest"]["Key"] if put is None else {"PK": put["PK"], "SK": put["SK"]}
+        item = held(key)
+        if item is not None:
+            store.items.remove(item)
+        if put is not None:
+            store.items.append(put)
+
     def batch_write_item(**request: Any) -> Dict[str, Any]:
         store.batches.append(request)
         refuse("BatchWriteItem")
         for one in [one for listed in request["RequestItems"].values() for one in listed]:
-            item = held(one["DeleteRequest"]["Key"])
-            if item is not None:
-                store.items.remove(item)
+            write(one)
         return {"UnprocessedItems": {}}
     return batch_write_item
 
@@ -82,7 +89,7 @@ def store_fixture() -> SimpleNamespace:
             target, _, expression = clause.partition(" = ")
             if "+" in expression:
                 held = int(item.get(names[target], {"N": "1"})["N"])
-                item[names[target]] = {"N": str(held + 1)}
+                item[names[target]] = {"N": str(held + int(values[expression.split()[-1]]["N"]))}
             else:
                 item[names[target]] = values[expression]
         return {"Attributes": dict(item)}
@@ -126,7 +133,7 @@ def store_fixture() -> SimpleNamespace:
     store.update_item = update_item
     store.delete_item = delete_item
     store.put_item = _putting(store, required, refuse)
-    store.batch_write_item = _batch_deleting(store, held, refuse)
+    store.batch_write_item = _batch_writing(store, held, refuse)
     return store
 
 

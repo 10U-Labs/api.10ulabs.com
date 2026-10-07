@@ -50,6 +50,11 @@ locals {
       description = "Removes a PoP of a carrier by its id."
       actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
     }
+    replace_pops = {
+      name        = module.common.lambda_handler_names.replace_pops
+      description = "Replaces every PoP of a carrier with the list given, under fresh ids the carrier holds."
+      actions     = ["dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:BatchWriteItem"]
+    }
     list_fiber_segments = {
       name        = module.common.lambda_handler_names.list_fiber_segments
       description = "Lists the fiber segments of a carrier."
@@ -75,11 +80,16 @@ locals {
       description = "Removes a fiber segment of a carrier by its id."
       actions     = ["dynamodb:GetItem", "dynamodb:DeleteItem"]
     }
+    replace_fiber_segments = {
+      name        = module.common.lambda_handler_names.replace_fiber_segments
+      description = "Replaces every fiber segment of a carrier with the list given, under fresh ids the carrier holds."
+      actions     = ["dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:BatchWriteItem"]
+    }
   }
   writes = toset([
     "create_carrier", "rename_carrier", "delete_carrier",
-    "add_pop", "correct_pop", "remove_pop",
-    "add_fiber_segment", "correct_fiber_segment", "remove_fiber_segment",
+    "add_pop", "correct_pop", "remove_pop", "replace_pops",
+    "add_fiber_segment", "correct_fiber_segment", "remove_fiber_segment", "replace_fiber_segments",
   ])
 }
 

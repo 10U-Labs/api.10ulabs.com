@@ -12,6 +12,10 @@ BOISE = {"municipality": "Boise", "state": "ID", "country": "US",
 AMSTERDAM = {"municipality": "Amsterdam", "state": "", "country": "Netherlands",
              "latitude": 52.3731, "longitude": 4.8925}
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
+POPS_BODY = (
+    'The body must be a list of '
+    '{"municipality", "state", "country", "latitude", "longitude"}'
+)
 MISPLACED = [
     {},
     {**BOISE, "id": 9},
@@ -32,6 +36,10 @@ def get_pops(carrier: str = "1") -> Dict[str, Any]:
 def post_pop(body: Any, carrier: str = "1") -> Dict[str, Any]:
     event = {"resource": POPS, "httpMethod": "POST", "body": json.dumps(body)}
     return {**event, "pathParameters": {"id": carrier}}
+
+
+def put_pops(body: Any, carrier: str = "1") -> Dict[str, Any]:
+    return {**post_pop(body, carrier), "httpMethod": "PUT"}
 
 
 def get_pop(carrier: str = "1", pop: str = "3") -> Dict[str, Any]:

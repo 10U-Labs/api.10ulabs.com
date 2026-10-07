@@ -1,16 +1,18 @@
 import logging
 import os
 from functools import partial
-from typing import Any, Callable, Dict, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
 from cache import invalidate
 from lambda_http import (
-    created, error_response, has_numbers, has_strings, json_response, no_content, parse_fields,
-    parse_valid, path_id,
+    Valid, created, error_response, has_numbers, has_strings, json_response, no_content,
+    parse_body, parse_fields, parse_valid, path_id,
 )
-from store import advance, conditional, delete, member, partition, put, sort_id
+from store import (
+    advance, batch_write, conditional, delete, member, partition, put, reserve, sort_id,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -31,6 +33,14 @@ SUBMARINE = 'submarine'
 POP_BODY = 'The body must be exactly {"municipality", "state", "country", "latitude", "longitude"}'
 FIBER_SEGMENT_BODY = (
     'The body must be exactly '
+    '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
+)
+POPS_BODY = (
+    'The body must be a list of '
+    '{"municipality", "state", "country", "latitude", "longitude"}'
+)
+FIBER_SEGMENTS_BODY = (
+    'The body must be a list of '
     '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
 )
 
@@ -54,6 +64,11 @@ def staled(carrier_id: str, *deeper: str) -> None:
 def staled_under(carrier_id: str, prefix: str, member_id: str) -> None:
     listing = f'/{COLLECTION}/{carrier_id}/{prefix}'
     invalidate([listing, f'{listing}/{member_id}'])
+
+
+def staled_list(carrier_id: str, prefix: str) -> None:
+    listing = f'/{COLLECTION}/{carrier_id}/{prefix}'
+    invalidate([listing, f'{listing}/*'])
 
 
 def named(event: Dict[str, Any]) -> Optional[str]:
@@ -99,12 +114,13 @@ def list_under(event: Dict[str, Any], prefix: str, row: Row, failure: str) -> Di
     return json_response(200, sorted(map(row, items), key=lambda one: one['id']))
 
 
-def next_under(carrier_id: str, counter: str) -> Optional[int]:
+def counted(
+    take: Callable[..., int], carrier_id: str, *taking: Any, **request: Any
+) -> Optional[int]:
     try:
-        return advance(
-            os.environ['STORE_TABLE'], {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, counter,
-            ConditionExpression='attribute_exists(PK)',
-            UpdateExpression='SET #next = #next + :one',
+        return take(
+            os.environ['STORE_TABLE'], {'PK': {'S': COLLECTION}, 'SK': {'S': carrier_id}}, *taking,
+            ConditionExpression='attribute_exists(PK)', **request,
         )
     except ClientError as error:
         if conditional(error):
@@ -112,18 +128,27 @@ def next_under(carrier_id: str, counter: str) -> Optional[int]:
         raise
 
 
-def pop_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    return parse_valid(
-        event, PLACE + COORDINATES,
-        lambda body: has_strings(body, PLACE, NAMED) and has_numbers(body, COORDINATES),
-    )
+def next_under(carrier_id: str, counter: str) -> Optional[int]:
+    return counted(advance, carrier_id, counter, UpdateExpression='SET #next = #next + :one')
 
 
-def fiber_segment_body(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    return parse_valid(
-        event, ENDS + (SUBMARINE,),
-        lambda body: has_strings(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool),
-    )
+def located(body: Dict[str, Any]) -> bool:
+    return has_strings(body, PLACE, NAMED) and has_numbers(body, COORDINATES)
+
+
+def spanning(body: Dict[str, Any]) -> bool:
+    return has_strings(body, ENDS, SPANNED) and isinstance(body[SUBMARINE], bool)
+
+
+def pop_attributes(body: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        **{field: {'S': body[field]} for field in PLACE},
+        **{field: {'N': str(body[field])} for field in COORDINATES},
+    }
+
+
+def fiber_segment_attributes(body: Dict[str, Any]) -> Dict[str, Any]:
+    return {**{field: {'S': body[field]} for field in ENDS}, SUBMARINE: {'BOOL': body[SUBMARINE]}}
 
 
 def put_under(
@@ -133,26 +158,7 @@ def put_under(
     return put(table, f'{COLLECTION}/{carrier_id}', f'{prefix}/{member_id}', attributes, **request)
 
 
-def put_pop(
-    carrier_id: str, pop_id: str, body: Dict[str, Any], **request: Any
-) -> Dict[str, Any]:
-    return put_under(carrier_id, POPS, pop_id, {
-        **{field: {'S': body[field]} for field in PLACE},
-        **{field: {'N': str(body[field])} for field in COORDINATES},
-    }, **request)
-
-
-def put_fiber_segment(
-    carrier_id: str, segment_id: str, body: Dict[str, Any], **request: Any
-) -> Dict[str, Any]:
-    return put_under(carrier_id, FIBER_SEGMENTS, segment_id, {
-        **{field: {'S': body[field]} for field in ENDS},
-        SUBMARINE: {'BOOL': body[SUBMARINE]},
-    }, **request)
-
-
-Body = Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]
-Put = Callable[..., Dict[str, Any]]
+Attributes = Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
 class Kind(NamedTuple):
@@ -160,26 +166,47 @@ class Kind(NamedTuple):
     parameter: str
     missing: str
     counter: str
-    body: Body
+    fields: Tuple[str, ...]
+    valid: Valid
     refusal: str
-    put: Put
+    list_refusal: str
+    attributes: Attributes
     row: Row
     failure: str
 
 
 POP_KIND = Kind(
-    POPS, 'pop_id', MISSING_POP, 'next_pop', pop_body, POP_BODY, put_pop, pop,
-    'Failed to add the pop',
+    POPS, 'pop_id', MISSING_POP, 'next_pop', PLACE + COORDINATES, located, POP_BODY, POPS_BODY,
+    pop_attributes, pop, 'Failed to add the pop',
 )
 FIBER_SEGMENT_KIND = Kind(
     FIBER_SEGMENTS, 'fiber_segment_id', MISSING_FIBER_SEGMENT, 'next_fiber_segment',
-    fiber_segment_body, FIBER_SEGMENT_BODY, put_fiber_segment, fiber_segment,
-    'Failed to add the fiber segment',
+    ENDS + (SUBMARINE,), spanning, FIBER_SEGMENT_BODY, FIBER_SEGMENTS_BODY,
+    fiber_segment_attributes, fiber_segment, 'Failed to add the fiber segment',
 )
 
 
+def body_of(event: Dict[str, Any], kind: Kind) -> Optional[Dict[str, Any]]:
+    return parse_valid(event, kind.fields, kind.valid)
+
+
+def fits(one: Any, kind: Kind) -> bool:
+    return isinstance(one, dict) and set(one) == set(kind.fields) and kind.valid(one)
+
+
+def bodies_of(event: Dict[str, Any], kind: Kind) -> Optional[List[Dict[str, Any]]]:
+    try:
+        bodies = parse_body(event)
+    except ValueError:
+        return None
+    if not isinstance(bodies, list) or not all(fits(one, kind) for one in bodies):
+        return None
+    listed: List[Dict[str, Any]] = bodies
+    return listed
+
+
 def add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
-    body = kind.body(event)
+    body = body_of(event, kind)
     if body is None:
         return error_response(400, kind.refusal)
     carrier_id = requested(event)
@@ -187,7 +214,10 @@ def add_under(event: Dict[str, Any], kind: Kind) -> Dict[str, Any]:
         return error_response(404, MISSING)
     try:
         member_id = next_under(carrier_id, kind.counter)
-        item = kind.put(carrier_id, str(member_id), body) if member_id is not None else None
+        item = (
+            put_under(carrier_id, kind.prefix, str(member_id), kind.attributes(body))
+            if member_id is not None else None
+        )
     except ClientError as error:
         logger.error('Error adding to the %s of carrier %s: %s', kind.prefix, carrier_id, error)
         return error_response(500, kind.failure)
@@ -246,7 +276,10 @@ def replace_under(
     carrier_id: str, member_id: str, kind: Kind, body: Dict[str, Any]
 ) -> Optional[Dict[str, Any]]:
     try:
-        return kind.put(carrier_id, member_id, body, ConditionExpression='attribute_exists(PK)')
+        return put_under(
+            carrier_id, kind.prefix, member_id, kind.attributes(body),
+            ConditionExpression='attribute_exists(PK)',
+        )
     except ClientError as error:
         if conditional(error):
             return None
@@ -254,7 +287,7 @@ def replace_under(
 
 
 def update_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
-    body = kind.body(event)
+    body = body_of(event, kind)
     if body is None:
         return error_response(400, kind.refusal)
     replaced = staling(partial(replace_under, kind=kind, body=body), kind.prefix)
@@ -269,3 +302,39 @@ def remove_under(carrier_id: str, member_id: str, prefix: str) -> Optional[Dict[
 def delete_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
     removed = staling(partial(remove_under, prefix=kind.prefix), kind.prefix)
     return on_member(event, kind, removed, failure, lambda _gone: no_content())
+
+
+def relisted(
+    carrier_id: str, kind: Kind, first: int, bodies: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    table = os.environ['STORE_TABLE']
+    holder = f'{COLLECTION}/{carrier_id}'
+    items = [
+        {'PK': {'S': holder}, 'SK': {'S': f'{kind.prefix}/{first + index}'}, **kind.attributes(one)}
+        for index, one in enumerate(bodies)
+    ]
+    stale = partition(table, holder, f'{kind.prefix}/')
+    batch_write(table, [
+        *({'DeleteRequest': {'Key': {'PK': item['PK'], 'SK': item['SK']}}} for item in stale),
+        *({'PutRequest': {'Item': item}} for item in items),
+    ])
+    return items
+
+
+def replace_list_under(event: Dict[str, Any], kind: Kind, failure: str) -> Dict[str, Any]:
+    bodies = bodies_of(event, kind)
+    if bodies is None:
+        return error_response(400, kind.list_refusal)
+    carrier_id = requested(event)
+    if carrier_id is None:
+        return error_response(404, MISSING)
+    try:
+        first = counted(reserve, carrier_id, kind.counter, len(bodies))
+        items = relisted(carrier_id, kind, first, bodies) if first is not None else None
+    except ClientError as error:
+        logger.error('Error replacing the %s of carrier %s: %s', kind.prefix, carrier_id, error)
+        return error_response(500, failure)
+    if items is None:
+        return error_response(404, MISSING)
+    staled_list(carrier_id, kind.prefix)
+    return json_response(200, [kind.row(item) for item in items])

@@ -15,6 +15,10 @@ FIBER_SEGMENT_BODY = (
     'The body must be exactly '
     '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
 )
+FIBER_SEGMENTS_BODY = (
+    'The body must be a list of '
+    '{"a_municipality", "a_state", "z_municipality", "z_state", "submarine"}'
+)
 UNSPANNED = [
     {},
     {**DEN_SLC, "id": 9},
@@ -37,6 +41,10 @@ def get_fiber_segments(carrier: str = "1") -> Dict[str, Any]:
 def post_fiber_segment(body: Any, carrier: str = "1") -> Dict[str, Any]:
     event = {"resource": FIBER_SEGMENTS, "httpMethod": "POST", "body": json.dumps(body)}
     return {**event, "pathParameters": {"id": carrier}}
+
+
+def put_fiber_segments(body: Any, carrier: str = "1") -> Dict[str, Any]:
+    return {**post_fiber_segment(body, carrier), "httpMethod": "PUT"}
 
 
 def get_fiber_segment(carrier: str = "1", fiber_segment: str = "3") -> Dict[str, Any]:

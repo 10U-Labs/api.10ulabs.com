@@ -28,6 +28,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 - [a-rejected-push-is-fixed-forward](a-rejected-push-is-fixed-forward.md) — a red run is answered with a follow-up commit, never an amend and force-push
 - [a-push-solves-every-open-issue-of-one-stack](a-push-solves-every-open-issue-of-one-stack.md) — a batch is every open issue fixed in one stack under `src/api/`, bounded by the stack and never by a count; its tests and fix go in one commit, and a change under a path every workflow fires on goes alone
 - [an-issue-is-closed-by-its-commit](an-issue-is-closed-by-its-commit.md) — a `Closes #N` line in the commit that solves it, one line per issue; naming an issue in prose references it without closing it
+- [a-library-definition-lands-with-a-caller](a-library-definition-lands-with-a-caller.md) — `assert-python-definition-is-used` fails every workflow on a `lib/python` definition named only by its tests, so a library push alone gives a new one a caller inside `lib/python`, else it lands with its first caller in one push
 
 ### Tests
 
