@@ -103,6 +103,43 @@ def test_a_prefix_is_named_as_a_string(dynamodb: SimpleNamespace) -> None:
     }
 
 
+PAGES = [[COUNTER, ZAYO], [LUMEN]]
+
+
+@pytest.fixture(name="paged")
+def paged_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
+    def query(**request: Any) -> Dict[str, Any]:
+        dynamodb.queries.append(request)
+        page = PAGES[len(dynamodb.queries) - 1]
+        answer: Dict[str, Any] = {"Items": list(page), "Count": len(page)}
+        if page is not PAGES[-1]:
+            answer["LastEvaluatedKey"] = {"PK": page[-1]["PK"], "SK": page[-1]["SK"]}
+        return answer
+    dynamodb.query = query
+    return dynamodb
+
+
+@pytest.mark.usefixtures("paged")
+def test_a_partition_larger_than_a_page_answers_the_items_of_every_page() -> None:
+    assert partition("the-table", "carriers") == [COUNTER, ZAYO, LUMEN]
+
+
+def test_each_page_of_a_partition_starts_after_the_last_key_of_the_page_before(
+    paged: SimpleNamespace
+) -> None:
+    partition("the-table", "carriers")
+    assert [query.get("ExclusiveStartKey") for query in paged.queries] == [
+        None, {"PK": ZAYO["PK"], "SK": ZAYO["SK"]},
+    ]
+
+
+def test_every_page_of_a_partition_is_read_by_its_key_and_prefix(paged: SimpleNamespace) -> None:
+    partition("the-table", "carriers/1", "pops/")
+    assert {query["KeyConditionExpression"] for query in paged.queries} == {
+        "PK = :pk AND begins_with(SK, :prefix)",
+    }
+
+
 @pytest.mark.usefixtures("dynamodb")
 def test_the_members_of_a_collection_leave_out_its_counter() -> None:
     assert members("the-table", "carriers") == [ZAYO, LUMEN]

@@ -14,13 +14,16 @@ def partition(table: str, key: str, prefix: Optional[str] = None) -> List[Dict[s
     if prefix is not None:
         condition += ' AND begins_with(SK, :prefix)'
         values[':prefix'] = {'S': prefix}
-    answer = aws_client('dynamodb').query(
-        TableName=table,
-        KeyConditionExpression=condition,
-        ExpressionAttributeValues=values,
-    )
-    items: List[Dict[str, Any]] = answer['Items']
-    return items
+    store = aws_client('dynamodb')
+    request: Dict[str, Any] = {
+        'TableName': table,
+        'KeyConditionExpression': condition,
+        'ExpressionAttributeValues': values,
+    }
+    pages = [store.query(**request)]
+    while 'LastEvaluatedKey' in pages[-1]:
+        pages.append(store.query(**request, ExclusiveStartKey=pages[-1]['LastEvaluatedKey']))
+    return [item for page in pages for item in page['Items']]
 
 
 def members(table: str, collection: str) -> List[Dict[str, Any]]:
