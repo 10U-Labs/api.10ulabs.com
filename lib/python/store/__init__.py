@@ -50,10 +50,6 @@ def _moved(table: str, key: Dict[str, Any], field: str, count: int, **request: A
     return int(answer['Attributes'][field]['N']) - count
 
 
-def advance(table: str, key: Dict[str, Any], field: str, **request: Any) -> int:
-    return _moved(table, key, field, 1, ExpressionAttributeValues={':one': {'N': '1'}}, **request)
-
-
 def reserve(table: str, key: Dict[str, Any], field: str, count: int, **request: Any) -> int:
     return _moved(
         table, key, field, count,

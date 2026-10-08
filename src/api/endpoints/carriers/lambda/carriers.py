@@ -11,7 +11,7 @@ from lambda_http import (
     parse_body, parse_fields, parse_valid, path_id,
 )
 from store import (
-    advance, batch_write, conditional, delete, member, partition, put, reserve, sort_id,
+    batch_write, conditional, delete, member, partition, put, reserve, sort_id,
 )
 
 logger = logging.getLogger()
@@ -129,7 +129,7 @@ def counted(
 
 
 def next_under(carrier_id: str, counter: str) -> Optional[int]:
-    return counted(advance, carrier_id, counter, UpdateExpression='SET #next = #next + :one')
+    return counted(reserve, carrier_id, counter, 1)
 
 
 def located(body: Dict[str, Any]) -> bool:

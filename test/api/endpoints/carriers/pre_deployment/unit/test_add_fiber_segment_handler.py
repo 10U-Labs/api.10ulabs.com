@@ -127,6 +127,12 @@ def test_taking_a_fiber_segment_id_requires_the_carrier_to_exist_in_the_store(
     assert fiber_segment_request["ConditionExpression"] == "attribute_exists(PK)"
 
 
+def test_a_fiber_segment_takes_one_id_from_its_carrier(
+    fiber_segment_request: Dict[str, Any]
+) -> None:
+    assert fiber_segment_request["ExpressionAttributeValues"][":count"] == {"N": "1"}
+
+
 def test_adding_a_fiber_segment_to_an_unknown_carrier_answers_404(answer: Handler) -> None:
     assert answer(post_fiber_segment(DEN_SLC, "3"))["statusCode"] == 404
 

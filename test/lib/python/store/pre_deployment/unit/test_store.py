@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    BATCH, advance, assign, batch_write, conditional, conditioned, delete, member, members, next_id,
+    BATCH, assign, batch_write, conditional, conditioned, delete, member, members, next_id,
     partition, plain, put, remove, reserve, sort_id, typed,
 )
 
@@ -175,44 +175,9 @@ def test_a_member_is_read_by_its_collection_and_its_id(dynamodb: SimpleNamespace
 KEY = {"PK": {"S": "carriers"}, "SK": {"S": "1"}}
 
 
-@pytest.mark.usefixtures("dynamodb")
-def test_an_advance_answers_the_value_the_field_held_before() -> None:
-    assert advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one") == 6
-
-
 def _update(dynamodb: SimpleNamespace) -> Dict[str, Any]:
     updates: List[Dict[str, Any]] = dynamodb.updates
     return updates[0]
-
-
-def test_an_advance_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one")
-    assert _update(dynamodb)["TableName"] == "the-table"
-
-
-def test_an_advance_is_of_the_key_it_names(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one")
-    assert _update(dynamodb)["Key"] == KEY
-
-
-def test_an_advance_names_the_field_it_moves(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one")
-    assert _update(dynamodb)["ExpressionAttributeNames"] == {"#next": "next_pop"}
-
-
-def test_an_advance_moves_the_field_by_one(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one")
-    assert _update(dynamodb)["ExpressionAttributeValues"] == {":one": {"N": "1"}}
-
-
-def test_an_advance_asks_for_the_new_value(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", UpdateExpression="SET #next = #next + :one")
-    assert _update(dynamodb)["ReturnValues"] == "UPDATED_NEW"
-
-
-def test_an_advance_passes_the_rest_of_the_request_through(dynamodb: SimpleNamespace) -> None:
-    advance("the-table", KEY, "next_pop", ConditionExpression="attribute_exists(PK)")
-    assert _update(dynamodb)["ConditionExpression"] == "attribute_exists(PK)"
 
 
 @pytest.mark.usefixtures("dynamodb")

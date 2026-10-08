@@ -104,6 +104,10 @@ def test_taking_a_pop_id_requires_the_carrier_to_exist_in_the_store(
     assert pop_request["ConditionExpression"] == "attribute_exists(PK)"
 
 
+def test_a_pop_takes_one_id_from_its_carrier(pop_request: Dict[str, Any]) -> None:
+    assert pop_request["ExpressionAttributeValues"][":count"] == {"N": "1"}
+
+
 def test_adding_a_pop_to_an_unknown_carrier_answers_404(answer: Handler) -> None:
     assert answer(post_pop(BOISE, "3"))["statusCode"] == 404
 
