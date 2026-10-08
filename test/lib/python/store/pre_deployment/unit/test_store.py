@@ -6,8 +6,8 @@ from botocore.exceptions import ClientError
 
 import store
 from store import (
-    BATCH, assign, batch_write, conditional, conditioned, delete, member, members, next_id,
-    partition, plain, put, remove, reserve, sort_id, typed,
+    ATTEMPTS, BATCH, PAUSE, assign, batch_write, conditional, conditioned, delete, member,
+    members, next_id, partition, plain, put, remove, reserve, sort_id, typed,
 )
 
 COUNTER = {"PK": {"S": "carriers"}, "SK": {"S": "#"}, "next": {"N": "3"}}
@@ -19,7 +19,7 @@ ZAYO = {"PK": {"S": "carriers"}, "SK": {"S": "2"}, "name": {"S": "zayo"}}
 def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     dynamodb = SimpleNamespace(
         queries=[], gets=[], updates=[], puts=[], deletes=[], batches=[], unprocessed=[],
-        items=[COUNTER, ZAYO, LUMEN],
+        sleeps=[], items=[COUNTER, ZAYO, LUMEN],
     )
 
     def query(**request: Any) -> Dict[str, Any]:
@@ -61,6 +61,7 @@ def dynamodb_fixture(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     dynamodb.delete_item = delete_item
     dynamodb.batch_write_item = batch_write_item
     monkeypatch.setattr(store, "aws_client", lambda service: {"dynamodb": dynamodb}[service])
+    monkeypatch.setattr(store, "time", SimpleNamespace(sleep=dynamodb.sleeps.append))
     return dynamodb
 
 
@@ -572,6 +573,43 @@ def test_a_batch_write_sends_the_requests_the_store_left_unprocessed_again(
     dynamodb.unprocessed = [{"the-table": [PUTS[1]]}]
     batch_write("the-table", PUTS[:2])
     assert _sent(dynamodb) == [PUTS[:2], [PUTS[1]]]
+
+
+def test_a_batch_write_pauses_before_each_resend_twice_as_long_as_before(
+    dynamodb: SimpleNamespace
+) -> None:
+    dynamodb.unprocessed = [{"the-table": [PUTS[1]]}, {"the-table": [PUTS[1]]}]
+    batch_write("the-table", PUTS[:2])
+    assert dynamodb.sleeps == [PAUSE, 2 * PAUSE]
+
+
+def test_a_batch_write_the_store_takes_whole_does_not_pause(dynamodb: SimpleNamespace) -> None:
+    batch_write("the-table", PUTS)
+    assert dynamodb.sleeps == []
+
+
+def test_a_batch_write_the_store_keeps_leaving_unprocessed_is_raised(
+    dynamodb: SimpleNamespace
+) -> None:
+    dynamodb.unprocessed = [{"the-table": [PUTS[1]]}] * ATTEMPTS
+    with pytest.raises(ClientError):
+        batch_write("the-table", PUTS[:2])
+
+
+@pytest.fixture(name="exhausted")
+def exhausted_fixture(dynamodb: SimpleNamespace) -> SimpleNamespace:
+    dynamodb.unprocessed = [{"the-table": [PUTS[1]]}] * (ATTEMPTS + 1)
+    with pytest.raises(ClientError):
+        batch_write("the-table", PUTS[:2])
+    return dynamodb
+
+
+def test_a_batch_write_sends_a_batch_no_more_than_its_attempts(exhausted: SimpleNamespace) -> None:
+    assert len(exhausted.batches) == ATTEMPTS
+
+
+def test_a_batch_write_does_not_pause_after_its_last_attempt(exhausted: SimpleNamespace) -> None:
+    assert len(exhausted.sleeps) == ATTEMPTS - 1
 
 
 def test_a_batch_write_goes_to_the_table_it_names(dynamodb: SimpleNamespace) -> None:

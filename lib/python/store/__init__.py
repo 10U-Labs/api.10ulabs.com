@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
@@ -6,6 +7,8 @@ from lambda_http import aws_client
 
 COUNTER = '#'
 BATCH = 25
+ATTEMPTS = 6
+PAUSE = 0.05
 
 
 def partition(table: str, key: str, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -124,13 +127,24 @@ def delete(table: str, partition_key: str, sort_key: str) -> Optional[Dict[str, 
     return conditioned('delete_item', table, key, ReturnValues='ALL_OLD')
 
 
+def _written(store: Any, table: str, pending: List[Dict[str, Any]]) -> None:
+    for attempt in range(ATTEMPTS):
+        if attempt:
+            time.sleep(PAUSE * 2 ** (attempt - 1))
+        answer = store.batch_write_item(RequestItems={table: pending})
+        pending = answer.get('UnprocessedItems', {}).get(table, [])
+        if not pending:
+            return
+    raise ClientError(
+        {'Error': {'Code': 'UnprocessedItems', 'Message': 'requests left unwritten'}},
+        'BatchWriteItem',
+    )
+
+
 def batch_write(table: str, requests: List[Dict[str, Any]]) -> None:
     store = aws_client('dynamodb')
     for start in range(0, len(requests), BATCH):
-        pending = requests[start:start + BATCH]
-        while pending:
-            answer = store.batch_write_item(RequestItems={table: pending})
-            pending = answer.get('UnprocessedItems', {}).get(table, [])
+        _written(store, table, requests[start:start + BATCH])
 
 
 def remove(table: str, collection: str, member_id: str) -> bool:
