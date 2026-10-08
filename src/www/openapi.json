@@ -3282,6 +3282,52 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listWanSynthesesOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
+        }
       }
     },
     "/wan-syntheses/{id}": {
@@ -3660,6 +3706,65 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/wan-pops",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listWanPopsOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
+        }
       }
     },
     "/wan-syntheses/{id}/wan-pops/{wan_pop_id}": {
@@ -3926,6 +4031,65 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/backbone-circuits",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listBackboneCircuitsOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
+        }
       }
     },
     "/wan-syntheses/{id}/homing-circuits": {
@@ -4050,6 +4214,65 @@
           "uri": "${ListHomingCircuitsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/homing-circuits",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listHomingCircuitsOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
         }
       }
     },
@@ -4200,6 +4423,65 @@
           "httpMethod": "POST",
           "type": "aws_proxy"
         }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/fiber-segments",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listRiddenFiberSegmentsOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
+        }
       }
     },
     "/wan-syntheses/{id}/sites": {
@@ -4322,6 +4604,65 @@
           "uri": "${ListSitesHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/sites",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listSitesOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
         }
       }
     },
@@ -4570,6 +4911,65 @@
           "uri": "${ListRunRegionsHandlerArn}",
           "httpMethod": "POST",
           "type": "aws_proxy"
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /wan-syntheses/{id}/hyperscale-cloud-service-provider-regions",
+        "description": "Allows the WAN Synthesizer map at https://www.10ulabs.com to read this route with its Google ID token",
+        "operationId": "listGivenHyperscaleCloudServiceProviderRegionsOptions",
+        "tags": [
+          "/wan-syntheses"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id the API assigned the synthesis",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CORS headers",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Methods": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Access-Control-Allow-Headers": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "mock",
+          "requestTemplates": {
+            "application/json": "{\"statusCode\": 200}"
+          },
+          "responses": {
+            "default": {
+              "statusCode": "200",
+              "responseParameters": {
+                "method.response.header.Access-Control-Allow-Origin": "'https://www.10ulabs.com'",
+                "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
+                "method.response.header.Access-Control-Allow-Headers": "'Authorization'"
+              }
+            }
+          }
         }
       }
     },

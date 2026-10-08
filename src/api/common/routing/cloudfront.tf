@@ -152,6 +152,28 @@ resource "aws_cloudfront_cache_policy" "reads" {
   }
 }
 
+resource "aws_cloudfront_response_headers_policy" "map_reads" {
+  name    = "${module.common.product}-map-reads"
+  comment = "Lets the WAN Synthesizer map at https://www.10ulabs.com read every answer the gateway gives it, its refusals among them."
+
+  cors_config {
+    access_control_allow_credentials = false
+    origin_override                  = false
+
+    access_control_allow_headers {
+      items = ["Authorization"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "OPTIONS"]
+    }
+
+    access_control_allow_origins {
+      items = ["https://www.10ulabs.com"]
+    }
+  }
+}
+
 resource "aws_cloudfront_function" "root" {
   name    = "${module.common.product}-root"
   runtime = "cloudfront-js-2.0"
@@ -329,8 +351,9 @@ resource "aws_cloudfront_distribution" "api" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = aws_cloudfront_cache_policy.reads.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+    cache_policy_id            = aws_cloudfront_cache_policy.reads.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.map_reads.id
   }
 
   ordered_cache_behavior {
@@ -341,8 +364,9 @@ resource "aws_cloudfront_distribution" "api" {
     cached_methods         = ["GET", "HEAD"]
     compress               = true
 
-    cache_policy_id          = aws_cloudfront_cache_policy.reads.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+    cache_policy_id            = aws_cloudfront_cache_policy.reads.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.map_reads.id
   }
 
   viewer_certificate {
