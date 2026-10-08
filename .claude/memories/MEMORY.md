@@ -34,6 +34,7 @@ This directory is the rulebook. One memory holds one rule, so a session can reca
 
 - [write-the-test-first](write-the-test-first.md) — the test is authored before the code, and red and green are observed in CI
 - [the-deployed-tests-hold-only-the-workflows-key](the-deployed-tests-hold-only-the-workflows-key.md) — post-deployment tests bear only the workflows' API key; a route it is denied is tested for its 403, its logic in the unit tests
+- [a-deployed-test-writes-no-data](a-deployed-test-writes-no-data.md) — no test may write data; a post-deployment test reads what the store holds, tests a write route only by a refusal, and leaves the write's logic to the unit tests
 - [a-fixture-consumed-in-its-own-file-is-named](a-fixture-consumed-in-its-own-file-is-named.md) — `name=` on a `*_fixture` function when the file that defines a fixture also requests it, a plain `def` when only other files do; W0621 and `assert-pytest-fixture-name-is-needed` pull opposite ways
 - [a-raise-expected-in-a-test-is-raised-in-a-fixture](a-raise-expected-in-a-test-is-raised-in-a-fixture.md) — `assert-one-assert-per-pytest` counts `pytest.raises` as an assert, so the raising call goes in a fixture and the test keeps its one assert
 

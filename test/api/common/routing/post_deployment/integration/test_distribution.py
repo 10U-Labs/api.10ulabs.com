@@ -97,6 +97,16 @@ def test_the_distribution_fronts_the_bucket_named_for_the_host(
     assert BUCKET_HOST in origins
 
 
+def test_a_stored_rack_configuration_is_cached_as_the_carriers_are(
+    distribution: Dict[str, Any],
+) -> None:
+    policies = {
+        behavior["PathPattern"]: behavior["CachePolicyId"]
+        for behavior in distribution["CacheBehaviors"]["Items"]
+    }
+    assert policies["/rack-configurations/*"] == policies["/carriers"]
+
+
 def test_the_files_are_held_for_as_little_as_they_ask(cache_policy: Dict[str, Any]) -> None:
     assert cache_policy["MinTTL"] == 0
 
