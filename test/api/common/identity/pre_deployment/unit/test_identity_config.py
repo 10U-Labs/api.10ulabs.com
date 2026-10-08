@@ -1,8 +1,6 @@
 import os
 import re
 
-import pytest
-
 STATE_PREFIX = '"${local.state_bucket}/api.10ulabs.com/*"'
 ON_EVERY_RESOURCE = r'sid\s*=\s*"(\w+)"\s*actions\s*=\s*\[[^\]]*\]\s*resources = \["\*"\]'
 ATTACH_STATEMENT = (
@@ -101,6 +99,5 @@ def test_the_role_may_read_whether_the_copies_are_dropped(iam_tf: str) -> None:
     assert '"cloudfront:GetInvalidation",' in iam_tf
 
 
-@pytest.mark.parametrize("verb", ["Create", "Get", "Update", "Delete"])
-def test_the_role_may_declare_a_response_headers_policy(iam_tf: str, verb: str) -> None:
-    assert f'"cloudfront:{verb}ResponseHeadersPolicy",' in iam_tf
+def test_the_role_may_declare_a_response_headers_policy(iam_tf: str) -> None:
+    assert '"cloudfront:*ResponseHeadersPolicy",' in iam_tf
