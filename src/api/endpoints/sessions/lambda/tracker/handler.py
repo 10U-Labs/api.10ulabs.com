@@ -2,19 +2,18 @@ import json
 import logging
 import os
 import re
-import time
 from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 
-from lambda_http import aws_client, dispatch, json_response, parse_object
+from lambda_http import dispatch, json_response, parse_object
+from store import batch_write
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 ISO8601 = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}')
 EVENTS_MAXIMUM = 25
-WRITE_ATTEMPTS = 5
 CORS_HEADERS = {'Access-Control-Allow-Origin': '*'}
 
 
@@ -72,19 +71,6 @@ def _item(session_id: str, body: Dict[str, Any], event: Dict[str, Any]) -> Dict[
     return item
 
 
-def _write(items: List[Dict[str, Any]]) -> None:
-    table = os.environ['SESSION_EVENTS_TABLE']
-    pending = {table: [{'PutRequest': {'Item': item}} for item in items]}
-    for attempt in range(WRITE_ATTEMPTS):
-        written = aws_client('dynamodb').batch_write_item(RequestItems=pending)
-        pending = written.get('UnprocessedItems') or {}
-        if not pending:
-            return
-        time.sleep(0.1 * 2 ** attempt)
-    raise ClientError({'Error': {'Code': 'UnprocessedItems', 'Message': 'events left unwritten'}},
-                      'BatchWriteItem')
-
-
 def _record(event: Dict[str, Any]) -> Dict[str, Any]:
     session_id = (event.get('pathParameters') or {}).get('id') or ''
     if not session_id:
@@ -99,7 +85,9 @@ def _record(event: Dict[str, Any]) -> Dict[str, Any]:
     if events_error:
         return _error(400, 'Invalid events', events_error)
     try:
-        _write([_item(session_id, body, item) for item in body['events']])
+        batch_write(os.environ['SESSION_EVENTS_TABLE'], [
+            {'PutRequest': {'Item': _item(session_id, body, one)}} for one in body['events']
+        ])
     except ClientError as error:
         logger.error('Error recording session events: %s', error)
         return _error(500, 'Failed to record the events')

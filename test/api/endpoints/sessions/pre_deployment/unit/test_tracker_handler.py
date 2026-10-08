@@ -4,6 +4,8 @@ from typing import Any, Dict, List
 
 import pytest
 
+from store import ATTEMPTS
+
 EVENTS = "/sessions/{id}/events"
 
 
@@ -67,6 +69,13 @@ def test_unprocessed_events_are_written_again(
     events_table.refusals = 2
     _answer(tracker, _post(_request(events)))
     assert len(events_table.items) == 2
+
+
+def test_events_left_unprocessed_on_all_but_the_store_s_last_attempt_answer_200(
+    tracker: ModuleType, events: List[Dict[str, Any]], events_table: SimpleNamespace
+) -> None:
+    events_table.refusals = ATTEMPTS - 1
+    assert _answer(tracker, _post(_request(events)))["statusCode"] == 200
 
 
 def test_events_still_unprocessed_after_every_attempt_answer_500(

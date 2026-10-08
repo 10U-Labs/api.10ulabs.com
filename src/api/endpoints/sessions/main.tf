@@ -32,6 +32,10 @@ data "archive_file" "handler" {
     content  = file("${path.module}/../../../../lib/python/lambda_http/__init__.py")
     filename = "lambda_http.py"
   }
+  source {
+    content  = file("${path.module}/../../../../lib/python/store/__init__.py")
+    filename = "store.py"
+  }
   output_path = "${path.module}/.terraform/lambda_packages/handler.zip"
 }
 

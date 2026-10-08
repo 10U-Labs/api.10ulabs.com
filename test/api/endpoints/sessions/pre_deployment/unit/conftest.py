@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List
 import pytest
 from botocore.exceptions import ClientError
 
+import store
+
 
 @pytest.fixture(name="events_table")
 def events_table_fixture() -> SimpleNamespace:
@@ -32,8 +34,8 @@ def tracker(
 ) -> ModuleType:
     handler = load_handler("api/endpoints/sessions", "lambda/tracker")
     monkeypatch.setenv("SESSION_EVENTS_TABLE", "events")
-    monkeypatch.setattr(handler, "aws_client", lambda service: {"dynamodb": events_table}[service])
-    monkeypatch.setattr(handler, "time", SimpleNamespace(sleep=lambda _: None))
+    monkeypatch.setattr(store, "aws_client", lambda service: {"dynamodb": events_table}[service])
+    monkeypatch.setattr(store, "time", SimpleNamespace(sleep=lambda _: None))
     return handler
 
 
