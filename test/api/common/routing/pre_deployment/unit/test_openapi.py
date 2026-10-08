@@ -111,6 +111,7 @@ FORCED_HOMES = "/wan-syntheses/{id}/forced-homes"
 PROHIBITED_WAN_POPS = "/wan-syntheses/{id}/prohibited-wan-pops"
 PROHIBITED_CIRCUITS = "/wan-syntheses/{id}/prohibited-circuits"
 DEGREE_EXEMPT_WAN_POPS = "/wan-syntheses/{id}/degree-exempt-wan-pops"
+MAP_LISTS = [WAN_POPS, BACKBONE_CIRCUITS, HOMING_CIRCUITS, RIDDEN_FIBER, SITES, RUN_REGIONS]
 NAMED_INPUT_FIELDS = ["id", "name"]
 ENDS_INPUT_FIELDS = ["id", "source", "target"]
 UNDER_A_SITE = [(SITE, "get")]
@@ -468,12 +469,20 @@ def test_a_synthesis_still_running_is_documented_as_409(openapi: Dict[str, Any])
     assert "409" in openapi["paths"][SYNTHESIS]["delete"]["responses"]
 
 
-def test_the_syntheses_answer_get_and_post(openapi: Dict[str, Any]) -> None:
-    assert list(openapi["paths"][SYNTHESES]) == ["get", "post"]
+def test_the_syntheses_answer_get_post_and_the_map_preflight(openapi: Dict[str, Any]) -> None:
+    assert list(openapi["paths"][SYNTHESES]) == ["get", "post", "options"]
+
+
+@pytest.mark.parametrize("path", MAP_LISTS)
+def test_a_list_the_map_reads_answers_get_and_its_preflight(
+    openapi: Dict[str, Any], path: str
+) -> None:
+    assert list(openapi["paths"][path]) == ["get", "options"]
 
 
 @pytest.mark.parametrize(
-    "path", [path for path, _ in READINGS if path not in (SYNTHESES, SYNTHESIS)]
+    "path",
+    [path for path, _ in READINGS if path not in (SYNTHESES, SYNTHESIS, *MAP_LISTS)],
 )
 def test_a_path_under_the_syntheses_answers_get_alone(openapi: Dict[str, Any], path: str) -> None:
     assert list(openapi["paths"][path]) == ["get"]
